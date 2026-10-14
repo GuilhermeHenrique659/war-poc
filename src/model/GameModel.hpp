@@ -3,6 +3,7 @@
 #include "core/EventBus.hpp"
 #include "core/Events.hpp"
 #include "model/BuildingSystem.hpp"
+#include "model/MergeSystem.hpp"
 #include "model/Scene.hpp"
 #include "model/SelectionSystem.hpp"
 #include "model/UnitSystem.hpp"
@@ -55,6 +56,7 @@ private:
     std::unique_ptr<BuildingSystem> buildings_;
     std::unique_ptr<UnitSystem> units_;
     std::unique_ptr<SelectionSystem> selection_;
+    std::unique_ptr<MergeSystem> merges_; // References units_ and selection_.
 };
 
 } // namespace model

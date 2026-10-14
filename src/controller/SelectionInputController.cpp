@@ -36,8 +36,9 @@ void SelectionInputController::subscribe()
         cancelDrag();
     });
     bus_.subscribe<events::UnitSpawned>([this](const events::UnitSpawned& e) {
-        units_[e.entity] = UnitInfo{e.owner, e.x, e.y};
+        units_[e.entity] = UnitInfo{e.owner, e.x, e.y, e.size};
     });
+    bus_.subscribe<events::UnitRemoved>([this](const events::UnitRemoved& e) { units_.erase(e.entity); });
     bus_.subscribe<events::UnitMoved>([this](const events::UnitMoved& e) {
         const auto it = units_.find(e.entity);
         if (it == units_.end()) {
@@ -160,7 +161,7 @@ std::optional<model::ecs::Entity> SelectionInputController::unitAt(Vector2 world
         if (unit.owner != model::kLocalPlayer) {
             continue;
         }
-        if (!CheckCollisionPointRec(world, view::unit_layout::hitBounds(unit.x, unit.y))) {
+        if (!CheckCollisionPointRec(world, view::unit_layout::hitBounds(unit.x, unit.y, unit.size))) {
             continue;
         }
         const float depth = unit.x + unit.y;

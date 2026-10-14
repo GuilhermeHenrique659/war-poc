@@ -31,6 +31,7 @@ private:
         model::PlayerId owner;
         float x;
         float y;
+        int size;
     };
 
     struct BuildingInfo {

@@ -2,6 +2,7 @@
 
 #include "core/EventBus.hpp"
 #include "view/BuildBarView.hpp"
+#include "view/MergePanelView.hpp"
 #include "view/RecruitPanelView.hpp"
 #include "view/WorldView.hpp"
 
@@ -9,7 +10,7 @@
 
 namespace view {
 
-// Match scene: the isometric world with the build bar and recruit panel on top.
+// Match scene: the isometric world with the build bar and the recruit / merge panels on top.
 class PlayingView {
 public:
     explicit PlayingView(core::EventBus& bus);
@@ -20,6 +21,7 @@ private:
     std::unique_ptr<WorldView> world_;
     std::unique_ptr<BuildBarView> buildBar_;
     std::unique_ptr<RecruitPanelView> recruitPanel_;
+    std::unique_ptr<MergePanelView> mergePanel_;
 };
 
 } // namespace view

@@ -103,7 +103,7 @@ void SelectionSystem::publish(PlayerId player) const
 
     events::RecruitPanelChanged panel{player, selectedCommandCenter(player).has_value(), {}};
     if (panel.open) {
-        for (const UnitType type : kUnitTypes) {
+        for (const UnitType type : kRecruitableUnitTypes) {
             const UnitSpec spec = unitSpec(type);
             panel.entries.push_back(events::RecruitEntry{
                 type, std::string(spec.label), spec.maxHealth, spec.damage, spec.range, spec.speed});

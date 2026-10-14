@@ -43,6 +43,7 @@ private:
     std::optional<model::GridPos> lastTile_;
     bool placing_ = false; // Left button went down on the map and is still held.
     std::vector<model::UnitType> panelTypes_; // Empty while the recruit panel is closed.
+    bool mergeOpen_ = false;
 };
 
 } // namespace controller

@@ -63,7 +63,11 @@ WorldView::WorldView(core::EventBus& bus)
 void WorldView::subscribeUnits()
 {
     bus_.subscribe<events::UnitSpawned>([this](const events::UnitSpawned& e) {
-        units_[e.entity] = UnitVisual{e.entity, e.type, e.x, e.y, e.health, e.maxHealth};
+        units_[e.entity] = UnitVisual{e.entity, e.type, e.x, e.y, e.health, e.maxHealth, e.size};
+    });
+    bus_.subscribe<events::UnitRemoved>([this](const events::UnitRemoved& e) {
+        units_.erase(e.entity);
+        selectedUnits_.erase(e.entity);
     });
     bus_.subscribe<events::UnitMoved>([this](const events::UnitMoved& e) {
         const auto it = units_.find(e.entity);
@@ -222,9 +226,9 @@ void WorldView::drawObjects() const
     for (const UnitVisual* unit : units) {
         drawBuildingsUpTo(unit->x + unit->y);
         if (selectedUnits_.contains(unit->entity)) {
-            drawUnitSelectionRing(unit->x, unit->y);
+            drawUnitSelectionRing(unit->x, unit->y, unit->size);
         }
-        drawUnit(unit->type, unit->x, unit->y);
+        drawUnit(unit->type, unit->x, unit->y, unit->size);
     }
     drawBuildingsUpTo(std::numeric_limits<float>::max());
 }
@@ -237,7 +241,8 @@ void WorldView::drawHealthBars() const
             continue;
         }
         const UnitVisual& unit = it->second;
-        drawUnitHealthBar(unit.x, unit.y, static_cast<float>(unit.health) / static_cast<float>(unit.maxHealth));
+        drawUnitHealthBar(
+            unit.x, unit.y, unit.size, static_cast<float>(unit.health) / static_cast<float>(unit.maxHealth));
     }
 }
 

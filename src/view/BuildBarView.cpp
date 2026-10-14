@@ -31,6 +31,7 @@ constexpr std::array kHelpLines{
     "Clique no Centro de Comando: recrutar tropas",
     "Clique / arraste: selecionar tropas (Shift soma)",
     "Botao direito: mover tropas selecionadas",
+    "M ou botao Juntar: combinar tropas selecionadas",
     "WASD / setas / botao do meio: mover camera",
     "Roda do mouse: zoom   |   ESC: limpar selecao / menu",
 };

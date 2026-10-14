@@ -38,6 +38,7 @@ private:
         float y;
         int health;
         int maxHealth;
+        int size;
     };
 
     void subscribeUnits();

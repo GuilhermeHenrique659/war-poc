@@ -55,6 +55,7 @@ Documento vivo com as regras do jogo. Itens marcados como **TBD** ainda não for
   - Caminho por A* em 8 direções, desviando de construções e sem cortar quinas. Tropas não colidem entre si durante o trajeto, mas paradas nunca dividem tile.
   - Se uma construção for colocada no caminho, a tropa recalcula a rota. Se o destino não for alcançável, ela para no tile livre mais próximo de onde está.
 - Não é possível construir sobre um tile com tropa (parada, andando ou com o tile reservado como destino).
+- Na formação, as tropas maiores escolhem o lugar primeiro. Depois, as mais próximas do destino.
 - `ESC` com tropas ou construção selecionadas limpa a seleção; sem seleção, volta ao menu.
 - Tipos atuais (velocidade em tiles/s, alcance em tiles):
 
@@ -65,6 +66,22 @@ Documento vivo com as regras do jogo. Itens marcados como **TBD** ainda não for
 | Cavalaria | 140 | 14 | 1 | 3.5 |
 
 - Vida, dano e alcance já são guardados, mas ainda não têm efeito: combate é **TBD** (ataque, alvos, cadência, morte).
+
+### Juntar tropas (merge)
+- Com 2 ou mais tropas selecionadas aparece o painel de merge no canto superior direito, mostrando os atributos da tropa que vai nascer. O botão `Juntar` (ou a tecla `M`) junta **todas** as tropas selecionadas em uma **Tropa Combinada** (um mech).
+- Qualquer combinação vale: tipos iguais, diferentes e tropas que já são combinadas.
+- Atributos da tropa nova:
+  - Vida máxima = soma das vidas máximas. Vida atual = soma das vidas atuais.
+  - Dano = soma dos danos.
+  - Alcance = o maior alcance.
+  - Velocidade = média ponderada pela quantidade de tropas recrutadas dentro de cada uma. Juntar em etapas dá o mesmo resultado que juntar tudo de uma vez.
+- **Tamanho**: poder = vida máxima + 10 × dano. O lado do quadrado ocupado é `1 + poder / 400` (divisão inteira), de 1x1 até no máximo 5x5. Ex.: 2 Infantarias = poder 400, vira 2x2.
+- Requisitos (sem eles o botão fica desativado e mostra o motivo):
+  - Todas as tropas a até 3 tiles do centro do grupo ("Muito longe").
+  - Um espaço livre do tamanho da tropa nova a até 3 tiles do centro do grupo ("Sem espaco"). Os tiles das tropas que vão se juntar contam como livres.
+- O merge é instantâneo. As tropas de origem somem, a nova aparece no espaço livre mais próximo do centro e fica selecionada.
+- Tropas maiores que 1x1 ocupam e reservam o quadrado inteiro: nada é construído em cima e o caminho só passa por onde o quadrado inteiro cabe (um mech 2x2 não passa num vão de 1 tile).
+- **TBD**: desfazer o merge (separar), custo ou tempo do merge fora do sandbox.
 - **TBD**: custo e tempo de recrutamento fora do sandbox, limite de tropas, colisão entre tropas.
 
 ## Vitória / derrota

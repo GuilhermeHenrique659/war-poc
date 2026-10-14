@@ -78,6 +78,11 @@ struct MoveOrderRequested {
     model::GridPos tile;
 };
 
+// Merges all of the player's selected units into one Combined unit.
+struct MergeRequested {
+    model::PlayerId player;
+};
+
 // Controller -> View (selection box being dragged, in screen pixels)
 struct SelectionBoxChanged {
     bool visible;
@@ -146,7 +151,7 @@ struct BuildingPlaced {
     int size;
 };
 
-// Unit positions are continuous grid coordinates (tile center = tile + 0.5).
+// Unit positions are the continuous grid coordinates of the unit's center (tile center = tile + 0.5).
 struct UnitSpawned {
     model::ecs::Entity entity;
     model::PlayerId owner;
@@ -155,12 +160,34 @@ struct UnitSpawned {
     float y;
     int health;
     int maxHealth;
+    int size; // Square footprint, in tiles per side.
+    int baseCount;
 };
 
 struct UnitMoved {
     model::ecs::Entity entity;
     float x;
     float y;
+};
+
+struct UnitRemoved {
+    model::ecs::Entity entity;
+};
+
+// Open while the player has two or more units selected. Stats describe the unit the merge would create.
+struct MergePanelChanged {
+    model::PlayerId player = model::kLocalPlayer;
+    bool open = false;
+    int unitCount = 0;
+    bool canMerge = false;
+    std::string blockedReason;
+    int maxHealth = 0;
+    int damage = 0;
+    float range = 0.0f;
+    float speed = 0.0f;
+    int size = 1;
+
+    friend bool operator==(const MergePanelChanged&, const MergePanelChanged&) = default;
 };
 
 struct SelectionChanged {

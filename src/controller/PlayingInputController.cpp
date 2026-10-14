@@ -4,6 +4,7 @@
 #include "model/Player.hpp"
 #include "view/BuildBarLayout.hpp"
 #include "view/IsoProjection.hpp"
+#include "view/MergePanelLayout.hpp"
 #include "view/RecruitPanelLayout.hpp"
 
 namespace controller {
@@ -45,10 +46,16 @@ PlayingInputController::PlayingInputController(core::EventBus& bus)
             panelTypes_.push_back(entry.type);
         }
     });
+    bus_.subscribe<events::MergePanelChanged>([this](const events::MergePanelChanged& e) {
+        if (e.player == model::kLocalPlayer) {
+            mergeOpen_ = e.open;
+        }
+    });
     bus_.subscribe<events::WorldReset>([this](const events::WorldReset&) {
         lastTile_.reset();
         placing_ = false;
         panelTypes_.clear();
+        mergeOpen_ = false;
     });
 }
 
@@ -145,6 +152,10 @@ void PlayingInputController::handleCamera()
 
 void PlayingInputController::handleShortcuts()
 {
+    if (mergeOpen_ && IsKeyPressed(KEY_M)) {
+        bus_.publish(events::MergeRequested{model::kLocalPlayer});
+        return;
+    }
     for (std::size_t i = 0; i < barTypes_.size() && i < kMaxShortcuts; ++i) {
         if (IsKeyPressed(KEY_ONE + static_cast<int>(i))) {
             bus_.publish(events::BuildSelectRequested{model::kLocalPlayer, barTypes_[i]});
@@ -177,6 +188,12 @@ void PlayingInputController::handlePanelMouse(Vector2 mouse)
         return;
     }
     const int screenWidth = GetScreenWidth();
+    if (mergeOpen_) {
+        if (CheckCollisionPointRec(mouse, view::merge_panel_layout::buttonBounds(screenWidth))) {
+            bus_.publish(events::MergeRequested{model::kLocalPlayer});
+        }
+        return;
+    }
     if (CheckCollisionPointRec(mouse, view::recruit_panel_layout::closeBounds(panelTypes_.size(), screenWidth))) {
         bus_.publish(events::SelectionClearRequested{model::kLocalPlayer});
         return;
@@ -234,6 +251,9 @@ std::optional<std::size_t> PlayingInputController::slotUnderMouse(Vector2 mouse)
 
 bool PlayingInputController::isOverPanel(Vector2 mouse) const
 {
+    if (mergeOpen_ && CheckCollisionPointRec(mouse, view::merge_panel_layout::panelBounds(GetScreenWidth()))) {
+        return true;
+    }
     if (panelTypes_.empty()) {
         return false;
     }

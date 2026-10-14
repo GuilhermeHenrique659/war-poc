@@ -104,8 +104,14 @@ std::optional<std::vector<GridPos>> findPath(GridPos start, GridPos goal, const 
     return std::nullopt;
 }
 
-std::vector<GridPos> nearestFreeTiles(GridPos center, std::size_t count, const TilePredicate& unavailable)
+std::vector<GridPos> nearestFreeTiles(
+    GridPos center, std::size_t count, const TilePredicate& unavailable, int maxRadius)
 {
+    const auto withinRadius = [&](GridPos tile) {
+        return maxRadius == kUnlimitedRadius
+            || std::max(std::abs(tile.x - center.x), std::abs(tile.y - center.y)) <= maxRadius;
+    };
+
     std::vector<GridPos> result;
     if (count == 0) {
         return result;
@@ -121,7 +127,7 @@ std::vector<GridPos> nearestFreeTiles(GridPos center, std::size_t count, const T
         }
         for (const GridPos dir : kDirections) {
             const GridPos next{tile.x + dir.x, tile.y + dir.y};
-            if (visited.insert(next).second) {
+            if (withinRadius(next) && visited.insert(next).second) {
                 frontier.push_back(next);
             }
         }

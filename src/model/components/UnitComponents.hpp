@@ -11,6 +11,8 @@ namespace model::components {
 
 struct Unit {
     UnitType type;
+    int baseCount; // Recruited units inside it (merges add up).
+    int size; // Square footprint, in tiles per side.
 };
 
 struct Health {
@@ -23,7 +25,8 @@ struct Combat {
     float range; // Tiles.
 };
 
-// Continuous grid coordinates. The center of tile (x, y) is (x + 0.5, y + 0.5).
+// Continuous grid coordinates of the unit's center. A unit of size N whose square starts at
+// tile (x, y) is centered at (x + N / 2, y + N / 2).
 struct Position {
     float x;
     float y;
@@ -31,9 +34,9 @@ struct Position {
 
 struct Mover {
     float speed; // Tiles per second.
-    std::vector<GridPos> path; // Waypoints still ahead start at `next`.
+    std::vector<GridPos> path; // Square origins still ahead start at `next`.
     std::size_t next;
-    GridPos destination; // Tile reserved for this unit (where it stands when idle).
+    GridPos destination; // Origin of the square reserved for this unit (where it stands when idle).
 };
 
 } // namespace model::components

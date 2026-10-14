@@ -9,6 +9,7 @@ GameModel::GameModel(core::EventBus& bus)
     , buildings_(std::make_unique<BuildingSystem>(bus_, *world_))
     , units_(std::make_unique<UnitSystem>(bus_, *world_, *buildings_))
     , selection_(std::make_unique<SelectionSystem>(bus_, *world_))
+    , merges_(std::make_unique<MergeSystem>(bus_, *world_, *units_, *selection_))
 {
     buildings_->setTileBlocker([this](GridPos tile) { return units_->isTileTaken(tile); });
 
@@ -33,21 +34,29 @@ void GameModel::subscribeUnitCommands()
     bus_.subscribe<events::SelectUnitsRequested>([this](const events::SelectUnitsRequested& e) {
         if (inMatch()) {
             selection_->selectUnits(e.player, e.units, e.additive);
+            merges_->refresh(e.player);
         }
     });
     bus_.subscribe<events::SelectBuildingRequested>([this](const events::SelectBuildingRequested& e) {
         if (inMatch()) {
             selection_->selectBuilding(e.player, e.building);
+            merges_->refresh(e.player);
         }
     });
     bus_.subscribe<events::SelectionClearRequested>([this](const events::SelectionClearRequested& e) {
         if (inMatch()) {
             selection_->clear(e.player);
+            merges_->refresh(e.player);
         }
     });
     bus_.subscribe<events::MoveOrderRequested>([this](const events::MoveOrderRequested& e) {
         if (inMatch()) {
             units_->orderMove(e.player, selection_->selectedUnits(e.player), e.tile);
+        }
+    });
+    bus_.subscribe<events::MergeRequested>([this](const events::MergeRequested& e) {
+        if (inMatch()) {
+            merges_->merge(e.player);
         }
     });
 }
@@ -91,6 +100,8 @@ void GameModel::update(float deltaSeconds)
     if (units_->update(deltaSeconds)) {
         buildings_->refreshPreviews();
     }
+    // Merge validity depends on positions and free space; it only republishes on change.
+    merges_->refreshAll();
 }
 
 void GameModel::onMenuNavigate(const events::MenuNavigateRequested& event)
@@ -169,6 +180,7 @@ void GameModel::resetWorld()
     buildings_->reset();
     units_->reset();
     selection_->reset();
+    merges_->reset();
 }
 
 void GameModel::startMatch()

@@ -1,6 +1,7 @@
 #include "view/UnitRenderer.hpp"
 
 #include "view/IsoShapes.hpp"
+#include "view/MechRenderer.hpp"
 #include "view/UnitLayout.hpp"
 
 #include <algorithm>
@@ -12,6 +13,7 @@ namespace {
 constexpr Color kInfantryColor{190, 60, 50, 255};
 constexpr Color kRangedColor{60, 150, 70, 255};
 constexpr Color kCavalryColor{210, 165, 60, 255};
+constexpr Color kCombinedColor{140, 80, 200, 255};
 constexpr Color kSkinColor{230, 190, 150, 255};
 constexpr Color kHorseColor{120, 80, 50, 255};
 constexpr Color kShieldColor{90, 90, 110, 255};
@@ -82,14 +84,17 @@ Color unitColor(model::UnitType type)
         return kRangedColor;
     case model::UnitType::Cavalry:
         return kCavalryColor;
+    case model::UnitType::Combined:
+        return kCombinedColor;
     }
     return MAGENTA;
 }
 
-void drawUnit(model::UnitType type, float gx, float gy)
+void drawUnit(model::UnitType type, float gx, float gy, int size)
 {
     const Vector2 ground = unit_layout::groundPoint(gx, gy);
-    DrawEllipse(static_cast<int>(ground.x), static_cast<int>(ground.y), 11.0f, 5.5f, Color{0, 0, 0, 70});
+    const float shadow = unit_layout::halfWidth(size) * 0.85f;
+    DrawEllipse(static_cast<int>(ground.x), static_cast<int>(ground.y), shadow, shadow / 2.0f, Color{0, 0, 0, 70});
 
     switch (type) {
     case model::UnitType::Infantry:
@@ -101,27 +106,31 @@ void drawUnit(model::UnitType type, float gx, float gy)
     case model::UnitType::Cavalry:
         drawCavalry(gx, gy);
         return;
+    case model::UnitType::Combined:
+        drawMech(gx, gy, size);
+        return;
     }
 }
 
-void drawUnitSelectionRing(float gx, float gy)
+void drawUnitSelectionRing(float gx, float gy, int size)
 {
     const Vector2 ground = unit_layout::groundPoint(gx, gy);
     const int x = static_cast<int>(ground.x);
     const int y = static_cast<int>(ground.y);
-    DrawEllipseLines(x, y, 15.0f, 7.5f, kRingColor);
-    DrawEllipseLines(x, y, 16.0f, 8.0f, kRingColor);
+    const float radius = unit_layout::halfWidth(size) + 2.0f;
+    DrawEllipseLines(x, y, radius, radius / 2.0f, kRingColor);
+    DrawEllipseLines(x, y, radius + 1.0f, (radius + 1.0f) / 2.0f, kRingColor);
 }
 
-void drawUnitHealthBar(float gx, float gy, float ratio)
+void drawUnitHealthBar(float gx, float gy, int size, float ratio)
 {
-    constexpr float kWidth = 26.0f;
     constexpr float kHeight = 4.0f;
+    const float width = 26.0f * std::max(1.0f, 0.8f * static_cast<float>(size));
 
     const Vector2 ground = unit_layout::groundPoint(gx, gy);
-    const Rectangle back{ground.x - kWidth / 2.0f, ground.y - unit_layout::kHitHeight - 6.0f, kWidth, kHeight};
+    const Rectangle back{ground.x - width / 2.0f, ground.y - unit_layout::spriteHeight(size) - 6.0f, width, kHeight};
     DrawRectangleRec(back, Color{20, 20, 20, 200});
-    DrawRectangleRec(Rectangle{back.x, back.y, kWidth * std::clamp(ratio, 0.0f, 1.0f), kHeight}, kRingColor);
+    DrawRectangleRec(Rectangle{back.x, back.y, width * std::clamp(ratio, 0.0f, 1.0f), kHeight}, kRingColor);
     DrawRectangleLinesEx(back, 1.0f, BLACK);
 }
 
