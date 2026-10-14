@@ -1,0 +1,480 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>War POC: Arquitetura</title>
+<style>
+  :root { --bg:#14141c; --panel:#1e1e2a; --line:#34344a; --text:#e4e4ee; --muted:#9a9ab0;
+          --ctrl:#4f8cff; --model:#46c37b; --view:#f0a640; --bus:#c46cf0; --code:#101018; }
+  * { box-sizing: border-box; }
+  body { margin:0; background:var(--bg); color:var(--text); font:15px/1.6 "Segoe UI", system-ui, sans-serif; }
+  nav { position:fixed; top:0; left:0; bottom:0; width:230px; padding:24px 18px; background:var(--panel);
+        border-right:1px solid var(--line); overflow-y:auto; }
+  nav a { display:block; color:var(--muted); text-decoration:none; padding:4px 0; font-size:14px; }
+  nav a:hover { color:var(--text); }
+  nav strong { display:block; margin-bottom:12px; }
+  main { margin-left:230px; padding:32px 48px 80px; max-width:1180px; }
+  h1 { margin-top:0; } h2 { margin-top:56px; padding-bottom:6px; border-bottom:1px solid var(--line); }
+  h3 { margin-top:32px; color:#cfcfe6; }
+  code { background:var(--code); padding:1px 5px; border-radius:4px; font:13px Consolas, monospace; }
+  pre { background:var(--code); border:1px solid var(--line); border-radius:8px; padding:14px 16px;
+        overflow-x:auto; font:13px/1.5 Consolas, monospace; }
+  pre code { background:none; padding:0; }
+  .cm { color:#6f7a8f; } .kw { color:#c792ea; } .ty { color:#82aaff; } .st { color:#c3e88d; }
+  .file { font:12px Consolas, monospace; color:var(--muted); margin:18px 0 -8px; }
+  figure { margin:20px 0; background:var(--panel); border:1px solid var(--line); border-radius:10px; padding:16px; }
+  figcaption { color:var(--muted); font-size:13px; margin-top:8px; }
+  svg { width:100%; height:auto; display:block; }
+  svg text { font-family:"Segoe UI", system-ui, sans-serif; fill:var(--text); }
+  table { border-collapse:collapse; width:100%; margin:16px 0; font-size:14px; }
+  th, td { border:1px solid var(--line); padding:6px 10px; text-align:left; vertical-align:top; }
+  th { background:var(--panel); }
+  .tag { display:inline-block; padding:0 8px; border-radius:10px; font-size:12px; font-weight:600; color:#111; }
+  .c { background:var(--ctrl); } .m { background:var(--model); } .v { background:var(--view); } .b { background:var(--bus); }
+  .note { border-left:4px solid var(--bus); background:var(--panel); padding:10px 14px; border-radius:0 8px 8px 0; margin:16px 0; }
+  .warn { border-left-color:#e55; }
+  .cols { display:grid; grid-template-columns:1fr 1fr; gap:20px; align-items:start; }
+  ol.steps li { margin-bottom:10px; }
+</style>
+</head>
+<body>
+<nav>
+  <strong>War POC · Arquitetura</strong>
+  <a href="#visao">1. Visão geral</a>
+  <a href="#camadas">2. Camadas e event bus</a>
+  <a href="#loop">3. Composição e loop</a>
+  <a href="#eventos">4. Catálogo de eventos</a>
+  <a href="#ecs">5. Model e ECS</a>
+  <a href="#iso">6. View e projeção iso</a>
+  <a href="#exemplo">7. Exemplo: colocar um prédio</a>
+  <a href="#receita">8. Receita para uma feature nova</a>
+  <a href="#regras">9. Regras e armadilhas</a>
+</nav>
+<main>
+<h1>Arquitetura do War POC</h1>
+<p>Jogo de estratégia isométrico com construção de base e tower defense, em C++20 + raylib 5.5.
+Este documento descreve como o código em <code>src/</code> está organizado, como a informação circula
+num frame e mostra, passo a passo, uma funcionalidade real (colocar um prédio) atravessando todas as camadas.</p>
+
+<h2 id="visao">1. Visão geral</h2>
+<p>O projeto segue <b>MVC desacoplado por um event bus</b>. As três camadas nunca se chamam diretamente:</p>
+<ul>
+  <li><span class="tag c">Controller</span> <code>src/controller/</code>: lê teclado e mouse da raylib e publica <b>comandos</b> (<code>...Requested</code>).</li>
+  <li><span class="tag m">Model</span> <code>src/model/</code>: dono do estado do jogo, organizado em <b>ECS</b>. Reage a comandos, aplica as regras e publica <b>notificações</b> (<code>...Changed</code>, <code>...Placed</code>, <code>...Spawned</code>). Não chama raylib e não conhece pixels.</li>
+  <li><span class="tag v">View</span> <code>src/view/</code>: guarda uma <b>cópia local</b> do estado recebido por evento e desenha com raylib. É dona da câmera e da projeção isométrica.</li>
+  <li><span class="tag b">Core</span> <code>src/core/</code>: o <code>EventBus</code>, a lista de eventos (<code>Events.hpp</code>) e a raiz de composição (<code>Game</code>).</li>
+</ul>
+
+<h2 id="camadas">2. Camadas e event bus</h2>
+<figure>
+<svg viewBox="0 0 900 400" role="img" aria-label="Diagrama de camadas">
+  <defs>
+    <marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#c8c8dc"/></marker>
+  </defs>
+  <!-- raylib -->
+  <rect x="20" y="10" width="860" height="34" rx="6" fill="#262636" stroke="#34344a"/>
+  <text x="450" y="32" text-anchor="middle" font-size="13" fill="#9a9ab0">raylib (janela, input, desenho): só Controller e View tocam nela</text>
+  <!-- Controller -->
+  <rect x="20" y="70" width="270" height="130" rx="10" fill="#1b2740" stroke="#4f8cff" stroke-width="2"/>
+  <text x="155" y="96" text-anchor="middle" font-size="17" font-weight="700" fill="#4f8cff">Controller</text>
+  <text x="155" y="120" text-anchor="middle" font-size="12">InputController</text>
+  <text x="155" y="138" text-anchor="middle" font-size="12">└ PlayingInputController</text>
+  <text x="155" y="156" text-anchor="middle" font-size="12">   └ SelectionInputController</text>
+  <text x="155" y="184" text-anchor="middle" font-size="11" fill="#9a9ab0">lê IsKeyPressed / GetMousePosition</text>
+  <!-- View -->
+  <rect x="20" y="240" width="270" height="140" rx="10" fill="#33270f" stroke="#f0a640" stroke-width="2"/>
+  <text x="155" y="266" text-anchor="middle" font-size="17" font-weight="700" fill="#f0a640">View</text>
+  <text x="155" y="290" text-anchor="middle" font-size="12">Renderer → MenuView | PlayingView</text>
+  <text x="155" y="308" text-anchor="middle" font-size="12">PlayingView → WorldView, BuildBarView,</text>
+  <text x="155" y="326" text-anchor="middle" font-size="12">RecruitPanelView, MergePanelView</text>
+  <text x="155" y="344" text-anchor="middle" font-size="12">+ DebugOverlay, IsoProjection</text>
+  <text x="155" y="368" text-anchor="middle" font-size="11" fill="#9a9ab0">BeginDrawing / BeginMode2D / Draw*</text>
+  <!-- Bus -->
+  <rect x="360" y="70" width="180" height="310" rx="10" fill="#2c1a38" stroke="#c46cf0" stroke-width="2"/>
+  <text x="450" y="98" text-anchor="middle" font-size="17" font-weight="700" fill="#c46cf0">EventBus</text>
+  <text x="450" y="120" text-anchor="middle" font-size="12">publish&lt;E&gt;(e)</text>
+  <text x="450" y="138" text-anchor="middle" font-size="12">subscribe&lt;E&gt;(handler)</text>
+  <text x="450" y="166" text-anchor="middle" font-size="11" fill="#9a9ab0">síncrono: os handlers</text>
+  <text x="450" y="182" text-anchor="middle" font-size="11" fill="#9a9ab0">rodam dentro do publish</text>
+  <text x="450" y="360" text-anchor="middle" font-size="11" fill="#9a9ab0">core/Events.hpp</text>
+  <!-- Model -->
+  <rect x="610" y="70" width="270" height="310" rx="10" fill="#14301f" stroke="#46c37b" stroke-width="2"/>
+  <text x="745" y="96" text-anchor="middle" font-size="17" font-weight="700" fill="#46c37b">Model</text>
+  <text x="745" y="120" text-anchor="middle" font-size="12">GameModel (cenas, menu, roteamento)</text>
+  <rect x="630" y="136" width="230" height="150" rx="6" fill="#0f2418" stroke="#2f7a4f"/>
+  <text x="745" y="156" text-anchor="middle" font-size="12" font-weight="600">Sistemas</text>
+  <text x="745" y="178" text-anchor="middle" font-size="12">BuildingSystem</text>
+  <text x="745" y="196" text-anchor="middle" font-size="12">UnitSystem (+ Pathfinding)</text>
+  <text x="745" y="214" text-anchor="middle" font-size="12">SelectionSystem</text>
+  <text x="745" y="232" text-anchor="middle" font-size="12">MergeSystem</text>
+  <text x="745" y="268" text-anchor="middle" font-size="11" fill="#9a9ab0">lógica pura, sem raylib</text>
+  <rect x="630" y="300" width="230" height="60" rx="6" fill="#0f2418" stroke="#2f7a4f"/>
+  <text x="745" y="324" text-anchor="middle" font-size="12" font-weight="600">ecs::Registry (world_)</text>
+  <text x="745" y="344" text-anchor="middle" font-size="11" fill="#9a9ab0">entidades + componentes (dados)</text>
+  <!-- arrows -->
+  <line x1="290" y1="110" x2="358" y2="110" stroke="#4f8cff" stroke-width="2" marker-end="url(#ar)"/>
+  <line x1="540" y1="110" x2="608" y2="110" stroke="#4f8cff" stroke-width="2" marker-end="url(#ar)"/>
+  <text x="575" y="100" text-anchor="middle" font-size="11" fill="#4f8cff">comandos</text>
+  <text x="324" y="100" text-anchor="middle" font-size="11" fill="#4f8cff">publica</text>
+  <line x1="608" y1="230" x2="542" y2="230" stroke="#46c37b" stroke-width="2" marker-end="url(#ar)"/>
+  <text x="575" y="220" text-anchor="middle" font-size="11" fill="#46c37b">notificações</text>
+  <line x1="360" y1="300" x2="292" y2="300" stroke="#46c37b" stroke-width="2" marker-end="url(#ar)"/>
+  <line x1="360" y1="175" x2="292" y2="175" stroke="#46c37b" stroke-width="2" marker-end="url(#ar)"/>
+  <text x="326" y="166" text-anchor="middle" font-size="10" fill="#46c37b">cópia local</text>
+  <line x1="292" y1="205" x2="358" y2="268" stroke="#9a9ab0" stroke-dasharray="4 3" marker-end="url(#ar)"/>
+  <line x1="358" y1="330" x2="292" y2="214" stroke="#9a9ab0" stroke-dasharray="4 3" marker-end="url(#ar)"/>
+  <text x="450" y="232" text-anchor="middle" font-size="10" fill="#9a9ab0">apresentação:</text>
+  <text x="450" y="248" text-anchor="middle" font-size="10" fill="#9a9ab0">CameraPan/Zoom, SelectionBox ↓</text>
+  <text x="450" y="264" text-anchor="middle" font-size="10" fill="#9a9ab0">CameraChanged ↑</text>
+  <line x1="155" y1="44" x2="155" y2="68" stroke="#c8c8dc" marker-end="url(#ar)"/>
+  <path d="M20,310 H8 V27 H18" fill="none" stroke="#c8c8dc" stroke-dasharray="2 3" marker-end="url(#ar)"/>
+</svg>
+<figcaption>Setas cheias: comandos (azul) e notificações (verde). Tracejado: eventos de apresentação entre Controller e View, que não passam pelo Model (câmera e caixa de seleção são estado visual).</figcaption>
+</figure>
+
+<h3>O EventBus</h3>
+<p>Um mapa <code>type_index → vector&lt;handler&gt;</code>. Cada tipo de evento é uma <code>struct</code> de dados em
+<code>events::</code>. O <code>publish</code> é <b>síncrono</b>: quando ele retorna, todos os inscritos já reagiram. A lista é copiada antes de despachar, então um handler pode se inscrever durante um evento.</p>
+<div class="file">src/core/EventBus.hpp</div>
+<pre><code><span class="kw">template</span> &lt;<span class="kw">typename</span> Event&gt;
+<span class="kw">void</span> subscribe(Handler&lt;Event&gt; handler) {
+    <span class="kw">if</span> (!handler) { <span class="kw">return</span>; }
+    handlers_[std::type_index(<span class="kw">typeid</span>(Event))].emplace_back(
+        [handler = std::move(handler)](<span class="kw">const void</span>* event) {
+            handler(*<span class="kw">static_cast</span>&lt;<span class="kw">const</span> Event*&gt;(event));
+        });
+}
+
+<span class="kw">template</span> &lt;<span class="kw">typename</span> Event&gt;
+<span class="kw">void</span> publish(<span class="kw">const</span> Event&amp; event) <span class="kw">const</span> {
+    <span class="kw">const auto</span> it = handlers_.find(std::type_index(<span class="kw">typeid</span>(Event)));
+    <span class="kw">if</span> (it == handlers_.end()) { <span class="kw">return</span>; }
+    <span class="kw">const auto</span> handlers = it-&gt;second; <span class="cm">// cópia: permite subscribe durante o dispatch</span>
+    <span class="kw">for</span> (<span class="kw">const auto</span>&amp; handler : handlers) { handler(&amp;event); }
+}</code></pre>
+
+<h2 id="loop">3. Raiz de composição e loop de frame</h2>
+<p><code>core::Game</code> cria todas as peças e roda o loop. A <b>ordem de declaração dos membros</b> define a ordem de construção (e a destruição na ordem inversa):</p>
+<div class="cols">
+<div>
+<div class="file">src/core/Game.hpp</div>
+<pre><code><span class="cm">// o bus vive mais que quem se inscreveu nele;
+// a janela vive mais que quem usa o contexto GL</span>
+std::unique_ptr&lt;EventBus&gt;                    bus_;
+std::unique_ptr&lt;view::Window&gt;                window_;
+std::unique_ptr&lt;model::GameModel&gt;            model_;
+std::unique_ptr&lt;view::Renderer&gt;              renderer_;
+std::unique_ptr&lt;controller::InputController&gt; controller_;</code></pre>
+</div>
+<div>
+<div class="file">src/core/Game.cpp</div>
+<pre><code>Game::Game() <span class="cm">/* ...make_unique na ordem acima... */</span> {
+    bus_-&gt;subscribe&lt;events::QuitRequested&gt;(
+        [<span class="kw">this</span>](<span class="kw">auto</span>&amp;) { running_ = <span class="kw">false</span>; });
+    model_-&gt;initialize(); <span class="cm">// só depois de todos inscritos</span>
+}
+
+<span class="kw">void</span> Game::run() {
+    <span class="kw">while</span> (running_) {
+        controller_-&gt;update();
+        <span class="kw">if</span> (!running_) { <span class="kw">return</span>; }
+        model_-&gt;update(GetFrameTime());
+        renderer_-&gt;render();
+    }
+}</code></pre>
+</div>
+</div>
+<figure>
+<svg viewBox="0 0 900 170" role="img" aria-label="Loop de frame">
+  <rect x="20" y="30" width="250" height="90" rx="10" fill="#1b2740" stroke="#4f8cff" stroke-width="2"/>
+  <text x="145" y="58" text-anchor="middle" font-size="15" font-weight="700" fill="#4f8cff">1. controller_-&gt;update()</text>
+  <text x="145" y="80" text-anchor="middle" font-size="12">lê input e publica comandos</text>
+  <text x="145" y="98" text-anchor="middle" font-size="11" fill="#9a9ab0">o Model já reage aqui (bus síncrono)</text>
+  <rect x="325" y="30" width="250" height="90" rx="10" fill="#14301f" stroke="#46c37b" stroke-width="2"/>
+  <text x="450" y="58" text-anchor="middle" font-size="15" font-weight="700" fill="#46c37b">2. model_-&gt;update(dt)</text>
+  <text x="450" y="80" text-anchor="middle" font-size="12">simulação contínua (unidades andando)</text>
+  <text x="450" y="98" text-anchor="middle" font-size="11" fill="#9a9ab0">publica UnitMoved, previews, merge</text>
+  <rect x="630" y="30" width="250" height="90" rx="10" fill="#33270f" stroke="#f0a640" stroke-width="2"/>
+  <text x="755" y="58" text-anchor="middle" font-size="15" font-weight="700" fill="#f0a640">3. renderer_-&gt;render()</text>
+  <text x="755" y="80" text-anchor="middle" font-size="12">desenha as cópias locais</text>
+  <text x="755" y="98" text-anchor="middle" font-size="11" fill="#9a9ab0">não publica comandos ao Model</text>
+  <line x1="272" y1="75" x2="322" y2="75" stroke="#c8c8dc" stroke-width="2" marker-end="url(#ar)"/>
+  <line x1="577" y1="75" x2="627" y2="75" stroke="#c8c8dc" stroke-width="2" marker-end="url(#ar)"/>
+  <path d="M755,122 L755,150 L145,150 L145,124" fill="none" stroke="#c8c8dc" stroke-width="2" marker-end="url(#ar)"/>
+  <text x="450" y="144" text-anchor="middle" font-size="11" fill="#9a9ab0">próximo frame (até QuitRequested)</text>
+</svg>
+</figure>
+
+<h2 id="eventos">4. Catálogo de eventos</h2>
+<p>Todos ficam em <code>src/core/Events.hpp</code>. Eventos de gameplay carregam <code>PlayerId</code>, preparando o multiplayer: cada consumidor filtra por <code>model::kLocalPlayer</code>.</p>
+<table>
+<tr><th>Direção</th><th>Eventos</th></tr>
+<tr><td><span class="tag c">Controller</span> → <span class="tag m">Model</span><br>comandos</td>
+<td><code>MenuNavigateRequested</code>, <code>MenuItemHovered</code>, <code>MenuConfirmRequested</code>, <code>ReturnToMenuRequested</code>,
+<code>BuildSelectRequested</code>, <code>BuildCancelRequested</code>, <code>BuildCursorMoved</code>, <code>BuildPlaceRequested</code>,
+<code>RecruitRequested</code>, <code>SelectUnitsRequested</code>, <code>SelectBuildingRequested</code>, <code>SelectionClearRequested</code>,
+<code>MoveOrderRequested</code>, <code>MergeRequested</code></td></tr>
+<tr><td><span class="tag m">Model</span> → <span class="tag v">View</span> / <span class="tag c">Controller</span><br>notificações</td>
+<td><code>SceneChanged</code>, <code>MenuStateChanged</code>, <code>WorldReset</code>, <code>BuildBarChanged</code>, <code>BuildPreviewChanged</code>,
+<code>BuildingPlaced</code>, <code>UnitSpawned</code>, <code>UnitMoved</code>, <code>UnitRemoved</code>, <code>SelectionChanged</code>,
+<code>RecruitPanelChanged</code>, <code>MergePanelChanged</code></td></tr>
+<tr><td><span class="tag c">Controller</span> → <span class="tag v">View</span><br>apresentação</td>
+<td><code>CameraPanRequested</code>, <code>CameraZoomRequested</code>, <code>SelectionBoxChanged</code>, <code>DebugToggleRequested</code></td></tr>
+<tr><td><span class="tag v">View</span> → <span class="tag c">Controller</span></td><td><code>CameraChanged</code> (o Controller precisa da câmera para converter o mouse em tile)</td></tr>
+<tr><td>Qualquer → <code>Game</code></td><td><code>QuitRequested</code></td></tr>
+</table>
+
+<h2 id="ecs">5. Model e ECS</h2>
+<p><code>GameModel</code> controla cena e menu e <b>roteia</b> os comandos da partida para os sistemas, sempre com o guard <code>inMatch()</code>.
+O estado da partida mora no <code>ecs::Registry world_</code>: entidade = ID (<code>Entity</code>), componente = <code>struct</code> de dados puros, sistema = classe com a lógica.</p>
+<div class="cols">
+<figure>
+<svg viewBox="0 0 420 260" role="img" aria-label="Dependências dos sistemas">
+  <rect x="130" y="10" width="160" height="40" rx="8" fill="#14301f" stroke="#46c37b" stroke-width="2"/>
+  <text x="210" y="35" text-anchor="middle" font-size="14" font-weight="700">GameModel</text>
+  <rect x="10" y="90" width="120" height="36" rx="6" fill="#0f2418" stroke="#2f7a4f"/><text x="70" y="113" text-anchor="middle" font-size="12">BuildingSystem</text>
+  <rect x="150" y="90" width="120" height="36" rx="6" fill="#0f2418" stroke="#2f7a4f"/><text x="210" y="113" text-anchor="middle" font-size="12">UnitSystem</text>
+  <rect x="290" y="90" width="120" height="36" rx="6" fill="#0f2418" stroke="#2f7a4f"/><text x="350" y="113" text-anchor="middle" font-size="12">SelectionSystem</text>
+  <rect x="220" y="150" width="120" height="36" rx="6" fill="#0f2418" stroke="#2f7a4f"/><text x="280" y="173" text-anchor="middle" font-size="12">MergeSystem</text>
+  <rect x="110" y="214" width="200" height="36" rx="6" fill="#262636" stroke="#46c37b"/><text x="210" y="237" text-anchor="middle" font-size="12" font-weight="600">ecs::Registry world_</text>
+  <line x1="210" y1="50" x2="70" y2="88" stroke="#c8c8dc" marker-end="url(#ar)"/>
+  <line x1="210" y1="50" x2="210" y2="88" stroke="#c8c8dc" marker-end="url(#ar)"/>
+  <line x1="210" y1="50" x2="350" y2="88" stroke="#c8c8dc" marker-end="url(#ar)"/>
+  <line x1="150" y1="108" x2="132" y2="108" stroke="#f0a640" stroke-dasharray="3 2" marker-end="url(#ar)"/>
+  <line x1="250" y1="150" x2="225" y2="128" stroke="#f0a640" stroke-dasharray="3 2" marker-end="url(#ar)"/>
+  <line x1="310" y1="150" x2="340" y2="128" stroke="#f0a640" stroke-dasharray="3 2" marker-end="url(#ar)"/>
+  <line x1="70" y1="126" x2="150" y2="212" stroke="#46c37b" marker-end="url(#ar)"/>
+  <line x1="210" y1="126" x2="200" y2="212" stroke="#46c37b" marker-end="url(#ar)"/>
+  <line x1="350" y1="126" x2="290" y2="212" stroke="#46c37b" marker-end="url(#ar)"/>
+</svg>
+<figcaption>Branco: posse (<code>unique_ptr</code>). Laranja: referência entre sistemas. Verde: todos leem e escrevem no mesmo <code>world_</code>.
+<code>world_</code> é declarado antes dos sistemas porque eles guardam referência a ele.</figcaption>
+</figure>
+<div>
+<table>
+<tr><th>Entidade (exemplo)</th><th>Componentes</th></tr>
+<tr><td>Centro de Comando</td><td><code>Building{type}</code>, <code>Owner{player}</code>, <code>Footprint{origin, size}</code></td></tr>
+<tr><td>Muro</td><td><code>Building</code>, <code>Owner</code>, <code>Footprint</code> (size 1)</td></tr>
+<tr><td>Unidade</td><td><code>Unit{type, baseCount, size}</code>, <code>Owner</code>, <code>Health</code>, <code>Combat</code>, <code>Position{x, y}</code>, <code>Mover{speed, path...}</code></td></tr>
+</table>
+<p>A API do <code>Registry</code> é pequena: <code>create</code>, <code>destroy</code>, <code>emplace&lt;C&gt;</code>, <code>tryGet&lt;C&gt;</code>, <code>has&lt;C&gt;</code>, <code>remove&lt;C&gt;</code>, <code>each&lt;C&gt;</code>, <code>clear</code>.
+Cada tipo de componente tem seu <code>ComponentPool&lt;C&gt;</code>, criado na primeira vez que é usado.</p>
+<p><code>Owner</code> está em toda entidade de jogo: nada assume um único jogador.</p>
+</div>
+</div>
+
+<h2 id="iso">6. View e projeção isométrica</h2>
+<p>O Model só conhece <code>GridPos{x, y}</code> inteiros (tiles) ou posições contínuas em tiles (<code>Position</code> das unidades).
+A conversão para pixels fica em <code>src/view/IsoProjection.hpp</code>, que a View usa para desenhar e o Controller usa para o picking do mouse.</p>
+<div class="cols">
+<div>
+<div class="file">src/view/IsoProjection.hpp</div>
+<pre><code><span class="kw">constexpr float</span> kTileWidth = 64, kTileHeight = 32;
+
+<span class="cm">// canto de cima do tile, em pixels de mundo</span>
+Vector2 gridToWorld(<span class="kw">float</span> gx, <span class="kw">float</span> gy) {
+    <span class="kw">return</span> { (gx - gy) * kHalfWidth,
+             (gx + gy) * kHalfHeight };
+}
+
+GridPos worldToGrid(Vector2 w) {
+    <span class="kw">const float</span> u = w.x / kHalfWidth;
+    <span class="kw">const float</span> v = w.y / kHalfHeight;
+    <span class="kw">return</span> { floor((v + u) / 2), floor((v - u) / 2) };
+}
+
+<span class="cm">// tela → mundo (Camera2D) → grid</span>
+GridPos screenToGrid(Vector2 screen, <span class="kw">const</span> Camera2D&amp; cam);</code></pre>
+<p>A câmera (<code>target</code>, <code>zoom</code>) pertence à <code>WorldView</code>. Toda mudança dela publica <code>CameraChanged</code>, e o <code>PlayingInputController</code> monta o mesmo <code>Camera2D</code> para converter o mouse.
+A geometria de UI usada nos dois lados (hit-test) fica nos headers <code>*Layout.hpp</code> da View.</p>
+</div>
+<figure>
+<svg viewBox="0 0 420 250" role="img" aria-label="Grid isométrico">
+  <g stroke="#4a7442" stroke-width="1.5" fill="#3a5e34">
+    <polygon points="200,30 264,62 200,94 136,62"/><polygon points="264,62 328,94 264,126 200,94"/>
+    <polygon points="328,94 392,126 328,158 264,126"/><polygon points="136,62 200,94 136,126 72,94"/>
+    <polygon points="200,94 264,126 200,158 136,126" fill="#5a8f4e" stroke="#90ff9a"/>
+    <polygon points="264,126 328,158 264,190 200,158"/><polygon points="72,94 136,126 72,158 8,126"/>
+    <polygon points="136,126 200,158 136,190 72,158"/><polygon points="200,158 264,190 200,222 136,190"/>
+  </g>
+  <g font-size="11" text-anchor="middle">
+    <text x="200" y="66">(0,0)</text><text x="264" y="98">(1,0)</text><text x="328" y="130">(2,0)</text>
+    <text x="136" y="98">(0,1)</text><text x="200" y="130" font-weight="700">(1,1)</text><text x="264" y="162">(2,1)</text>
+    <text x="72" y="130">(0,2)</text><text x="136" y="162">(1,2)</text><text x="200" y="194">(2,2)</text>
+  </g>
+  <line x1="300" y1="30" x2="370" y2="65" stroke="#4f8cff" stroke-width="2" marker-end="url(#ar)"/>
+  <text x="372" y="44" font-size="12" fill="#4f8cff">+x</text>
+  <line x1="100" y1="30" x2="30" y2="65" stroke="#f0a640" stroke-width="2" marker-end="url(#ar)"/>
+  <text x="40" y="40" font-size="12" fill="#f0a640">+y</text>
+  <circle cx="200" cy="94" r="4" fill="#ff6"/><text x="214" y="90" font-size="10" fill="#ff6">gridToWorld(1,1)</text>
+</svg>
+<figcaption>O ponto amarelo é o canto de cima do tile (1,1). A ordem de desenho (painter's algorithm) vai do menor para o maior <code>x + y</code>.</figcaption>
+</figure>
+</div>
+
+<h2 id="exemplo">7. Exemplo completo: colocar um prédio</h2>
+<p>Funcionalidade real do jogo: com um prédio selecionado na barra de construção, o jogador move o mouse
+(aparece um preview verde ou vermelho) e clica para colocar. Tudo abaixo acontece <b>dentro de <code>controller_-&gt;update()</code></b>, porque o bus é síncrono.</p>
+<figure>
+<svg viewBox="0 0 1000 800" role="img" aria-label="Sequência de colocar prédio">
+  <g font-size="12" text-anchor="middle" font-weight="600">
+    <rect x="10" y="10" width="100" height="40" rx="6" fill="#262636" stroke="#9a9ab0"/><text x="60" y="35">raylib</text>
+    <rect x="130" y="10" width="140" height="40" rx="6" fill="#1b2740" stroke="#4f8cff"/><text x="200" y="35" fill="#4f8cff">PlayingInputCtrl</text>
+    <rect x="300" y="10" width="120" height="40" rx="6" fill="#2c1a38" stroke="#c46cf0"/><text x="360" y="35" fill="#c46cf0">EventBus</text>
+    <rect x="450" y="10" width="120" height="40" rx="6" fill="#14301f" stroke="#46c37b"/><text x="510" y="35" fill="#46c37b">GameModel</text>
+    <rect x="590" y="10" width="120" height="40" rx="6" fill="#14301f" stroke="#46c37b"/><text x="650" y="35" fill="#46c37b">BuildingSystem</text>
+    <rect x="730" y="10" width="100" height="40" rx="6" fill="#14301f" stroke="#46c37b"/><text x="780" y="35" fill="#46c37b">Registry</text>
+    <rect x="850" y="10" width="140" height="40" rx="6" fill="#33270f" stroke="#f0a640"/><text x="920" y="35" fill="#f0a640">Views</text>
+  </g>
+  <g stroke="#34344a" stroke-dasharray="4 4">
+    <line x1="60" y1="50" x2="60" y2="790"/><line x1="200" y1="50" x2="200" y2="790"/><line x1="360" y1="50" x2="360" y2="790"/>
+    <line x1="510" y1="50" x2="510" y2="790"/><line x1="650" y1="50" x2="650" y2="790"/><line x1="780" y1="50" x2="780" y2="790"/>
+    <line x1="920" y1="50" x2="920" y2="790"/>
+  </g>
+  <g font-size="11" text-anchor="middle" stroke-width="1.6">
+    <text x="500" y="76" fill="#9a9ab0" font-weight="600">A. mouse se move sobre o mapa</text>
+    <line x1="60" y1="96" x2="198" y2="96" stroke="#c8c8dc" marker-end="url(#ar)"/><text x="130" y="90">GetMousePosition</text>
+    <line x1="200" y1="126" x2="358" y2="126" stroke="#4f8cff" marker-end="url(#ar)"/><text x="280" y="120">BuildCursorMoved{p, tile}</text>
+    <line x1="360" y1="156" x2="508" y2="156" stroke="#4f8cff" marker-end="url(#ar)"/><text x="435" y="150">handler · inMatch()?</text>
+    <line x1="510" y1="186" x2="648" y2="186" stroke="#c8c8dc" marker-end="url(#ar)"/><text x="580" y="180">moveCursor()</text>
+    <line x1="650" y1="216" x2="362" y2="216" stroke="#46c37b" marker-end="url(#ar)"/><text x="505" y="210">BuildPreviewChanged{valid}</text>
+    <line x1="360" y1="246" x2="918" y2="246" stroke="#46c37b" marker-end="url(#ar)"/><text x="640" y="240">WorldView: preview_ = e</text>
+
+    <text x="500" y="290" fill="#9a9ab0" font-weight="600">B. clique esquerdo</text>
+    <line x1="60" y1="316" x2="198" y2="316" stroke="#c8c8dc" marker-end="url(#ar)"/><text x="130" y="310">IsMouseButtonPressed</text>
+    <line x1="200" y1="346" x2="358" y2="346" stroke="#4f8cff" marker-end="url(#ar)"/><text x="280" y="340">BuildPlaceRequested{p, tile}</text>
+    <line x1="360" y1="376" x2="508" y2="376" stroke="#4f8cff" marker-end="url(#ar)"/><text x="435" y="370">handler · inMatch()?</text>
+    <line x1="510" y1="406" x2="648" y2="406" stroke="#c8c8dc" marker-end="url(#ar)"/><text x="580" y="400">place(p, tile)</text>
+    <path d="M650,428 h40 v22 h-38" fill="none" stroke="#c8c8dc" marker-end="url(#ar)"/><text x="610" y="444" text-anchor="end">canPlace(): desbloqueado e área livre</text>
+    <line x1="650" y1="480" x2="778" y2="480" stroke="#c8c8dc" marker-end="url(#ar)"/><text x="715" y="468">create() +</text><text x="715" y="494" font-size="10">emplace Building/Owner/Footprint</text>
+    <line x1="650" y1="526" x2="362" y2="526" stroke="#46c37b" marker-end="url(#ar)"/><text x="505" y="520">BuildingPlaced{entity, owner, type, origin, size}</text>
+    <line x1="360" y1="556" x2="918" y2="556" stroke="#46c37b" marker-end="url(#ar)"/><text x="640" y="550">WorldView insere por profundidade · DebugOverlay</text>
+    <line x1="360" y1="586" x2="202" y2="586" stroke="#46c37b" marker-end="url(#ar)"/><text x="280" y="580">SelectionInputCtrl: picking</text>
+    <line x1="650" y1="616" x2="362" y2="616" stroke="#46c37b" marker-end="url(#ar)"/><text x="505" y="610">BuildBarChanged + BuildPreviewChanged</text>
+    <line x1="360" y1="646" x2="918" y2="646" stroke="#46c37b" marker-end="url(#ar)"/><text x="640" y="640">BuildBarView / WorldView atualizam a cópia</text>
+    <line x1="360" y1="676" x2="202" y2="676" stroke="#46c37b" marker-end="url(#ar)"/><text x="280" y="670">hasBuildSelection_</text>
+
+    <text x="500" y="716" fill="#9a9ab0" font-weight="600">C. mesmo frame, depois de model_-&gt;update()</text>
+    <line x1="920" y1="746" x2="62" y2="746" stroke="#f0a640" marker-end="url(#ar)"/><text x="490" y="740">Renderer::render() → PlayingView → WorldView::draw() → drawObjects() / drawPreview()</text>
+  </g>
+</svg>
+<figcaption>Azul: comandos. Verde: notificações. Cada camada só conversa com o EventBus. O Model nunca sabe quem está ouvindo.</figcaption>
+</figure>
+
+<h3>Passo 1: Controller converte o mouse e publica comandos</h3>
+<div class="file">src/controller/PlayingInputController.cpp</div>
+<pre><code><span class="kw">void</span> PlayingInputController::handleMapMouse(Vector2 mouse, <span class="kw">const</span> Camera2D&amp; camera) {
+    <span class="kw">const</span> model::GridPos tile = view::iso::screenToGrid(mouse, camera); <span class="cm">// pixels → tile</span>
+    <span class="kw">const bool</span> tileChanged = lastTile_ != tile;
+    publishCursor(tile);                       <span class="cm">// BuildCursorMoved, só se o tile mudou</span>
+    <span class="cm">// ...</span>
+    <span class="kw">if</span> (!hasBuildSelection_) { <span class="kw">return</span>; }    <span class="cm">// cópia local vinda de BuildBarChanged</span>
+    <span class="kw">if</span> (pressed || (placing_ &amp;&amp; tileChanged)) { <span class="cm">// arrastar "pinta" muros</span>
+        bus_.publish(events::BuildPlaceRequested{model::kLocalPlayer, tile});
+    }
+}</code></pre>
+
+<h3>Passo 2: GameModel roteia para o sistema certo</h3>
+<div class="file">src/model/GameModel.cpp</div>
+<pre><code>bus_.subscribe&lt;events::BuildPlaceRequested&gt;([<span class="kw">this</span>](<span class="kw">const</span> events::BuildPlaceRequested&amp; e) {
+    <span class="kw">if</span> (inMatch()) {                       <span class="cm">// comandos fora da partida são ignorados</span>
+        buildings_-&gt;place(e.player, e.tile);
+    }
+});</code></pre>
+
+<h3>Passo 3: o sistema aplica a regra, escreve no ECS e notifica</h3>
+<div class="file">src/model/BuildingSystem.cpp</div>
+<pre><code><span class="kw">void</span> BuildingSystem::place(PlayerId player, GridPos anchor) {
+    <span class="kw">auto</span>&amp; builder = builders_[player];
+    <span class="kw">if</span> (!builder.selected) { <span class="kw">return</span>; }
+
+    <span class="kw">const</span> BuildingType type = *builder.selected;
+    <span class="kw">const int</span> size = buildingSpec(type).size;
+    <span class="kw">const</span> GridPos origin = footprintOrigin(anchor, size); <span class="cm">// cursor = centro do footprint</span>
+    <span class="kw">if</span> (!canPlace(player, type, origin)) { <span class="kw">return</span>; }
+
+    <span class="kw">const</span> ecs::Entity entity = world_.create();
+    world_.emplace&lt;components::Building&gt;(entity, type);
+    world_.emplace&lt;components::Owner&gt;(entity, player);
+    world_.emplace&lt;components::Footprint&gt;(entity, origin, size);
+    <span class="cm">// ...marca occupied_, registra o Centro de Comando...</span>
+
+    bus_.publish(events::BuildingPlaced{entity, player, type, origin, size});
+    <span class="kw">if</span> (!isUnlocked(player, type)) { builder.selected.reset(); }
+    publishBar(player);
+    publishPreview(player);
+}</code></pre>
+
+<h3>Passo 4: a View guarda a cópia e desenha no render</h3>
+<div class="file">src/view/WorldView.cpp</div>
+<pre><code>bus_.subscribe&lt;events::BuildingPlaced&gt;([<span class="kw">this</span>](<span class="kw">const auto</span>&amp; e) { onBuildingPlaced(e); });
+
+<span class="kw">void</span> WorldView::onBuildingPlaced(<span class="kw">const</span> events::BuildingPlaced&amp; event) {
+    <span class="kw">const</span> BuildingVisual visual{event.entity, event.type, event.origin, event.size};
+    <span class="kw">const int</span> key = depthKey(visual.origin, visual.size);  <span class="cm">// mantém ordenado de trás pra frente</span>
+    <span class="kw">const auto</span> it = std::upper_bound(buildings_.begin(), buildings_.end(), key, <span class="cm">/*...*/</span>);
+    buildings_.insert(it, visual);
+}
+
+<span class="kw">void</span> WorldView::draw() <span class="kw">const</span> {          <span class="cm">// chamado por Renderer::render()</span>
+    BeginMode2D(camera());
+    drawGrid(cam); drawSelectedBuilding(); drawObjects(); drawHealthBars(); drawPreview();
+    EndMode2D();
+    drawSelectionBox();
+}</code></pre>
+<div class="note">Repare: o <code>BuildingSystem</code> não sabe que existe uma <code>WorldView</code>, e a <code>WorldView</code> nunca lê o <code>Registry</code>.
+Outro jogador (no futuro, via rede) poderia publicar o mesmo <code>BuildPlaceRequested</code> com outro <code>PlayerId</code>, e o fluxo seria idêntico.</div>
+
+<h2 id="receita">8. Receita para uma feature nova</h2>
+<ol class="steps">
+  <li><b>Regra primeiro.</b> Veja <code>docs/GAME_DESIGN.md</code>. Se a regra estiver <b>TBD</b>, pergunte antes de implementar. Depois de definida, registre lá.</li>
+  <li><b>Eventos.</b> Em <code>src/core/Events.hpp</code>, crie o comando (<code>XyzRequested</code>, com <code>PlayerId</code>) e a notificação (<code>XyzChanged</code> ou equivalente). Só dados, sem lógica.</li>
+  <li><b>Componentes.</b> Se o estado for por entidade, crie <code>structs</code> em <code>src/model/components/</code>. Nada de <code>Texture2D</code>: assets são referenciados por ID.</li>
+  <li><b>Sistema.</b> Crie ou estenda uma classe em <code>src/model/</code> que recebe <code>EventBus&amp;</code> e <code>Registry&amp;</code>, valida com guard clauses, muda o ECS e publica a notificação.</li>
+  <li><b>Roteamento.</b> Em <code>GameModel</code>, inscreva o comando com o guard <code>inMatch()</code> e delegue ao sistema. Se o sistema for novo, declare o <code>unique_ptr</code> <b>depois</b> de <code>world_</code> e das dependências dele, e chame <code>reset()</code> em <code>resetWorld()</code>.</li>
+  <li><b>Controller.</b> Leia o input e publique o comando. Se precisar de hit-test de UI, coloque a geometria num <code>src/view/*Layout.hpp</code> compartilhado.</li>
+  <li><b>View.</b> Inscreva-se na notificação, guarde uma cópia local (filtrando <code>kLocalPlayer</code>), limpe-a em <code>WorldReset</code> e desenhe em <code>draw() const</code>.</li>
+  <li><b>Build.</b> <code>cmake --build --preset default</code> sem nenhum warning. Arquivos novos em <code>src/</code> entram sozinhos pelo <code>GLOB_RECURSE</code>.</li>
+</ol>
+<p>Esqueleto genérico (nomes ilustrativos):</p>
+<pre><code><span class="cm">// core/Events.hpp</span>
+<span class="kw">struct</span> <span class="ty">XyzRequested</span> { model::PlayerId player; model::GridPos tile; };
+<span class="kw">struct</span> <span class="ty">XyzChanged</span>   { model::PlayerId player; <span class="cm">/* estado que a View precisa */</span> };
+
+<span class="cm">// model/GameModel.cpp</span>
+bus_.subscribe&lt;events::XyzRequested&gt;([<span class="kw">this</span>](<span class="kw">const</span> events::XyzRequested&amp; e) {
+    <span class="kw">if</span> (inMatch()) { xyz_-&gt;apply(e.player, e.tile); }
+});
+
+<span class="cm">// model/XyzSystem.cpp</span>
+<span class="kw">void</span> XyzSystem::apply(PlayerId player, GridPos tile) {
+    <span class="kw">if</span> (!isAllowed(player, tile)) { <span class="kw">return</span>; }     <span class="cm">// guard clause</span>
+    <span class="cm">// ...muda world_...</span>
+    bus_.publish(events::XyzChanged{player <span class="cm">/*, ...*/</span>});
+}
+
+<span class="cm">// view/XyzView.cpp</span>
+bus.subscribe&lt;events::XyzChanged&gt;([<span class="kw">this</span>](<span class="kw">const</span> events::XyzChanged&amp; e) {
+    <span class="kw">if</span> (e.player == model::kLocalPlayer) { state_ = e; }
+});
+bus.subscribe&lt;events::WorldReset&gt;([<span class="kw">this</span>](<span class="kw">const auto</span>&amp;) { state_ = {}; });</code></pre>
+
+<h2 id="regras">9. Regras e armadilhas</h2>
+<table>
+<tr><th>Regra</th><th>Por quê</th></tr>
+<tr><td>Model, View e Controller só se falam pelo bus</td><td>Desacoplamento e um único ponto de entrada para comandos, o que facilita colocar a rede depois.</td></tr>
+<tr><td>Model sem raylib e sem pixels</td><td>A lógica fica testável e determinística. A projeção iso é detalhe de apresentação.</td></tr>
+<tr><td>Eventos de gameplay levam <code>PlayerId</code>; componentes têm <code>Owner</code></td><td>Não amarrar o jogo a um jogador local, por causa do multiplayer planejado.</td></tr>
+<tr><td><code>model_-&gt;initialize()</code> depois de todos se inscreverem</td><td>Senão o estado inicial (<code>SceneChanged</code>, <code>MenuStateChanged</code>) é publicado sem ninguém ouvindo.</td></tr>
+<tr><td>Ordem dos membros em <code>Game</code> e <code>GameModel</code></td><td>Handlers capturam <code>this</code> e sistemas guardam referências. Quem é referenciado precisa ser declarado antes.</td></tr>
+<tr><td><code>unique_ptr</code> por padrão; RAII para recursos raylib</td><td>Sem <code>new</code>/<code>delete</code> e sem vazamento de <code>Texture2D</code>/<code>Sound</code>.</td></tr>
+<tr><td>Até 500 linhas por arquivo; guard clauses</td><td>Legibilidade. Divida antes de chegar ao limite.</td></tr>
+</table>
+<div class="note warn"><b>Cuidado com reentrância:</b> como o bus é síncrono, publicar um evento dentro de um handler dispara outros handlers na hora.
+Evite ciclos (A publica B, que publica A) e não presuma que o estado de outro inscrito já foi atualizado, a não ser que você controle a ordem.</div>
+<div class="note warn"><b>ESC não fecha o jogo</b> (<code>SetExitKey(KEY_NULL)</code>). Para sair, publique <code>events::QuitRequested</code>. Na partida, ESC cancela a construção, depois limpa a seleção e, por fim, volta ao menu.</div>
+</main>
+</body>
+</html>

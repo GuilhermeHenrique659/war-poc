@@ -22,6 +22,9 @@ void InputController::update()
         bus_.publish(events::QuitRequested{});
         return;
     }
+    if (IsKeyPressed(KEY_F3)) {
+        bus_.publish(events::DebugToggleRequested{});
+    }
 
     switch (scene_) {
     case model::Scene::MainMenu:

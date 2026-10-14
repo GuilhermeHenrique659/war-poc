@@ -14,6 +14,14 @@ Documento vivo com as regras do jogo. Itens marcados como **TBD** ainda não for
 1. **Menu principal**: opções `Iniciar` (começa uma partida) e `Sair`. Navegação por teclado (cima/baixo + confirmar) ou mouse (hover + clique).
 2. **Partida**: o mundo é criado vazio ao iniciar. `ESC` cancela a construção selecionada ou limpa a seleção de tropas/construção; sem nada selecionado, volta ao menu e descarta a partida atual.
 
+## Modo debug
+- `F3` liga e desliga o modo debug em qualquer cena. Ele só muda o que aparece na tela e não afeta as regras do jogo.
+- Painel no canto superior esquerdo com FPS e tempo do frame (verde ≥ 55, amarelo ≥ 30, vermelho abaixo disso) e a cena atual. Durante a partida mostra também a quantidade de construções e tropas, a posição e o zoom da câmera, e o tile sob o mouse.
+- Em cada entidade da partida aparecem:
+  - o contorno da área ocupada no chão (ciano);
+  - para tropas, a caixa de clique usada na seleção (amarelo);
+  - um ponto na posição (magenta) e o rótulo `#id Nome (x, y)`. Para tropas a posição é contínua. Para construções aparecem a origem e o tamanho.
+
 ## Mapa
 - Grid isométrico. Toda posição de jogo é uma coordenada de tile (lógica), independente da projeção na tela.
 - Tile de 64x32 px na tela (zoom 1).

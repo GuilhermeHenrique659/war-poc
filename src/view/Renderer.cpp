@@ -9,6 +9,7 @@ namespace view {
 Renderer::Renderer(core::EventBus& bus)
     : menuView_(std::make_unique<MenuView>(bus))
     , playingView_(std::make_unique<PlayingView>(bus))
+    , debugOverlay_(std::make_unique<DebugOverlay>(bus))
 {
     bus.subscribe<events::SceneChanged>([this](const events::SceneChanged& e) { scene_ = e.scene; });
 }
@@ -26,6 +27,7 @@ void Renderer::render() const
         playingView_->draw();
         break;
     }
+    debugOverlay_->draw();
 
     EndDrawing();
 }

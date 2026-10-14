@@ -104,6 +104,9 @@ struct CameraZoomRequested {
     float screenY;
 };
 
+// Controller -> View (debug overlay is presentation state)
+struct DebugToggleRequested {};
+
 // Any -> Game loop
 struct QuitRequested {};
 

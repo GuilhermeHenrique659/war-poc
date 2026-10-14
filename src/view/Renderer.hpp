@@ -2,6 +2,7 @@
 
 #include "core/EventBus.hpp"
 #include "model/Scene.hpp"
+#include "view/DebugOverlay.hpp"
 #include "view/MenuView.hpp"
 #include "view/PlayingView.hpp"
 
@@ -20,6 +21,7 @@ private:
     model::Scene scene_ = model::Scene::MainMenu;
     std::unique_ptr<MenuView> menuView_;
     std::unique_ptr<PlayingView> playingView_;
+    std::unique_ptr<DebugOverlay> debugOverlay_;
 };
 
 } // namespace view
