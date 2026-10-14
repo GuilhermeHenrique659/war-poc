@@ -1,11 +1,23 @@
 #pragma once
 
+#include "core/EventBus.hpp"
+#include "view/BuildBarView.hpp"
+#include "view/WorldView.hpp"
+
+#include <memory>
+
 namespace view {
 
-// Placeholder for the match scene until gameplay rendering exists.
+// Match scene: the isometric world with the build bar on top.
 class PlayingView {
 public:
+    explicit PlayingView(core::EventBus& bus);
+
     void draw() const;
+
+private:
+    std::unique_ptr<WorldView> world_;
+    std::unique_ptr<BuildBarView> buildBar_;
 };
 
 } // namespace view

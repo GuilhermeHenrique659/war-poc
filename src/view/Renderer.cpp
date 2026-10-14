@@ -8,7 +8,7 @@ namespace view {
 
 Renderer::Renderer(core::EventBus& bus)
     : menuView_(std::make_unique<MenuView>(bus))
-    , playingView_(std::make_unique<PlayingView>())
+    , playingView_(std::make_unique<PlayingView>(bus))
 {
     bus.subscribe<events::SceneChanged>([this](const events::SceneChanged& e) { scene_ = e.scene; });
 }

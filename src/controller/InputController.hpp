@@ -1,9 +1,11 @@
 #pragma once
 
+#include "controller/PlayingInputController.hpp"
 #include "core/EventBus.hpp"
 #include "model/Scene.hpp"
 
 #include <cstddef>
+#include <memory>
 #include <optional>
 
 namespace controller {
@@ -18,12 +20,12 @@ public:
 private:
     void handleMenuKeyboard();
     void handleMenuMouse();
-    void handlePlayingInput();
     [[nodiscard]] std::optional<std::size_t> menuItemUnderMouse() const;
 
     core::EventBus& bus_;
     model::Scene scene_ = model::Scene::MainMenu;
     std::size_t menuItemCount_ = 0;
+    std::unique_ptr<PlayingInputController> playing_;
 };
 
 } // namespace controller

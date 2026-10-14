@@ -2,6 +2,7 @@
 
 #include "core/EventBus.hpp"
 #include "core/Events.hpp"
+#include "model/BuildingSystem.hpp"
 #include "model/Scene.hpp"
 #include "model/ecs/Registry.hpp"
 
@@ -34,8 +35,12 @@ private:
     void onMenuConfirm(const events::MenuConfirmRequested& event);
     void onReturnToMenu(const events::ReturnToMenuRequested& event);
 
+    void subscribeBuildCommands();
+    [[nodiscard]] bool inMatch() const { return scene_ == Scene::Playing; }
+
     void changeScene(Scene scene);
     void publishMenuState() const;
+    void resetWorld();
     void startMatch();
 
     core::EventBus& bus_;
@@ -43,6 +48,7 @@ private:
     std::vector<MenuItem> menuItems_;
     std::size_t selectedIndex_ = 0;
     std::unique_ptr<ecs::Registry> world_;
+    std::unique_ptr<BuildingSystem> buildings_; // Holds a reference to world_; keep it declared after.
 };
 
 } // namespace model

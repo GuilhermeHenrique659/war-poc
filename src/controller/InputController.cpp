@@ -9,6 +9,7 @@ namespace controller {
 
 InputController::InputController(core::EventBus& bus)
     : bus_(bus)
+    , playing_(std::make_unique<PlayingInputController>(bus))
 {
     bus_.subscribe<events::SceneChanged>([this](const events::SceneChanged& e) { scene_ = e.scene; });
     bus_.subscribe<events::MenuStateChanged>(
@@ -28,7 +29,7 @@ void InputController::update()
         handleMenuMouse();
         return;
     case model::Scene::Playing:
-        handlePlayingInput();
+        playing_->update();
         return;
     }
 }
@@ -67,14 +68,6 @@ void InputController::handleMenuMouse()
     if (clicked) {
         bus_.publish(events::MenuConfirmRequested{});
     }
-}
-
-void InputController::handlePlayingInput()
-{
-    if (!IsKeyPressed(KEY_ESCAPE)) {
-        return;
-    }
-    bus_.publish(events::ReturnToMenuRequested{});
 }
 
 std::optional<std::size_t> InputController::menuItemUnderMouse() const

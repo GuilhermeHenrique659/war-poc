@@ -6,11 +6,37 @@ GameModel::GameModel(core::EventBus& bus)
     : bus_(bus)
     , menuItems_{{"Iniciar", MenuAction::StartGame}, {"Sair", MenuAction::Quit}}
     , world_(std::make_unique<ecs::Registry>())
+    , buildings_(std::make_unique<BuildingSystem>(bus_, *world_))
 {
     bus_.subscribe<events::MenuNavigateRequested>([this](const auto& e) { onMenuNavigate(e); });
     bus_.subscribe<events::MenuItemHovered>([this](const auto& e) { onMenuItemHovered(e); });
     bus_.subscribe<events::MenuConfirmRequested>([this](const auto& e) { onMenuConfirm(e); });
     bus_.subscribe<events::ReturnToMenuRequested>([this](const auto& e) { onReturnToMenu(e); });
+    subscribeBuildCommands();
+}
+
+void GameModel::subscribeBuildCommands()
+{
+    bus_.subscribe<events::BuildSelectRequested>([this](const events::BuildSelectRequested& e) {
+        if (inMatch()) {
+            buildings_->select(e.player, e.type);
+        }
+    });
+    bus_.subscribe<events::BuildCancelRequested>([this](const events::BuildCancelRequested& e) {
+        if (inMatch()) {
+            buildings_->cancel(e.player);
+        }
+    });
+    bus_.subscribe<events::BuildCursorMoved>([this](const events::BuildCursorMoved& e) {
+        if (inMatch()) {
+            buildings_->moveCursor(e.player, e.tile);
+        }
+    });
+    bus_.subscribe<events::BuildPlaceRequested>([this](const events::BuildPlaceRequested& e) {
+        if (inMatch()) {
+            buildings_->place(e.player, e.tile);
+        }
+    });
 }
 
 void GameModel::initialize()
@@ -75,7 +101,7 @@ void GameModel::onReturnToMenu(const events::ReturnToMenuRequested& /*event*/)
         return;
     }
 
-    world_->clear();
+    resetWorld();
     changeScene(Scene::MainMenu);
     publishMenuState();
 }
@@ -96,9 +122,16 @@ void GameModel::publishMenuState() const
     bus_.publish(state);
 }
 
-void GameModel::startMatch()
+void GameModel::resetWorld()
 {
     world_->clear();
+    bus_.publish(events::WorldReset{});
+    buildings_->reset();
+}
+
+void GameModel::startMatch()
+{
+    resetWorld();
     changeScene(Scene::Playing);
 }
 
