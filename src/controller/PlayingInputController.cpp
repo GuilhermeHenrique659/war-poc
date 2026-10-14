@@ -4,6 +4,7 @@
 #include "model/Player.hpp"
 #include "view/BuildBarLayout.hpp"
 #include "view/IsoProjection.hpp"
+#include "view/RecruitPanelLayout.hpp"
 
 namespace controller {
 
@@ -16,6 +17,7 @@ constexpr std::size_t kMaxShortcuts = 9;
 
 PlayingInputController::PlayingInputController(core::EventBus& bus)
     : bus_(bus)
+    , selection_(std::make_unique<SelectionInputController>(bus))
 {
     bus_.subscribe<events::CameraChanged>([this](const events::CameraChanged& e) {
         cameraTarget_ = Vector2{e.targetX, e.targetY};
@@ -29,11 +31,24 @@ PlayingInputController::PlayingInputController(core::EventBus& bus)
         for (const auto& entry : e.entries) {
             barTypes_.push_back(entry.type);
         }
-        hasSelection_ = e.selected.has_value();
+        hasBuildSelection_ = e.selected.has_value();
+    });
+    bus_.subscribe<events::RecruitPanelChanged>([this](const events::RecruitPanelChanged& e) {
+        if (e.player != model::kLocalPlayer) {
+            return;
+        }
+        panelTypes_.clear();
+        if (!e.open) {
+            return;
+        }
+        for (const auto& entry : e.entries) {
+            panelTypes_.push_back(entry.type);
+        }
     });
     bus_.subscribe<events::WorldReset>([this](const events::WorldReset&) {
         lastTile_.reset();
         placing_ = false;
+        panelTypes_.clear();
     });
 }
 
@@ -45,12 +60,28 @@ void PlayingInputController::update()
     handleCamera();
     handleShortcuts();
 
+    // Sampled before handling clicks: placing the Command Center unselects it in the same frame.
+    const bool wasBuilding = hasBuildSelection_;
     const Vector2 mouse = GetMousePosition();
-    if (CheckCollisionPointRec(mouse, view::build_bar_layout::barBounds(GetScreenWidth(), GetScreenHeight()))) {
+    const Camera2D camera = view::iso::makeCamera(cameraTarget_, cameraZoom_, GetScreenWidth(), GetScreenHeight());
+    const bool overPanel = isOverPanel(mouse);
+    const bool overBar
+        = CheckCollisionPointRec(mouse, view::build_bar_layout::barBounds(GetScreenWidth(), GetScreenHeight()));
+
+    if (overPanel) {
+        handlePanelMouse(mouse);
+    } else if (overBar) {
         handleBarMouse(mouse);
+    } else {
+        handleMapMouse(mouse, camera);
+    }
+
+    // While a building is selected, map clicks place it instead of selecting.
+    if (wasBuilding || hasBuildSelection_) {
+        selection_->cancelDrag();
         return;
     }
-    handleMapMouse(mouse);
+    selection_->update(mouse, camera, overPanel || overBar);
 }
 
 bool PlayingInputController::handleCancel()
@@ -61,15 +92,21 @@ bool PlayingInputController::handleCancel()
         return false;
     }
 
-    if (hasSelection_) {
+    if (hasBuildSelection_) {
         bus_.publish(events::BuildCancelRequested{model::kLocalPlayer});
         return true;
     }
-    if (escape) {
-        bus_.publish(events::ReturnToMenuRequested{});
+    // Without a building selected, right click is a move order.
+    if (!escape) {
+        return false;
+    }
+    if (selection_->hasSelection()) {
+        selection_->cancelDrag();
+        bus_.publish(events::SelectionClearRequested{model::kLocalPlayer});
         return true;
     }
-    return false;
+    bus_.publish(events::ReturnToMenuRequested{});
+    return true;
 }
 
 void PlayingInputController::handleCamera()
@@ -131,9 +168,30 @@ void PlayingInputController::handleBarMouse(Vector2 mouse)
     bus_.publish(events::BuildSelectRequested{model::kLocalPlayer, barTypes_[*slot]});
 }
 
-void PlayingInputController::handleMapMouse(Vector2 mouse)
+void PlayingInputController::handlePanelMouse(Vector2 mouse)
 {
-    const Camera2D camera = view::iso::makeCamera(cameraTarget_, cameraZoom_, GetScreenWidth(), GetScreenHeight());
+    placing_ = false;
+    publishCursor(std::nullopt);
+
+    if (!IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
+        return;
+    }
+    const int screenWidth = GetScreenWidth();
+    if (CheckCollisionPointRec(mouse, view::recruit_panel_layout::closeBounds(panelTypes_.size(), screenWidth))) {
+        bus_.publish(events::SelectionClearRequested{model::kLocalPlayer});
+        return;
+    }
+    for (std::size_t i = 0; i < panelTypes_.size(); ++i) {
+        const Rectangle slot = view::recruit_panel_layout::slotBounds(i, panelTypes_.size(), screenWidth);
+        if (CheckCollisionPointRec(mouse, slot)) {
+            bus_.publish(events::RecruitRequested{model::kLocalPlayer, panelTypes_[i]});
+            return;
+        }
+    }
+}
+
+void PlayingInputController::handleMapMouse(Vector2 mouse, const Camera2D& camera)
+{
     const model::GridPos tile = view::iso::screenToGrid(mouse, camera);
     const bool tileChanged = lastTile_ != tile;
     publishCursor(tile);
@@ -146,7 +204,7 @@ void PlayingInputController::handleMapMouse(Vector2 mouse)
         placing_ = false;
     }
 
-    if (!hasSelection_) {
+    if (!hasBuildSelection_) {
         return;
     }
     // Dragging keeps placing on every new tile, so walls can be painted.
@@ -172,6 +230,14 @@ std::optional<std::size_t> PlayingInputController::slotUnderMouse(Vector2 mouse)
         }
     }
     return std::nullopt;
+}
+
+bool PlayingInputController::isOverPanel(Vector2 mouse) const
+{
+    if (panelTypes_.empty()) {
+        return false;
+    }
+    return CheckCollisionPointRec(mouse, view::recruit_panel_layout::panelBounds(panelTypes_.size(), GetScreenWidth()));
 }
 
 } // namespace controller

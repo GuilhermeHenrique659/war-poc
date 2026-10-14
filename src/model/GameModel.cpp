@@ -7,12 +7,49 @@ GameModel::GameModel(core::EventBus& bus)
     , menuItems_{{"Iniciar", MenuAction::StartGame}, {"Sair", MenuAction::Quit}}
     , world_(std::make_unique<ecs::Registry>())
     , buildings_(std::make_unique<BuildingSystem>(bus_, *world_))
+    , units_(std::make_unique<UnitSystem>(bus_, *world_, *buildings_))
+    , selection_(std::make_unique<SelectionSystem>(bus_, *world_))
 {
+    buildings_->setTileBlocker([this](GridPos tile) { return units_->isTileTaken(tile); });
+
     bus_.subscribe<events::MenuNavigateRequested>([this](const auto& e) { onMenuNavigate(e); });
     bus_.subscribe<events::MenuItemHovered>([this](const auto& e) { onMenuItemHovered(e); });
     bus_.subscribe<events::MenuConfirmRequested>([this](const auto& e) { onMenuConfirm(e); });
     bus_.subscribe<events::ReturnToMenuRequested>([this](const auto& e) { onReturnToMenu(e); });
     subscribeBuildCommands();
+    subscribeUnitCommands();
+}
+
+void GameModel::subscribeUnitCommands()
+{
+    bus_.subscribe<events::RecruitRequested>([this](const events::RecruitRequested& e) {
+        if (!inMatch()) {
+            return;
+        }
+        if (const auto commandCenter = selection_->selectedCommandCenter(e.player)) {
+            units_->recruit(e.player, e.type, *commandCenter);
+        }
+    });
+    bus_.subscribe<events::SelectUnitsRequested>([this](const events::SelectUnitsRequested& e) {
+        if (inMatch()) {
+            selection_->selectUnits(e.player, e.units, e.additive);
+        }
+    });
+    bus_.subscribe<events::SelectBuildingRequested>([this](const events::SelectBuildingRequested& e) {
+        if (inMatch()) {
+            selection_->selectBuilding(e.player, e.building);
+        }
+    });
+    bus_.subscribe<events::SelectionClearRequested>([this](const events::SelectionClearRequested& e) {
+        if (inMatch()) {
+            selection_->clear(e.player);
+        }
+    });
+    bus_.subscribe<events::MoveOrderRequested>([this](const events::MoveOrderRequested& e) {
+        if (inMatch()) {
+            units_->orderMove(e.player, selection_->selectedUnits(e.player), e.tile);
+        }
+    });
 }
 
 void GameModel::subscribeBuildCommands()
@@ -45,12 +82,15 @@ void GameModel::initialize()
     publishMenuState();
 }
 
-void GameModel::update(float /*deltaSeconds*/)
+void GameModel::update(float deltaSeconds)
 {
     if (scene_ != Scene::Playing) {
         return;
     }
-    // Gameplay systems will run over world_ here.
+    // Moving units can make a placement preview (in)valid.
+    if (units_->update(deltaSeconds)) {
+        buildings_->refreshPreviews();
+    }
 }
 
 void GameModel::onMenuNavigate(const events::MenuNavigateRequested& event)
@@ -127,6 +167,8 @@ void GameModel::resetWorld()
     world_->clear();
     bus_.publish(events::WorldReset{});
     buildings_->reset();
+    units_->reset();
+    selection_->reset();
 }
 
 void GameModel::startMatch()

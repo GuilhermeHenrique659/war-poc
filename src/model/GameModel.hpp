@@ -4,6 +4,8 @@
 #include "core/Events.hpp"
 #include "model/BuildingSystem.hpp"
 #include "model/Scene.hpp"
+#include "model/SelectionSystem.hpp"
+#include "model/UnitSystem.hpp"
 #include "model/ecs/Registry.hpp"
 
 #include <cstddef>
@@ -36,6 +38,7 @@ private:
     void onReturnToMenu(const events::ReturnToMenuRequested& event);
 
     void subscribeBuildCommands();
+    void subscribeUnitCommands();
     [[nodiscard]] bool inMatch() const { return scene_ == Scene::Playing; }
 
     void changeScene(Scene scene);
@@ -48,7 +51,10 @@ private:
     std::vector<MenuItem> menuItems_;
     std::size_t selectedIndex_ = 0;
     std::unique_ptr<ecs::Registry> world_;
-    std::unique_ptr<BuildingSystem> buildings_; // Holds a reference to world_; keep it declared after.
+    // The systems hold references to world_ (and units_ to buildings_); keep them declared after it.
+    std::unique_ptr<BuildingSystem> buildings_;
+    std::unique_ptr<UnitSystem> units_;
+    std::unique_ptr<SelectionSystem> selection_;
 };
 
 } // namespace model

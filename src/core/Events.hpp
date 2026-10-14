@@ -4,6 +4,7 @@
 #include "model/GridPos.hpp"
 #include "model/Player.hpp"
 #include "model/Scene.hpp"
+#include "model/UnitType.hpp"
 #include "model/ecs/Entity.hpp"
 
 #include <cstddef>
@@ -47,6 +48,43 @@ struct BuildCursorMoved {
 struct BuildPlaceRequested {
     model::PlayerId player;
     model::GridPos tile;
+};
+
+// Recruits at the player's selected Command Center.
+struct RecruitRequested {
+    model::PlayerId player;
+    model::UnitType type;
+};
+
+// Additive keeps the current unit selection and adds to it.
+struct SelectUnitsRequested {
+    model::PlayerId player;
+    std::vector<model::ecs::Entity> units;
+    bool additive;
+};
+
+struct SelectBuildingRequested {
+    model::PlayerId player;
+    model::ecs::Entity building;
+};
+
+struct SelectionClearRequested {
+    model::PlayerId player;
+};
+
+// Moves the player's selected units to (around) the tile.
+struct MoveOrderRequested {
+    model::PlayerId player;
+    model::GridPos tile;
+};
+
+// Controller -> View (selection box being dragged, in screen pixels)
+struct SelectionBoxChanged {
+    bool visible;
+    float x0;
+    float y0;
+    float x1;
+    float y1;
 };
 
 // Controller -> View (camera is presentation state)
@@ -106,6 +144,45 @@ struct BuildingPlaced {
     model::BuildingType type;
     model::GridPos origin;
     int size;
+};
+
+// Unit positions are continuous grid coordinates (tile center = tile + 0.5).
+struct UnitSpawned {
+    model::ecs::Entity entity;
+    model::PlayerId owner;
+    model::UnitType type;
+    float x;
+    float y;
+    int health;
+    int maxHealth;
+};
+
+struct UnitMoved {
+    model::ecs::Entity entity;
+    float x;
+    float y;
+};
+
+struct SelectionChanged {
+    model::PlayerId player;
+    std::vector<model::ecs::Entity> units;
+    std::optional<model::ecs::Entity> building;
+};
+
+struct RecruitEntry {
+    model::UnitType type;
+    std::string label;
+    int maxHealth;
+    int damage;
+    float range;
+    float speed;
+};
+
+// Open while the player has their Command Center selected.
+struct RecruitPanelChanged {
+    model::PlayerId player;
+    bool open;
+    std::vector<RecruitEntry> entries;
 };
 
 // View -> Controller (needed for mouse picking)

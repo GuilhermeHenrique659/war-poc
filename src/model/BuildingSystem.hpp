@@ -6,9 +6,11 @@
 #include "model/Player.hpp"
 #include "model/ecs/Registry.hpp"
 
+#include <functional>
 #include <optional>
 #include <string_view>
 #include <unordered_map>
+#include <utility>
 
 namespace model {
 
@@ -24,6 +26,13 @@ public:
     void cancel(PlayerId player);
     void moveCursor(PlayerId player, std::optional<GridPos> tile);
     void place(PlayerId player, GridPos anchor);
+
+    // Extra rule for free tiles (e.g. units standing there). Buildings never cover a blocked tile.
+    void setTileBlocker(std::function<bool(GridPos)> blocker) { tileBlocker_ = std::move(blocker); }
+    // Re-checks preview validity after something other than the cursor changed.
+    void refreshPreviews() const;
+
+    [[nodiscard]] bool isOccupied(GridPos tile) const { return occupied_.contains(tile); }
 
 private:
     struct BuilderState {
@@ -46,6 +55,7 @@ private:
     std::unordered_map<GridPos, ecs::Entity, GridPosHash> occupied_;
     std::unordered_map<PlayerId, BuilderState> builders_;
     std::unordered_map<PlayerId, ecs::Entity> commandCenters_;
+    std::function<bool(GridPos)> tileBlocker_;
 };
 
 } // namespace model

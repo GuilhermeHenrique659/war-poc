@@ -27,9 +27,12 @@ constexpr float kSwatchSize = 40.0f;
 constexpr std::array kHelpLines{
     "1-9 ou clique na barra: escolher construcao",
     "Botao esquerdo: construir (arraste para muros)",
-    "Botao direito / ESC: cancelar",
+    "Botao direito / ESC: cancelar construcao",
+    "Clique no Centro de Comando: recrutar tropas",
+    "Clique / arraste: selecionar tropas (Shift soma)",
+    "Botao direito: mover tropas selecionadas",
     "WASD / setas / botao do meio: mover camera",
-    "Roda do mouse: zoom   |   ESC sem selecao: menu",
+    "Roda do mouse: zoom   |   ESC: limpar selecao / menu",
 };
 
 } // namespace

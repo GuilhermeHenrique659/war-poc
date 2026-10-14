@@ -12,7 +12,7 @@ Documento vivo com as regras do jogo. Itens marcados como **TBD** ainda não for
 
 ## Fluxo de cenas
 1. **Menu principal**: opções `Iniciar` (começa uma partida) e `Sair`. Navegação por teclado (cima/baixo + confirmar) ou mouse (hover + clique).
-2. **Partida**: o mundo é criado vazio ao iniciar. `ESC` cancela a construção selecionada; sem seleção, volta ao menu e descarta a partida atual.
+2. **Partida**: o mundo é criado vazio ao iniciar. `ESC` cancela a construção selecionada ou limpa a seleção de tropas/construção; sem nada selecionado, volta ao menu e descarta a partida atual.
 
 ## Mapa
 - Grid isométrico. Toda posição de jogo é uma coordenada de tile (lógica), independente da projeção na tela.
@@ -46,7 +46,26 @@ Documento vivo com as regras do jogo. Itens marcados como **TBD** ainda não for
 - **TBD**: inimigos, ondas, rotas/pathfinding.
 
 ## Unidades
-- **TBD**: se existem unidades móveis, se são controláveis (estilo RTS) ou automáticas.
+- Tropas móveis controladas pelo jogador (estilo RTS). Cada tropa tem dono.
+- **Recrutamento**: clicar no próprio Centro de Comando (sem construção selecionada) seleciona o Centro e abre o painel de recrutamento no canto superior direito. O painel fecha com o `X`, `ESC` ou ao selecionar outra coisa / clicar no chão vazio.
+  - No sandbox o recrutamento é **grátis e instantâneo**: a tropa aparece no tile livre mais próximo do Centro.
+- **Seleção**: clique esquerdo numa tropa seleciona só ela. Arrastar com o botão esquerdo desenha uma caixa e seleciona todas as tropas do jogador dentro dela. `Shift` soma à seleção atual. Clique no chão vazio (sem `Shift`) limpa a seleção. Selecionar uma construção tira as tropas da seleção e vice-versa.
+- **Movimento**: botão direito no mapa manda as tropas selecionadas para o tile clicado.
+  - Formação: cada tropa recebe um tile livre diferente, os mais próximos do destino. A tropa mais próxima de cada tile fica com ele.
+  - Caminho por A* em 8 direções, desviando de construções e sem cortar quinas. Tropas não colidem entre si durante o trajeto, mas paradas nunca dividem tile.
+  - Se uma construção for colocada no caminho, a tropa recalcula a rota. Se o destino não for alcançável, ela para no tile livre mais próximo de onde está.
+- Não é possível construir sobre um tile com tropa (parada, andando ou com o tile reservado como destino).
+- `ESC` com tropas ou construção selecionadas limpa a seleção; sem seleção, volta ao menu.
+- Tipos atuais (velocidade em tiles/s, alcance em tiles):
+
+| Tropa | Vida | Dano | Alcance | Velocidade |
+|---|---|---|---|---|
+| Infantaria | 100 | 10 | 1 | 2.0 |
+| Longa Distância | 60 | 8 | 5 | 1.6 |
+| Cavalaria | 140 | 14 | 1 | 3.5 |
+
+- Vida, dano e alcance já são guardados, mas ainda não têm efeito: combate é **TBD** (ataque, alvos, cadência, morte).
+- **TBD**: custo e tempo de recrutamento fora do sandbox, limite de tropas, colisão entre tropas.
 
 ## Vitória / derrota
 - Sandbox: sem condição de vitória ou derrota.

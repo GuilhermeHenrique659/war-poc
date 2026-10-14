@@ -98,6 +98,15 @@ void BuildingSystem::place(PlayerId player, GridPos anchor)
     publishPreview(player);
 }
 
+void BuildingSystem::refreshPreviews() const
+{
+    for (const auto& [player, builder] : builders_) {
+        if (builder.selected && builder.cursor) {
+            publishPreview(player);
+        }
+    }
+}
+
 std::string_view BuildingSystem::lockedReason(PlayerId player, BuildingType type) const
 {
     switch (type) {
@@ -118,7 +127,8 @@ bool BuildingSystem::isAreaFree(GridPos origin, int size) const
 {
     for (int dy = 0; dy < size; ++dy) {
         for (int dx = 0; dx < size; ++dx) {
-            if (occupied_.contains(GridPos{origin.x + dx, origin.y + dy})) {
+            const GridPos tile{origin.x + dx, origin.y + dy};
+            if (occupied_.contains(tile) || (tileBlocker_ && tileBlocker_(tile))) {
                 return false;
             }
         }
