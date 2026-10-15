@@ -1,0 +1,57 @@
+#include "core/EventBus.hpp"
+#include "core/Events.hpp"
+#include "model/BuildingSystem.hpp"
+#include "model/UnitSystem.hpp"
+
+#include <gtest/gtest.h>
+
+#include <vector>
+
+namespace {
+
+class UnitSystemTest : public ::testing::Test {
+protected:
+    UnitSystemTest()
+        : buildings_(bus_, world_)
+        , units_(bus_, world_, buildings_)
+    {
+        bus_.subscribe<events::UnitSpawned>([this](const events::UnitSpawned& event) {
+            spawns_.push_back(event);
+        });
+        bus_.subscribe<events::UnitMoved>([this](const events::UnitMoved& event) {
+            moves_.push_back(event);
+        });
+    }
+
+    core::EventBus bus_;
+    model::ecs::Registry world_;
+    model::BuildingSystem buildings_;
+    model::UnitSystem units_;
+    std::vector<events::UnitSpawned> spawns_;
+    std::vector<events::UnitMoved> moves_;
+    static constexpr model::PlayerId kPlayer = 1;
+};
+
+} // namespace
+
+TEST_F(UnitSystemTest, MovesAnOwnedUnitToTheRequestedFreeDestination)
+{
+    // Given an infantry unit standing at the origin.
+    const model::UnitStats infantry = model::recruitStats(model::UnitType::Infantry);
+    const model::ecs::Entity unit = units_.spawn(kPlayer, infantry, {0, 0});
+    ASSERT_EQ(spawns_.size(), 1U);
+
+    // When its owner orders it to move two tiles east and time advances by one second.
+    const model::GridPos destination{2, 0};
+    units_.orderMove(kPlayer, {unit}, destination);
+    EXPECT_TRUE(units_.update(1.0F));
+
+    // Then the unit reaches and reserves that destination, emitting a movement event.
+    const auto* position = world_.tryGet<model::components::Position>(unit);
+    ASSERT_NE(position, nullptr);
+    EXPECT_FLOAT_EQ(position->x, 2.5F);
+    EXPECT_FLOAT_EQ(position->y, 0.5F);
+    EXPECT_TRUE(units_.isTileTaken(destination));
+    ASSERT_EQ(moves_.size(), 1U);
+    EXPECT_EQ(moves_.front().entity, unit);
+}

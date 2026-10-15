@@ -53,3 +53,36 @@ TEST(Pathfinding, RoutesAroundABlockedDiagonalCorner)
         previous = tile;
     }
 }
+
+TEST(Pathfinding, ReturnsNoRouteWhenTheDestinationIsBlocked)
+{
+    // Given a grid whose requested destination is blocked.
+    const model::GridPos goal{3, 2};
+    const auto blocked = [goal](model::GridPos tile) { return tile == goal; };
+
+    // When a unit requests a route to that destination.
+    const auto path = model::pathfinding::findPath({0, 0}, goal, blocked);
+
+    // Then no route is returned.
+    EXPECT_FALSE(path.has_value());
+}
+
+TEST(Pathfinding, FindsOnlyAvailableTilesWithinTheRequestedRadius)
+{
+    // Given a center tile and one unavailable neighbour.
+    const model::GridPos center{0, 0};
+    const model::GridPos unavailableTile{1, 0};
+    const auto unavailable = [center, unavailableTile](model::GridPos tile) {
+        return tile == center || tile == unavailableTile;
+    };
+
+    // When three nearby free tiles are requested within one ring.
+    const auto tiles = model::pathfinding::nearestFreeTiles(center, 3, unavailable, 1);
+
+    // Then every returned tile is free and no farther than that ring.
+    ASSERT_EQ(tiles.size(), 3U);
+    for (const model::GridPos tile : tiles) {
+        EXPECT_FALSE(unavailable(tile));
+        EXPECT_LE(std::max(std::abs(tile.x), std::abs(tile.y)), 1);
+    }
+}
