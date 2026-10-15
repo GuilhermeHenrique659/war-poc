@@ -18,4 +18,15 @@ Window::~Window()
     CloseWindow();
 }
 
+void Window::applyDisplayConfiguration(int width, int height, bool fullscreen) const
+{
+    if (IsWindowFullscreen() && !fullscreen) {
+        ToggleFullscreen();
+    }
+    SetWindowSize(width, height);
+    if (!IsWindowFullscreen() && fullscreen) {
+        ToggleFullscreen();
+    }
+}
+
 } // namespace view

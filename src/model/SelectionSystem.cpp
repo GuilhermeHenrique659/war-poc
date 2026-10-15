@@ -19,7 +19,11 @@ SelectionSystem::SelectionSystem(core::EventBus& bus, ecs::Registry& world)
 void SelectionSystem::reset()
 {
     selections_.clear();
-    publish(kLocalPlayer);
+}
+
+void SelectionSystem::initializePlayer(PlayerId player)
+{
+    publish(player);
 }
 
 void SelectionSystem::selectUnits(PlayerId player, const std::vector<ecs::Entity>& units, bool additive)

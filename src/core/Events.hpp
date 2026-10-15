@@ -27,6 +27,34 @@ struct MenuItemHovered {
 
 struct MenuConfirmRequested {};
 
+struct SettingsNavigateRequested {
+    MenuDirection direction;
+};
+
+struct SettingsAdjustRequested {
+    int delta;
+};
+
+struct SettingsNameInputRequested {
+    std::string utf8Text;
+};
+
+struct SettingsNameBackspaceRequested {};
+
+struct SettingsRowHovered {
+    std::size_t index;
+};
+
+struct SettingsConfirmRequested {};
+
+struct SettingsBackRequested {};
+
+struct WindowConfigurationRequested {
+    int width;
+    int height;
+    bool fullscreen;
+};
+
 struct ReturnToMenuRequested {};
 
 // Selecting the already selected building toggles it off.
@@ -115,9 +143,22 @@ struct SceneChanged {
     model::Scene scene;
 };
 
+// The player controlled by this client changed. Views and controllers cache this value locally.
+struct LocalPlayerChanged {
+    model::PlayerId player;
+};
+
 struct MenuStateChanged {
     std::vector<std::string> labels;
     std::size_t selectedIndex;
+};
+
+struct SettingsStateChanged {
+    std::size_t selectedIndex;
+    int width;
+    int height;
+    bool fullscreen;
+    std::string playerName;
 };
 
 // The match world was emptied; drop every cached entity.
@@ -138,7 +179,7 @@ struct BuildBarChanged {
 };
 
 struct BuildPreviewChanged {
-    model::PlayerId player = model::kLocalPlayer;
+    model::PlayerId player = model::kNoPlayer;
     bool visible = false;
     model::BuildingType type = model::BuildingType::Wall;
     model::GridPos origin{};
@@ -179,7 +220,7 @@ struct UnitRemoved {
 
 // Open while the player has two or more units selected. Stats describe the unit the merge would create.
 struct MergePanelChanged {
-    model::PlayerId player = model::kLocalPlayer;
+    model::PlayerId player = model::kNoPlayer;
     bool open = false;
     int unitCount = 0;
     bool canMerge = false;

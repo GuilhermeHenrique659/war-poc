@@ -2,6 +2,7 @@
 
 #include "core/EventBus.hpp"
 #include "core/Events.hpp"
+#include "model/Player.hpp"
 
 namespace view {
 
@@ -18,6 +19,7 @@ private:
     void drawButton() const;
 
     events::MergePanelChanged state_{};
+    model::PlayerId localPlayerId_ = model::kNoPlayer;
 };
 
 } // namespace view

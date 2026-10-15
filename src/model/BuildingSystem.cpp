@@ -18,8 +18,12 @@ void BuildingSystem::reset()
     occupied_.clear();
     builders_.clear();
     commandCenters_.clear();
-    publishBar(kLocalPlayer);
-    publishPreview(kLocalPlayer);
+}
+
+void BuildingSystem::initializePlayer(PlayerId player)
+{
+    publishBar(player);
+    publishPreview(player);
 }
 
 void BuildingSystem::select(PlayerId player, BuildingType type)

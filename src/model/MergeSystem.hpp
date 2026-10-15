@@ -21,8 +21,9 @@ class MergeSystem {
 public:
     MergeSystem(core::EventBus& bus, ecs::Registry& world, UnitSystem& units, SelectionSystem& selection);
 
-    // Call after the world is cleared. Publishes the closed panel.
+    // Call after the world is cleared.
     void reset();
+    void initializePlayer(PlayerId player);
 
     // Republishes the player's merge panel if it changed (selection or positions changed).
     void refresh(PlayerId player);

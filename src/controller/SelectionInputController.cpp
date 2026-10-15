@@ -28,6 +28,7 @@ SelectionInputController::SelectionInputController(core::EventBus& bus)
 
 void SelectionInputController::subscribe()
 {
+    bus_.subscribe<events::LocalPlayerChanged>([this](const events::LocalPlayerChanged& e) { localPlayerId_ = e.player; });
     bus_.subscribe<events::WorldReset>([this](const events::WorldReset&) {
         units_.clear();
         buildings_.clear();
@@ -51,7 +52,7 @@ void SelectionInputController::subscribe()
         buildings_.push_back(BuildingInfo{e.entity, e.owner, e.origin, e.size});
     });
     bus_.subscribe<events::SelectionChanged>([this](const events::SelectionChanged& e) {
-        if (e.player != model::kLocalPlayer) {
+        if (e.player != localPlayerId_) {
             return;
         }
         hasUnitSelection_ = !e.units.empty();
@@ -110,9 +111,9 @@ void SelectionInputController::selectInBox(Vector2 corner, const Camera2D& camer
     const Rectangle box{std::min(dragStart_.x, corner.x), std::min(dragStart_.y, corner.y),
         std::abs(corner.x - dragStart_.x), std::abs(corner.y - dragStart_.y)};
 
-    events::SelectUnitsRequested request{model::kLocalPlayer, {}, additive};
+    events::SelectUnitsRequested request{localPlayerId_, {}, additive};
     for (const auto& [entity, unit] : units_) {
-        if (unit.owner != model::kLocalPlayer) {
+        if (unit.owner != localPlayerId_) {
             continue;
         }
         const Vector2 screen = GetWorldToScreen2D(view::unit_layout::groundPoint(unit.x, unit.y), camera);
@@ -127,15 +128,15 @@ void SelectionInputController::selectAt(Vector2 mouse, const Camera2D& camera, b
 {
     const Vector2 world = GetScreenToWorld2D(mouse, camera);
     if (const auto unit = unitAt(world)) {
-        bus_.publish(events::SelectUnitsRequested{model::kLocalPlayer, {*unit}, additive});
+        bus_.publish(events::SelectUnitsRequested{localPlayerId_, {*unit}, additive});
         return;
     }
     if (const auto building = buildingAt(view::iso::worldToGrid(world))) {
-        bus_.publish(events::SelectBuildingRequested{model::kLocalPlayer, *building});
+        bus_.publish(events::SelectBuildingRequested{localPlayerId_, *building});
         return;
     }
     if (!additive) {
-        bus_.publish(events::SelectionClearRequested{model::kLocalPlayer});
+        bus_.publish(events::SelectionClearRequested{localPlayerId_});
     }
 }
 
@@ -144,7 +145,7 @@ void SelectionInputController::issueMove(Vector2 mouse, const Camera2D& camera)
     if (!hasUnitSelection_) {
         return;
     }
-    bus_.publish(events::MoveOrderRequested{model::kLocalPlayer, view::iso::screenToGrid(mouse, camera)});
+    bus_.publish(events::MoveOrderRequested{localPlayerId_, view::iso::screenToGrid(mouse, camera)});
 }
 
 void SelectionInputController::publishBox(Vector2 corner) const
@@ -158,7 +159,7 @@ std::optional<model::ecs::Entity> SelectionInputController::unitAt(Vector2 world
     std::optional<model::ecs::Entity> best;
     float bestDepth = 0.0f;
     for (const auto& [entity, unit] : units_) {
-        if (unit.owner != model::kLocalPlayer) {
+        if (unit.owner != localPlayerId_) {
             continue;
         }
         if (!CheckCollisionPointRec(world, view::unit_layout::hitBounds(unit.x, unit.y, unit.size))) {
@@ -176,7 +177,7 @@ std::optional<model::ecs::Entity> SelectionInputController::unitAt(Vector2 world
 std::optional<model::ecs::Entity> SelectionInputController::buildingAt(model::GridPos tile) const
 {
     for (const BuildingInfo& building : buildings_) {
-        if (building.owner != model::kLocalPlayer) {
+        if (building.owner != localPlayerId_) {
             continue;
         }
         const bool insideX = tile.x >= building.origin.x && tile.x < building.origin.x + building.size;

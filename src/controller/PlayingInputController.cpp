@@ -24,8 +24,9 @@ PlayingInputController::PlayingInputController(core::EventBus& bus)
         cameraTarget_ = Vector2{e.targetX, e.targetY};
         cameraZoom_ = e.zoom;
     });
+    bus_.subscribe<events::LocalPlayerChanged>([this](const events::LocalPlayerChanged& e) { localPlayerId_ = e.player; });
     bus_.subscribe<events::BuildBarChanged>([this](const events::BuildBarChanged& e) {
-        if (e.player != model::kLocalPlayer) {
+        if (e.player != localPlayerId_) {
             return;
         }
         barTypes_.clear();
@@ -35,7 +36,7 @@ PlayingInputController::PlayingInputController(core::EventBus& bus)
         hasBuildSelection_ = e.selected.has_value();
     });
     bus_.subscribe<events::RecruitPanelChanged>([this](const events::RecruitPanelChanged& e) {
-        if (e.player != model::kLocalPlayer) {
+        if (e.player != localPlayerId_) {
             return;
         }
         panelTypes_.clear();
@@ -47,7 +48,7 @@ PlayingInputController::PlayingInputController(core::EventBus& bus)
         }
     });
     bus_.subscribe<events::MergePanelChanged>([this](const events::MergePanelChanged& e) {
-        if (e.player == model::kLocalPlayer) {
+        if (e.player == localPlayerId_) {
             mergeOpen_ = e.open;
         }
     });
@@ -100,7 +101,7 @@ bool PlayingInputController::handleCancel()
     }
 
     if (hasBuildSelection_) {
-        bus_.publish(events::BuildCancelRequested{model::kLocalPlayer});
+        bus_.publish(events::BuildCancelRequested{localPlayerId_});
         return true;
     }
     // Without a building selected, right click is a move order.
@@ -109,7 +110,7 @@ bool PlayingInputController::handleCancel()
     }
     if (selection_->hasSelection()) {
         selection_->cancelDrag();
-        bus_.publish(events::SelectionClearRequested{model::kLocalPlayer});
+        bus_.publish(events::SelectionClearRequested{localPlayerId_});
         return true;
     }
     bus_.publish(events::ReturnToMenuRequested{});
@@ -153,12 +154,12 @@ void PlayingInputController::handleCamera()
 void PlayingInputController::handleShortcuts()
 {
     if (mergeOpen_ && IsKeyPressed(KEY_M)) {
-        bus_.publish(events::MergeRequested{model::kLocalPlayer});
+        bus_.publish(events::MergeRequested{localPlayerId_});
         return;
     }
     for (std::size_t i = 0; i < barTypes_.size() && i < kMaxShortcuts; ++i) {
         if (IsKeyPressed(KEY_ONE + static_cast<int>(i))) {
-            bus_.publish(events::BuildSelectRequested{model::kLocalPlayer, barTypes_[i]});
+            bus_.publish(events::BuildSelectRequested{localPlayerId_, barTypes_[i]});
             return;
         }
     }
@@ -176,7 +177,7 @@ void PlayingInputController::handleBarMouse(Vector2 mouse)
     if (!slot) {
         return;
     }
-    bus_.publish(events::BuildSelectRequested{model::kLocalPlayer, barTypes_[*slot]});
+    bus_.publish(events::BuildSelectRequested{localPlayerId_, barTypes_[*slot]});
 }
 
 void PlayingInputController::handlePanelMouse(Vector2 mouse)
@@ -190,18 +191,18 @@ void PlayingInputController::handlePanelMouse(Vector2 mouse)
     const int screenWidth = GetScreenWidth();
     if (mergeOpen_) {
         if (CheckCollisionPointRec(mouse, view::merge_panel_layout::buttonBounds(screenWidth))) {
-            bus_.publish(events::MergeRequested{model::kLocalPlayer});
+            bus_.publish(events::MergeRequested{localPlayerId_});
         }
         return;
     }
     if (CheckCollisionPointRec(mouse, view::recruit_panel_layout::closeBounds(panelTypes_.size(), screenWidth))) {
-        bus_.publish(events::SelectionClearRequested{model::kLocalPlayer});
+        bus_.publish(events::SelectionClearRequested{localPlayerId_});
         return;
     }
     for (std::size_t i = 0; i < panelTypes_.size(); ++i) {
         const Rectangle slot = view::recruit_panel_layout::slotBounds(i, panelTypes_.size(), screenWidth);
         if (CheckCollisionPointRec(mouse, slot)) {
-            bus_.publish(events::RecruitRequested{model::kLocalPlayer, panelTypes_[i]});
+            bus_.publish(events::RecruitRequested{localPlayerId_, panelTypes_[i]});
             return;
         }
     }
@@ -226,7 +227,7 @@ void PlayingInputController::handleMapMouse(Vector2 mouse, const Camera2D& camer
     }
     // Dragging keeps placing on every new tile, so walls can be painted.
     if (pressed || (placing_ && tileChanged)) {
-        bus_.publish(events::BuildPlaceRequested{model::kLocalPlayer, tile});
+        bus_.publish(events::BuildPlaceRequested{localPlayerId_, tile});
     }
 }
 
@@ -236,7 +237,7 @@ void PlayingInputController::publishCursor(std::optional<model::GridPos> tile)
         return;
     }
     lastTile_ = tile;
-    bus_.publish(events::BuildCursorMoved{model::kLocalPlayer, tile});
+    bus_.publish(events::BuildCursorMoved{localPlayerId_, tile});
 }
 
 std::optional<std::size_t> PlayingInputController::slotUnderMouse(Vector2 mouse) const

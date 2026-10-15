@@ -16,7 +16,7 @@
 
 namespace model {
 
-enum class MenuAction { StartGame, Quit };
+enum class MenuAction { StartGame, Settings, Quit };
 
 struct MenuItem {
     std::string label;
@@ -36,6 +36,13 @@ private:
     void onMenuNavigate(const events::MenuNavigateRequested& event);
     void onMenuItemHovered(const events::MenuItemHovered& event);
     void onMenuConfirm(const events::MenuConfirmRequested& event);
+    void onSettingsNavigate(const events::SettingsNavigateRequested& event);
+    void onSettingsAdjust(const events::SettingsAdjustRequested& event);
+    void onSettingsNameInput(const events::SettingsNameInputRequested& event);
+    void onSettingsNameBackspace(const events::SettingsNameBackspaceRequested& event);
+    void onSettingsRowHovered(const events::SettingsRowHovered& event);
+    void onSettingsConfirm(const events::SettingsConfirmRequested& event);
+    void onSettingsBack(const events::SettingsBackRequested& event);
     void onReturnToMenu(const events::ReturnToMenuRequested& event);
 
     void subscribeBuildCommands();
@@ -44,13 +51,21 @@ private:
 
     void changeScene(Scene scene);
     void publishMenuState() const;
+    void publishSettingsState() const;
     void resetWorld();
     void startMatch();
+    void createLocalPlayer();
 
     core::EventBus& bus_;
     Scene scene_ = Scene::MainMenu;
     std::vector<MenuItem> menuItems_;
     std::size_t selectedIndex_ = 0;
+    std::size_t selectedSettingsIndex_ = 0;
+    std::size_t resolutionIndex_ = 1;
+    bool fullscreen_ = false;
+    std::string playerName_ = "Jogador";
+    PlayerId nextPlayerId_ = 1;
+    PlayerId localPlayerId_ = kNoPlayer;
     std::unique_ptr<ecs::Registry> world_;
     // The systems hold references to world_ (and units_ to buildings_); keep them declared after it.
     std::unique_ptr<BuildingSystem> buildings_;

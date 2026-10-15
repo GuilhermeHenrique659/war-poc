@@ -23,8 +23,9 @@ constexpr float kSwatchSize = 40.0f;
 
 RecruitPanelView::RecruitPanelView(core::EventBus& bus)
 {
+    bus.subscribe<events::LocalPlayerChanged>([this](const events::LocalPlayerChanged& e) { localPlayerId_ = e.player; });
     bus.subscribe<events::RecruitPanelChanged>([this](const events::RecruitPanelChanged& e) {
-        if (e.player != model::kLocalPlayer) {
+        if (e.player != localPlayerId_) {
             return;
         }
         open_ = e.open;

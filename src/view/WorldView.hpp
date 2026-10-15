@@ -5,6 +5,7 @@
 #include "model/BuildingType.hpp"
 #include "model/GridPos.hpp"
 #include "model/UnitType.hpp"
+#include "model/Player.hpp"
 #include "model/ecs/Entity.hpp"
 
 #include <raylib.h>
@@ -67,6 +68,7 @@ private:
     std::optional<model::ecs::Entity> selectedBuilding_;
     events::BuildPreviewChanged preview_{};
     events::SelectionBoxChanged selectionBox_{};
+    model::PlayerId localPlayerId_ = model::kNoPlayer;
 };
 
 } // namespace view

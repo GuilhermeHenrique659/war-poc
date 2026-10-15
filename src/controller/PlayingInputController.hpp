@@ -5,6 +5,7 @@
 #include "model/BuildingType.hpp"
 #include "model/GridPos.hpp"
 #include "model/UnitType.hpp"
+#include "model/Player.hpp"
 
 #include <raylib.h>
 
@@ -44,6 +45,7 @@ private:
     bool placing_ = false; // Left button went down on the map and is still held.
     std::vector<model::UnitType> panelTypes_; // Empty while the recruit panel is closed.
     bool mergeOpen_ = false;
+    model::PlayerId localPlayerId_ = model::kNoPlayer;
 };
 
 } // namespace controller

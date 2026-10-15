@@ -50,8 +50,9 @@ WorldView::WorldView(core::EventBus& bus)
         resetCamera();
     });
     bus_.subscribe<events::BuildingPlaced>([this](const events::BuildingPlaced& e) { onBuildingPlaced(e); });
+    bus_.subscribe<events::LocalPlayerChanged>([this](const events::LocalPlayerChanged& e) { localPlayerId_ = e.player; });
     bus_.subscribe<events::BuildPreviewChanged>([this](const events::BuildPreviewChanged& e) {
-        if (e.player == model::kLocalPlayer) {
+        if (e.player == localPlayerId_) {
             preview_ = e;
         }
     });
@@ -98,7 +99,7 @@ void WorldView::draw() const
 
 void WorldView::onSelectionChanged(const events::SelectionChanged& event)
 {
-    if (event.player != model::kLocalPlayer) {
+    if (event.player != localPlayerId_) {
         return;
     }
     selectedUnits_ = std::unordered_set<model::ecs::Entity>(event.units.begin(), event.units.end());

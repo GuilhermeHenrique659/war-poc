@@ -2,6 +2,6 @@
 
 namespace model {
 
-enum class Scene { MainMenu, Playing };
+enum class Scene { MainMenu, Settings, Playing };
 
 } // namespace model

@@ -20,11 +20,16 @@ public:
 private:
     void handleMenuKeyboard();
     void handleMenuMouse();
+    void handleSettingsKeyboard();
+    void handleSettingsMouse();
     [[nodiscard]] std::optional<std::size_t> menuItemUnderMouse() const;
+    [[nodiscard]] std::optional<std::size_t> settingsRowUnderMouse() const;
 
     core::EventBus& bus_;
     model::Scene scene_ = model::Scene::MainMenu;
     std::size_t menuItemCount_ = 0;
+    std::size_t settingsRowCount_ = 5;
+    std::size_t selectedSettingsRow_ = 0;
     std::unique_ptr<PlayingInputController> playing_;
 };
 

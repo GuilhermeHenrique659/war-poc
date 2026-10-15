@@ -1,10 +1,31 @@
 #include "model/GameModel.hpp"
 
+#include "model/components/PlayerComponents.hpp"
+
+#include <algorithm>
+
 namespace model {
+
+namespace {
+
+struct Resolution {
+    int width;
+    int height;
+};
+
+constexpr Resolution kResolutions[] = {{1024, 576}, {1280, 720}, {1600, 900}, {1920, 1080}};
+constexpr std::size_t kSettingsRowCount = 5;
+constexpr std::size_t kPlayerNameRow = 2;
+constexpr std::size_t kApplyRow = 3;
+constexpr std::size_t kBackRow = 4;
+constexpr std::size_t kMaxPlayerNameBytes = 32;
+constexpr const char* kDefaultPlayerName = "Jogador";
+
+} // namespace
 
 GameModel::GameModel(core::EventBus& bus)
     : bus_(bus)
-    , menuItems_{{"Iniciar", MenuAction::StartGame}, {"Sair", MenuAction::Quit}}
+    , menuItems_{{"Iniciar", MenuAction::StartGame}, {"Configurações", MenuAction::Settings}, {"Sair", MenuAction::Quit}}
     , world_(std::make_unique<ecs::Registry>())
     , buildings_(std::make_unique<BuildingSystem>(bus_, *world_))
     , units_(std::make_unique<UnitSystem>(bus_, *world_, *buildings_))
@@ -16,6 +37,13 @@ GameModel::GameModel(core::EventBus& bus)
     bus_.subscribe<events::MenuNavigateRequested>([this](const auto& e) { onMenuNavigate(e); });
     bus_.subscribe<events::MenuItemHovered>([this](const auto& e) { onMenuItemHovered(e); });
     bus_.subscribe<events::MenuConfirmRequested>([this](const auto& e) { onMenuConfirm(e); });
+    bus_.subscribe<events::SettingsNavigateRequested>([this](const auto& e) { onSettingsNavigate(e); });
+    bus_.subscribe<events::SettingsAdjustRequested>([this](const auto& e) { onSettingsAdjust(e); });
+    bus_.subscribe<events::SettingsNameInputRequested>([this](const auto& e) { onSettingsNameInput(e); });
+    bus_.subscribe<events::SettingsNameBackspaceRequested>([this](const auto& e) { onSettingsNameBackspace(e); });
+    bus_.subscribe<events::SettingsRowHovered>([this](const auto& e) { onSettingsRowHovered(e); });
+    bus_.subscribe<events::SettingsConfirmRequested>([this](const auto& e) { onSettingsConfirm(e); });
+    bus_.subscribe<events::SettingsBackRequested>([this](const auto& e) { onSettingsBack(e); });
     bus_.subscribe<events::ReturnToMenuRequested>([this](const auto& e) { onReturnToMenu(e); });
     subscribeBuildCommands();
     subscribeUnitCommands();
@@ -140,10 +168,99 @@ void GameModel::onMenuConfirm(const events::MenuConfirmRequested& /*event*/)
     case MenuAction::StartGame:
         startMatch();
         return;
+    case MenuAction::Settings:
+        selectedSettingsIndex_ = 0;
+        changeScene(Scene::Settings);
+        publishSettingsState();
+        return;
     case MenuAction::Quit:
         bus_.publish(events::QuitRequested{});
         return;
     }
+}
+
+void GameModel::onSettingsNavigate(const events::SettingsNavigateRequested& event)
+{
+    if (scene_ != Scene::Settings) {
+        return;
+    }
+    selectedSettingsIndex_ = event.direction == events::MenuDirection::Down
+        ? (selectedSettingsIndex_ + 1) % kSettingsRowCount
+        : (selectedSettingsIndex_ + kSettingsRowCount - 1) % kSettingsRowCount;
+    publishSettingsState();
+}
+
+void GameModel::onSettingsAdjust(const events::SettingsAdjustRequested& event)
+{
+    if (scene_ != Scene::Settings || event.delta == 0) {
+        return;
+    }
+    if (selectedSettingsIndex_ == 0) {
+        const auto count = std::size(kResolutions);
+        const auto current = static_cast<int>(resolutionIndex_);
+        const auto next = (current + event.delta + static_cast<int>(count)) % static_cast<int>(count);
+        resolutionIndex_ = static_cast<std::size_t>(next);
+    } else if (selectedSettingsIndex_ == 1) {
+        fullscreen_ = !fullscreen_;
+    }
+    publishSettingsState();
+}
+
+void GameModel::onSettingsNameInput(const events::SettingsNameInputRequested& event)
+{
+    if (scene_ != Scene::Settings || selectedSettingsIndex_ != kPlayerNameRow || event.utf8Text.empty()) {
+        return;
+    }
+    const std::size_t available = kMaxPlayerNameBytes - std::min(playerName_.size(), kMaxPlayerNameBytes);
+    playerName_.append(event.utf8Text.substr(0, available));
+    publishSettingsState();
+}
+
+void GameModel::onSettingsNameBackspace(const events::SettingsNameBackspaceRequested& /*event*/)
+{
+    if (scene_ != Scene::Settings || selectedSettingsIndex_ != kPlayerNameRow || playerName_.empty()) {
+        return;
+    }
+    const auto begin = playerName_.rbegin();
+    const auto character = std::find_if(begin, playerName_.rend(), [](unsigned char byte) {
+        return (byte & 0xC0U) != 0x80U;
+    });
+    playerName_.erase(playerName_.size() - static_cast<std::size_t>(std::distance(begin, character)) - 1);
+    publishSettingsState();
+}
+
+void GameModel::onSettingsRowHovered(const events::SettingsRowHovered& event)
+{
+    if (scene_ != Scene::Settings || event.index >= kSettingsRowCount || event.index == selectedSettingsIndex_) {
+        return;
+    }
+    selectedSettingsIndex_ = event.index;
+    publishSettingsState();
+}
+
+void GameModel::onSettingsConfirm(const events::SettingsConfirmRequested& /*event*/)
+{
+    if (scene_ != Scene::Settings) {
+        return;
+    }
+    if (selectedSettingsIndex_ == kApplyRow) {
+        const auto& resolution = kResolutions[resolutionIndex_];
+        bus_.publish(events::WindowConfigurationRequested{resolution.width, resolution.height, fullscreen_});
+        return;
+    }
+    if (selectedSettingsIndex_ == kBackRow) {
+        changeScene(Scene::MainMenu);
+        publishMenuState();
+    }
+}
+
+void GameModel::onSettingsBack(const events::SettingsBackRequested& /*event*/)
+{
+    if (scene_ != Scene::Settings) {
+        return;
+    }
+    changeScene(Scene::MainMenu);
+    publishMenuState();
 }
 
 void GameModel::onReturnToMenu(const events::ReturnToMenuRequested& /*event*/)
@@ -173,6 +290,12 @@ void GameModel::publishMenuState() const
     bus_.publish(state);
 }
 
+void GameModel::publishSettingsState() const
+{
+    const auto& resolution = kResolutions[resolutionIndex_];
+    bus_.publish(events::SettingsStateChanged{selectedSettingsIndex_, resolution.width, resolution.height, fullscreen_, playerName_});
+}
+
 void GameModel::resetWorld()
 {
     world_->clear();
@@ -186,7 +309,19 @@ void GameModel::resetWorld()
 void GameModel::startMatch()
 {
     resetWorld();
+    createLocalPlayer();
     changeScene(Scene::Playing);
+}
+
+void GameModel::createLocalPlayer()
+{
+    const ecs::Entity entity = world_->create();
+    localPlayerId_ = nextPlayerId_++;
+    world_->emplace<components::PlayerProfile>(entity, localPlayerId_, playerName_.empty() ? kDefaultPlayerName : playerName_);
+    bus_.publish(events::LocalPlayerChanged{localPlayerId_});
+    buildings_->initializePlayer(localPlayerId_);
+    selection_->initializePlayer(localPlayerId_);
+    merges_->initializePlayer(localPlayerId_);
 }
 
 } // namespace model

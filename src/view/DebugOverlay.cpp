@@ -54,6 +54,8 @@ void drawFootprintOutline(const Camera2D& camera, float x, float y, float size)
     switch (scene) {
     case model::Scene::MainMenu:
         return "Menu";
+    case model::Scene::Settings:
+        return "Settings";
     case model::Scene::Playing:
         return "Partida";
     }

@@ -26,9 +26,13 @@ MergeSystem::MergeSystem(core::EventBus& bus, ecs::Registry& world, UnitSystem& 
 void MergeSystem::reset()
 {
     published_.clear();
+}
+
+void MergeSystem::initializePlayer(PlayerId player)
+{
     events::MergePanelChanged closed{};
-    closed.player = kLocalPlayer;
-    published_[kLocalPlayer] = closed;
+    closed.player = player;
+    published_[player] = closed;
     bus_.publish(closed);
 }
 

@@ -19,8 +19,9 @@ class BuildingSystem {
 public:
     BuildingSystem(core::EventBus& bus, ecs::Registry& world);
 
-    // Call after the world is cleared. Publishes the fresh build bar and preview.
+    // Call after the world is cleared.
     void reset();
+    void initializePlayer(PlayerId player);
 
     void select(PlayerId player, BuildingType type);
     void cancel(PlayerId player);

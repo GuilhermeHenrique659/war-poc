@@ -40,8 +40,9 @@ constexpr std::array kHelpLines{
 
 BuildBarView::BuildBarView(core::EventBus& bus)
 {
+    bus.subscribe<events::LocalPlayerChanged>([this](const events::LocalPlayerChanged& e) { localPlayerId_ = e.player; });
     bus.subscribe<events::BuildBarChanged>([this](const events::BuildBarChanged& e) {
-        if (e.player != model::kLocalPlayer) {
+        if (e.player != localPlayerId_) {
             return;
         }
         entries_ = e.entries;

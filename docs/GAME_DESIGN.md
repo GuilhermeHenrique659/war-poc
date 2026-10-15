@@ -11,8 +11,14 @@ Documento vivo com as regras do jogo. Itens marcados como **TBD** ainda não for
   - Multiplayer PvP.
 
 ## Fluxo de cenas
-1. **Menu principal**: opções `Iniciar` (começa uma partida) e `Sair`. Navegação por teclado (cima/baixo + confirmar) ou mouse (hover + clique).
-2. **Partida**: o mundo é criado vazio ao iniciar. `ESC` cancela a construção selecionada ou limpa a seleção de tropas/construção; sem nada selecionado, volta ao menu e descarta a partida atual.
+1. **Menu principal**: opções `Iniciar` (começa uma partida), `Configurações` e `Sair`. Navegação por teclado (cima/baixo + confirmar) ou mouse (hover + clique).
+2. **Configurações**: permite escolher uma resolução entre 1024x576, 1280x720, 1600x900 e 1920x1080, alternar entre janela e tela cheia e editar o nome do jogador. A resolução e o modo de tela só são aplicados ao confirmar `Aplicar`; `Voltar` ou `ESC` retorna ao menu. Se o nome estiver vazio, o jogador usa `Jogador`.
+3. **Partida**: o mundo é criado vazio ao iniciar. `ESC` cancela a construção selecionada ou limpa a seleção de tropas/construção; sem nada selecionado, volta ao menu e descarta a partida atual.
+
+## Jogador
+- Cada partida cria uma entidade lógica para o jogador local. Ela não tem posição nem representação visual.
+- A entidade recebe um `PlayerId` gerado pelo Model e guarda o nome configurado. Construções e tropas registram esse `PlayerId` como dono.
+- No sandbox atual há somente o jogador local. O `PlayerId` é propagado aos Controllers e Views pelo event bus, permitindo que novos jogadores sejam adicionados depois.
 
 ## Modo debug
 - `F3` liga e desliga o modo debug em qualquer cena. Ele só muda o que aparece na tela e não afeta as regras do jogo.

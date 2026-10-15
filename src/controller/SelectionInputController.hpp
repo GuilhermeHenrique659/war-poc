@@ -59,6 +59,7 @@ private:
     bool dragging_ = false; // Left button went down on the map and is still held.
     bool boxActive_ = false;
     Vector2 dragStart_{0.0f, 0.0f};
+    model::PlayerId localPlayerId_ = model::kNoPlayer;
 };
 
 } // namespace controller

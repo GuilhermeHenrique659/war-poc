@@ -22,6 +22,9 @@ Game::Game()
     , controller_(std::make_unique<controller::InputController>(*bus_))
 {
     bus_->subscribe<events::QuitRequested>([this](const events::QuitRequested&) { running_ = false; });
+    bus_->subscribe<events::WindowConfigurationRequested>([this](const events::WindowConfigurationRequested& e) {
+        window_->applyDisplayConfiguration(e.width, e.height, e.fullscreen);
+    });
     model_->initialize();
 }
 

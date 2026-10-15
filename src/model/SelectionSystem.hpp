@@ -16,8 +16,9 @@ class SelectionSystem {
 public:
     SelectionSystem(core::EventBus& bus, ecs::Registry& world);
 
-    // Call after the world is cleared. Publishes the empty selection.
+    // Call after the world is cleared.
     void reset();
+    void initializePlayer(PlayerId player);
 
     void selectUnits(PlayerId player, const std::vector<ecs::Entity>& units, bool additive);
     void selectBuilding(PlayerId player, ecs::Entity building);

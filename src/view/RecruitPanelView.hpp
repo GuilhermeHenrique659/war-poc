@@ -2,6 +2,7 @@
 
 #include "core/EventBus.hpp"
 #include "core/Events.hpp"
+#include "model/Player.hpp"
 
 #include <cstddef>
 #include <vector>
@@ -21,6 +22,7 @@ private:
 
     bool open_ = false;
     std::vector<events::RecruitEntry> entries_;
+    model::PlayerId localPlayerId_ = model::kNoPlayer;
 };
 
 } // namespace view

@@ -208,7 +208,7 @@ std::unique_ptr&lt;controller::InputController&gt; controller_;</code></pre>
 </figure>
 
 <h2 id="eventos">4. Catálogo de eventos</h2>
-<p>Todos ficam em <code>src/core/Events.hpp</code>. Eventos de gameplay carregam <code>PlayerId</code>, preparando o multiplayer: cada consumidor filtra por <code>model::kLocalPlayer</code>.</p>
+<p>Todos ficam em <code>src/core/Events.hpp</code>. Eventos de gameplay carregam <code>PlayerId</code>, preparando o multiplayer. O Model publica <code>LocalPlayerChanged</code> e cada consumidor guarda uma cópia local desse id.</p>
 <table>
 <tr><th>Direção</th><th>Eventos</th></tr>
 <tr><td><span class="tag c">Controller</span> → <span class="tag m">Model</span><br>comandos</td>
@@ -218,7 +218,7 @@ std::unique_ptr&lt;controller::InputController&gt; controller_;</code></pre>
 <code>MoveOrderRequested</code>, <code>MergeRequested</code></td></tr>
 <tr><td><span class="tag m">Model</span> → <span class="tag v">View</span> / <span class="tag c">Controller</span><br>notificações</td>
 <td><code>SceneChanged</code>, <code>MenuStateChanged</code>, <code>WorldReset</code>, <code>BuildBarChanged</code>, <code>BuildPreviewChanged</code>,
-<code>BuildingPlaced</code>, <code>UnitSpawned</code>, <code>UnitMoved</code>, <code>UnitRemoved</code>, <code>SelectionChanged</code>,
+<code>LocalPlayerChanged</code>, <code>BuildingPlaced</code>, <code>UnitSpawned</code>, <code>UnitMoved</code>, <code>UnitRemoved</code>, <code>SelectionChanged</code>,
 <code>RecruitPanelChanged</code>, <code>MergePanelChanged</code></td></tr>
 <tr><td><span class="tag c">Controller</span> → <span class="tag v">View</span><br>apresentação</td>
 <td><code>CameraPanRequested</code>, <code>CameraZoomRequested</code>, <code>SelectionBoxChanged</code>, <code>DebugToggleRequested</code></td></tr>
@@ -372,7 +372,7 @@ A geometria de UI usada nos dois lados (hit-test) fica nos headers <code>*Layout
     <span class="cm">// ...</span>
     <span class="kw">if</span> (!hasBuildSelection_) { <span class="kw">return</span>; }    <span class="cm">// cópia local vinda de BuildBarChanged</span>
     <span class="kw">if</span> (pressed || (placing_ &amp;&amp; tileChanged)) { <span class="cm">// arrastar "pinta" muros</span>
-        bus_.publish(events::BuildPlaceRequested{model::kLocalPlayer, tile});
+        bus_.publish(events::BuildPlaceRequested{localPlayerId_, tile});
     }
 }</code></pre>
 
@@ -435,7 +435,7 @@ Outro jogador (no futuro, via rede) poderia publicar o mesmo <code>BuildPlaceReq
   <li><b>Sistema.</b> Crie ou estenda uma classe em <code>src/model/</code> que recebe <code>EventBus&amp;</code> e <code>Registry&amp;</code>, valida com guard clauses, muda o ECS e publica a notificação.</li>
   <li><b>Roteamento.</b> Em <code>GameModel</code>, inscreva o comando com o guard <code>inMatch()</code> e delegue ao sistema. Se o sistema for novo, declare o <code>unique_ptr</code> <b>depois</b> de <code>world_</code> e das dependências dele, e chame <code>reset()</code> em <code>resetWorld()</code>.</li>
   <li><b>Controller.</b> Leia o input e publique o comando. Se precisar de hit-test de UI, coloque a geometria num <code>src/view/*Layout.hpp</code> compartilhado.</li>
-  <li><b>View.</b> Inscreva-se na notificação, guarde uma cópia local (filtrando <code>kLocalPlayer</code>), limpe-a em <code>WorldReset</code> e desenhe em <code>draw() const</code>.</li>
+  <li><b>View.</b> Inscreva-se em <code>LocalPlayerChanged</code> e na notificação, guarde uma cópia local filtrada pelo id recebido, limpe-a em <code>WorldReset</code> e desenhe em <code>draw() const</code>.</li>
   <li><b>Build.</b> <code>cmake --build --preset default</code> sem nenhum warning. Arquivos novos em <code>src/</code> entram sozinhos pelo <code>GLOB_RECURSE</code>.</li>
 </ol>
 <p>Esqueleto genérico (nomes ilustrativos):</p>
@@ -457,7 +457,7 @@ bus_.subscribe&lt;events::XyzRequested&gt;([<span class="kw">this</span>](<span 
 
 <span class="cm">// view/XyzView.cpp</span>
 bus.subscribe&lt;events::XyzChanged&gt;([<span class="kw">this</span>](<span class="kw">const</span> events::XyzChanged&amp; e) {
-    <span class="kw">if</span> (e.player == model::kLocalPlayer) { state_ = e; }
+    <span class="kw">if</span> (e.player == localPlayerId_) { state_ = e; }
 });
 bus.subscribe&lt;events::WorldReset&gt;([<span class="kw">this</span>](<span class="kw">const auto</span>&amp;) { state_ = {}; });</code></pre>
 

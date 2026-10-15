@@ -23,8 +23,9 @@ constexpr int kButtonTextSize = 20;
 
 MergePanelView::MergePanelView(core::EventBus& bus)
 {
+    bus.subscribe<events::LocalPlayerChanged>([this](const events::LocalPlayerChanged& e) { localPlayerId_ = e.player; });
     bus.subscribe<events::MergePanelChanged>([this](const events::MergePanelChanged& e) {
-        if (e.player == model::kLocalPlayer) {
+        if (e.player == localPlayerId_) {
             state_ = e;
         }
     });

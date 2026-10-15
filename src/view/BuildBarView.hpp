@@ -3,6 +3,7 @@
 #include "core/EventBus.hpp"
 #include "core/Events.hpp"
 #include "model/BuildingType.hpp"
+#include "model/Player.hpp"
 
 #include <cstddef>
 #include <optional>
@@ -23,6 +24,7 @@ private:
 
     std::vector<events::BuildBarEntry> entries_;
     std::optional<model::BuildingType> selected_;
+    model::PlayerId localPlayerId_ = model::kNoPlayer;
 };
 
 } // namespace view
