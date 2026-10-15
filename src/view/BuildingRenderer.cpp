@@ -10,6 +10,9 @@ namespace {
 constexpr Color kCommandCenterColor{70, 120, 200, 255};
 constexpr Color kWallColor{150, 148, 138, 255};
 constexpr Color kFlagColor{220, 60, 50, 255};
+constexpr Color kEconomyColor{90, 160, 100, 255};
+constexpr Color kBarracksColor{160, 100, 75, 255};
+constexpr Color kTowerColor{190, 125, 55, 255};
 
 void drawCommandCenter(model::GridPos origin, int size, unsigned char alpha)
 {
@@ -70,6 +73,14 @@ Color buildingColor(model::BuildingType type)
         return kCommandCenterColor;
     case model::BuildingType::Wall:
         return kWallColor;
+    case model::BuildingType::House:
+    case model::BuildingType::Generator:
+    case model::BuildingType::Warehouse:
+        return kEconomyColor;
+    case model::BuildingType::Barracks:
+        return kBarracksColor;
+    case model::BuildingType::Tower:
+        return kTowerColor;
     }
     return MAGENTA;
 }
@@ -82,6 +93,19 @@ void drawBuilding(model::BuildingType type, model::GridPos origin, int size, uns
         return;
     case model::BuildingType::Wall:
         drawWall(origin, alpha);
+        return;
+    case model::BuildingType::House:
+    case model::BuildingType::Generator:
+    case model::BuildingType::Warehouse:
+    case model::BuildingType::Barracks:
+        iso::drawPrism({static_cast<float>(origin.x), static_cast<float>(origin.y), static_cast<float>(size),
+                           static_cast<float>(size), 0.0f, 24.0f},
+            iso::boxColors(buildingColor(type), alpha));
+        return;
+    case model::BuildingType::Tower:
+        iso::drawPrism({static_cast<float>(origin.x), static_cast<float>(origin.y), static_cast<float>(size),
+                           static_cast<float>(size), 0.0f, 36.0f},
+            iso::boxColors(buildingColor(type), alpha));
         return;
     }
 }

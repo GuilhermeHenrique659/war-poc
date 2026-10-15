@@ -82,7 +82,7 @@ void MergeSystem::merge(PlayerId player)
     }
 
     for (const ecs::Entity entity : current.units) {
-        units_.remove(entity);
+        units_.removeForMerge(entity);
     }
     const ecs::Entity merged = units_.spawn(player, current.result, *current.origin);
     selection_.selectUnits(player, {merged}, false);

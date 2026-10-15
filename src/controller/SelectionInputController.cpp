@@ -34,12 +34,16 @@ void SelectionInputController::subscribe()
         buildings_.clear();
         hasUnitSelection_ = false;
         hasBuildingSelection_ = false;
+        selectedUnits_.clear();
         cancelDrag();
     });
     bus_.subscribe<events::UnitSpawned>([this](const events::UnitSpawned& e) {
         units_[e.entity] = UnitInfo{e.owner, e.x, e.y, e.size};
     });
-    bus_.subscribe<events::UnitRemoved>([this](const events::UnitRemoved& e) { units_.erase(e.entity); });
+    bus_.subscribe<events::UnitRemoved>([this](const events::UnitRemoved& e) {
+        units_.erase(e.entity);
+        std::erase(selectedUnits_, e.entity);
+    });
     bus_.subscribe<events::UnitMoved>([this](const events::UnitMoved& e) {
         const auto it = units_.find(e.entity);
         if (it == units_.end()) {
@@ -51,19 +55,23 @@ void SelectionInputController::subscribe()
     bus_.subscribe<events::BuildingPlaced>([this](const events::BuildingPlaced& e) {
         buildings_.push_back(BuildingInfo{e.entity, e.owner, e.origin, e.size});
     });
+    bus_.subscribe<events::BuildingRemoved>([this](const events::BuildingRemoved& e) {
+        std::erase_if(buildings_, [&e](const BuildingInfo& building) { return building.entity == e.entity; });
+    });
     bus_.subscribe<events::SelectionChanged>([this](const events::SelectionChanged& e) {
         if (e.player != localPlayerId_) {
             return;
         }
         hasUnitSelection_ = !e.units.empty();
         hasBuildingSelection_ = e.building.has_value();
+        selectedUnits_ = e.units;
     });
 }
 
 void SelectionInputController::update(Vector2 mouse, const Camera2D& camera, bool overUi)
 {
     if (!overUi && IsMouseButtonPressed(MOUSE_BUTTON_RIGHT)) {
-        issueMove(mouse, camera);
+        issueOrder(mouse, camera);
     }
     if (!overUi && IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
         dragging_ = true;
@@ -146,6 +154,34 @@ void SelectionInputController::issueMove(Vector2 mouse, const Camera2D& camera)
         return;
     }
     bus_.publish(events::MoveOrderRequested{localPlayerId_, view::iso::screenToGrid(mouse, camera)});
+}
+
+void SelectionInputController::issueOrder(Vector2 mouse, const Camera2D& camera)
+{
+    if (!hasUnitSelection_) {
+        return;
+    }
+    const Vector2 world = GetScreenToWorld2D(mouse, camera);
+    const auto target = std::find_if(units_.begin(), units_.end(), [this, world](const auto& entry) {
+        const auto& unit = entry.second;
+        return unit.owner != localPlayerId_
+            && CheckCollisionPointRec(world, view::unit_layout::hitBounds(unit.x, unit.y, unit.size));
+    });
+    if (target != units_.end()) {
+        bus_.publish(events::AttackOrderRequested{localPlayerId_, selectedUnits_, target->first});
+        return;
+    }
+    const model::GridPos tile = view::iso::worldToGrid(world);
+    const auto enemyBuilding = std::find_if(buildings_.begin(), buildings_.end(), [this, tile](const auto& building) {
+        return building.owner != localPlayerId_ && tile.x >= building.origin.x
+            && tile.x < building.origin.x + building.size && tile.y >= building.origin.y
+            && tile.y < building.origin.y + building.size;
+    });
+    if (enemyBuilding != buildings_.end()) {
+        bus_.publish(events::AttackOrderRequested{localPlayerId_, selectedUnits_, enemyBuilding->entity});
+        return;
+    }
+    issueMove(mouse, camera);
 }
 
 void SelectionInputController::publishBox(Vector2 corner) const

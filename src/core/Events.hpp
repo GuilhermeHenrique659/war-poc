@@ -8,6 +8,7 @@
 #include "model/ecs/Entity.hpp"
 
 #include <cstddef>
+#include <array>
 #include <optional>
 #include <string>
 #include <vector>
@@ -111,6 +112,12 @@ struct MoveOrderRequested {
     model::GridPos tile;
 };
 
+struct AttackOrderRequested {
+    model::PlayerId player;
+    std::vector<model::ecs::Entity> attackers;
+    model::ecs::Entity target;
+};
+
 // Merges all of the player's selected units into one Combined unit.
 struct MergeRequested {
     model::PlayerId player;
@@ -151,6 +158,14 @@ struct SceneChanged {
 // The player controlled by this client changed. Views and controllers cache this value locally.
 struct LocalPlayerChanged {
     model::PlayerId player;
+};
+
+struct EconomyChanged {
+    model::PlayerId player;
+    std::array<int, 4> stock;
+    std::array<int, 4> capacity;
+    int populationUsed;
+    int populationCapacity;
 };
 
 struct MenuStateChanged {
@@ -200,6 +215,10 @@ struct BuildingPlaced {
     int size;
 };
 
+struct BuildingRemoved {
+    model::ecs::Entity entity;
+};
+
 // Unit positions are the continuous grid coordinates of the unit's center (tile center = tile + 0.5).
 struct UnitSpawned {
     model::ecs::Entity entity;
@@ -217,6 +236,12 @@ struct UnitMoved {
     model::ecs::Entity entity;
     float x;
     float y;
+};
+
+struct HealthChanged {
+    model::ecs::Entity entity;
+    int health;
+    int maxHealth;
 };
 
 struct UnitRemoved {

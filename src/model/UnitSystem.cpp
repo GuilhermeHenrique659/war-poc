@@ -76,6 +76,7 @@ void UnitSystem::reset()
 
 void UnitSystem::recruit(PlayerId player, UnitType type, ecs::Entity commandCenter)
 {
+    if (!buildings_.hasBuilding(player, BuildingType::Barracks)) return;
     const auto* footprint = world_.tryGet<components::Footprint>(commandCenter);
     if (footprint == nullptr) {
         return;
@@ -86,6 +87,15 @@ void UnitSystem::recruit(PlayerId player, UnitType type, ecs::Entity commandCent
     const auto origin = findSpawnSquare(center, stats.size, {}, pathfinding::kUnlimitedRadius);
     if (!origin) {
         return;
+    }
+    if (economy_ != nullptr) {
+        if (!economy_->canReservePopulation(player, stats.baseCount)
+            || !economy_->canAfford(player, recruitmentCost(type))) return;
+        if (!economy_->spend(player, recruitmentCost(type))) return;
+        if (!economy_->reservePopulation(player, stats.baseCount)) {
+            // The single-threaded model makes this unreachable after canReservePopulation.
+            return;
+        }
     }
     spawn(player, stats, *origin);
 }
@@ -111,6 +121,16 @@ ecs::Entity UnitSystem::spawn(PlayerId player, const UnitStats& stats, GridPos o
 
 void UnitSystem::remove(ecs::Entity entity)
 {
+    remove(entity, true);
+}
+
+void UnitSystem::removeForMerge(ecs::Entity entity)
+{
+    remove(entity, false);
+}
+
+void UnitSystem::remove(ecs::Entity entity, bool releasePopulation)
+{
     if (!world_.isAlive(entity)) {
         return;
     }
@@ -118,6 +138,11 @@ void UnitSystem::remove(ecs::Entity entity)
     auto* position = world_.tryGet<components::Position>(entity);
     if (mover != nullptr && position != nullptr) {
         release(Walker{entity, mover, position, sizeOf(entity)});
+    }
+    const auto* owner = world_.tryGet<components::Owner>(entity);
+    const auto* unit = world_.tryGet<components::Unit>(entity);
+    if (releasePopulation && economy_ != nullptr && owner != nullptr && unit != nullptr) {
+        economy_->releasePopulation(owner->player, unit->baseCount);
     }
     world_.destroy(entity);
     bus_.publish(events::UnitRemoved{entity});

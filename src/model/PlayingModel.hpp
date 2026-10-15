@@ -3,6 +3,8 @@
 #include "core/EventBus.hpp"
 #include "core/Events.hpp"
 #include "model/BuildingSystem.hpp"
+#include "model/EconomySystem.hpp"
+#include "model/CombatSystem.hpp"
 #include "model/MergeSystem.hpp"
 #include "model/SelectionSystem.hpp"
 #include "model/Player.hpp"
@@ -37,9 +39,11 @@ private:
     PlayerId nextPlayerId_ = 1;
     PlayerId localPlayerId_ = kNoPlayer;
     std::unique_ptr<ecs::Registry> world_;
+    std::unique_ptr<EconomySystem> economy_;
     // Systems hold references to world_ (and units_ to buildings_); preserve declaration order.
     std::unique_ptr<BuildingSystem> buildings_;
     std::unique_ptr<UnitSystem> units_;
+    std::unique_ptr<CombatSystem> combat_;
     std::unique_ptr<SelectionSystem> selection_;
     std::unique_ptr<MergeSystem> merges_; // References units_ and selection_.
 };

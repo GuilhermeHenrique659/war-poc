@@ -2,6 +2,7 @@
 
 #include "core/EventBus.hpp"
 #include "model/BuildingSystem.hpp"
+#include "model/EconomySystem.hpp"
 #include "model/GridPos.hpp"
 #include "model/Player.hpp"
 #include "model/UnitType.hpp"
@@ -23,6 +24,7 @@ public:
 
     // Call after the world is cleared.
     void reset();
+    void setEconomy(EconomySystem* economy) { economy_ = economy; }
 
     // Spawns next to the Command Center, on the nearest free tile.
     void recruit(PlayerId player, UnitType type, ecs::Entity commandCenter);
@@ -36,6 +38,8 @@ public:
 
     ecs::Entity spawn(PlayerId player, const UnitStats& stats, GridPos origin);
     void remove(ecs::Entity entity);
+    // Merge replaces source units with one unit representing the same population.
+    void removeForMerge(ecs::Entity entity);
 
     // Origin of the free square of `size` nearest to `center`, at most `radius` rings away.
     // Tiles covered or reserved by the `ignored` units count as free.
@@ -59,12 +63,14 @@ private:
     void settle(const Walker& walker);
     void reserve(ecs::Entity entity, GridPos origin, int size);
     void release(const Walker& walker);
+    void remove(ecs::Entity entity, bool releasePopulation);
     bool advance(const Walker& walker, float deltaSeconds);
 
     core::EventBus& bus_;
     ecs::Registry& world_;
     const BuildingSystem& buildings_;
     std::unordered_map<GridPos, ecs::Entity, GridPosHash> reserved_;
+    EconomySystem* economy_ = nullptr;
 };
 
 } // namespace model

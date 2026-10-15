@@ -34,6 +34,7 @@ private:
     };
 
     [[nodiscard]] bool isOwnedBy(ecs::Entity entity, PlayerId player) const;
+    void removeEntity(ecs::Entity entity);
     void publish(PlayerId player) const;
 
     core::EventBus& bus_;

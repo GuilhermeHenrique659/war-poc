@@ -2,6 +2,7 @@
 
 #include "core/Events.hpp"
 #include "model/components/BuildingComponents.hpp"
+#include "model/components/UnitComponents.hpp"
 
 #include <string>
 
@@ -22,6 +23,7 @@ void BuildingSystem::reset()
 
 void BuildingSystem::initializePlayer(PlayerId player)
 {
+    if (economy_ != nullptr) economy_->initializePlayer(player);
     publishBar(player);
     publishPreview(player);
 }
@@ -78,11 +80,18 @@ void BuildingSystem::place(PlayerId player, GridPos anchor)
     if (!canPlace(player, type, origin)) {
         return;
     }
+    if (economy_ != nullptr && !economy_->spend(player, buildingCost(type))) return;
 
     const ecs::Entity entity = world_.create();
     world_.emplace<components::Building>(entity, type);
     world_.emplace<components::Owner>(entity, player);
     world_.emplace<components::Footprint>(entity, origin, size);
+    world_.emplace<components::Health>(entity, 500, 500);
+    world_.emplace<components::Position>(entity, static_cast<float>(origin.x) + static_cast<float>(size) / 2.0F,
+        static_cast<float>(origin.y) + static_cast<float>(size) / 2.0F);
+    if (type == BuildingType::Tower) {
+        world_.emplace<components::Combat>(entity, 20, 6.0F);
+    }
     for (int dy = 0; dy < size; ++dy) {
         for (int dx = 0; dx < size; ++dx) {
             occupied_[GridPos{origin.x + dx, origin.y + dy}] = entity;
@@ -91,6 +100,7 @@ void BuildingSystem::place(PlayerId player, GridPos anchor)
     if (type == BuildingType::CommandCenter) {
         commandCenters_[player] = entity;
     }
+    if (economy_ != nullptr) economy_->applyBuilding(player, type);
 
     bus_.publish(events::BuildingPlaced{entity, player, type, origin, size});
 
@@ -100,6 +110,31 @@ void BuildingSystem::place(PlayerId player, GridPos anchor)
     }
     publishBar(player);
     publishPreview(player);
+}
+
+void BuildingSystem::remove(ecs::Entity entity)
+{
+    const auto* footprint = world_.tryGet<components::Footprint>(entity);
+    const auto* building = world_.tryGet<components::Building>(entity);
+    const auto* owner = world_.tryGet<components::Owner>(entity);
+    if (footprint == nullptr || building == nullptr || owner == nullptr) {
+        return;
+    }
+    for (int dy = 0; dy < footprint->size; ++dy) {
+        for (int dx = 0; dx < footprint->size; ++dx) {
+            occupied_.erase(GridPos{footprint->origin.x + dx, footprint->origin.y + dy});
+        }
+    }
+    if (building->type == BuildingType::CommandCenter) {
+        commandCenters_.erase(owner->player);
+    }
+    world_.destroy(entity);
+    bus_.publish(events::BuildingRemoved{entity});
+    for (const auto& [player, builder] : builders_) {
+        (void)builder;
+        publishBar(player);
+        publishPreview(player);
+    }
 }
 
 void BuildingSystem::refreshPreviews() const
@@ -117,6 +152,14 @@ std::string_view BuildingSystem::lockedReason(PlayerId player, BuildingType type
     case BuildingType::CommandCenter:
         return hasCommandCenter(player) ? "Ja construido" : "";
     case BuildingType::Wall:
+        return hasCommandCenter(player) ? "" : "Requer Centro";
+    case BuildingType::House:
+    case BuildingType::Generator:
+    case BuildingType::Warehouse:
+        return hasCommandCenter(player) ? "" : "Requer Centro";
+    case BuildingType::Barracks:
+        return hasCommandCenter(player) ? "" : "Requer Centro";
+    case BuildingType::Tower:
         return hasCommandCenter(player) ? "" : "Requer Centro";
     }
     return "";
@@ -142,12 +185,23 @@ bool BuildingSystem::isAreaFree(GridPos origin, int size) const
 
 bool BuildingSystem::canPlace(PlayerId player, BuildingType type, GridPos origin) const
 {
-    return isUnlocked(player, type) && isAreaFree(origin, buildingSpec(type).size);
+    return isUnlocked(player, type) && isAreaFree(origin, buildingSpec(type).size)
+        && (economy_ == nullptr || economy_->canAfford(player, buildingCost(type)));
 }
 
 bool BuildingSystem::hasCommandCenter(PlayerId player) const
 {
     return commandCenters_.contains(player);
+}
+
+bool BuildingSystem::hasBuilding(PlayerId player, BuildingType type) const
+{
+    bool found = false;
+    world_.each<components::Building>([&](ecs::Entity entity, const components::Building& building) {
+        const auto* owner = world_.tryGet<components::Owner>(entity);
+        found = found || (building.type == type && owner != nullptr && owner->player == player);
+    });
+    return found;
 }
 
 void BuildingSystem::publishBar(PlayerId player) const

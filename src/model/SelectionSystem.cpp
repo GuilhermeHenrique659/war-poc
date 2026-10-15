@@ -14,6 +14,8 @@ SelectionSystem::SelectionSystem(core::EventBus& bus, ecs::Registry& world)
     : bus_(bus)
     , world_(world)
 {
+    bus_.subscribe<events::UnitRemoved>([this](const auto& event) { removeEntity(event.entity); });
+    bus_.subscribe<events::BuildingRemoved>([this](const auto& event) { removeEntity(event.entity); });
 }
 
 void SelectionSystem::reset()
@@ -94,6 +96,23 @@ bool SelectionSystem::isOwnedBy(ecs::Entity entity, PlayerId player) const
 {
     const auto* owner = world_.tryGet<components::Owner>(entity);
     return owner != nullptr && owner->player == player;
+}
+
+void SelectionSystem::removeEntity(ecs::Entity entity)
+{
+    for (auto& [player, selection] : selections_) {
+        const auto oldSize = selection.units.size();
+        std::erase(selection.units, entity);
+        const bool removedUnit = selection.units.size() != oldSize;
+        const bool removedBuilding = selection.building == entity;
+        if (!removedUnit && !removedBuilding) {
+            continue;
+        }
+        if (removedBuilding) {
+            selection.building.reset();
+        }
+        publish(player);
+    }
 }
 
 void SelectionSystem::publish(PlayerId player) const

@@ -19,6 +19,9 @@ protected:
         , selection_(bus_, world_)
         , merges_(bus_, world_, units_, selection_)
     {
+        economy_.initializePlayer(kPlayer);
+        economy_.reservePopulation(kPlayer, 2);
+        units_.setEconomy(&economy_);
         bus_.subscribe<events::MergePanelChanged>([this](const events::MergePanelChanged& event) {
             panels_.push_back(event);
         });
@@ -34,6 +37,7 @@ protected:
     model::ecs::Registry world_;
     model::BuildingSystem buildings_;
     model::UnitSystem units_;
+    model::EconomySystem economy_;
     model::SelectionSystem selection_;
     model::MergeSystem merges_;
     std::vector<events::MergePanelChanged> panels_;
@@ -79,6 +83,7 @@ TEST_F(MergeSystemTest, CombinesSelectedNearbyUnitsAndSelectsTheResult)
     ASSERT_NE(health, nullptr);
     EXPECT_EQ(unit->type, model::UnitType::Combined);
     EXPECT_EQ(unit->baseCount, 2);
+    EXPECT_EQ(economy_.populationUsed(kPlayer), 2);
     EXPECT_EQ(unit->size, 2);
     EXPECT_EQ(health->current, 200);
     EXPECT_EQ(health->max, 200);

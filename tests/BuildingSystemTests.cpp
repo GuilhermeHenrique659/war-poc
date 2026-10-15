@@ -1,7 +1,9 @@
 #include "core/EventBus.hpp"
 #include "core/Events.hpp"
 #include "model/BuildingSystem.hpp"
+#include "model/EconomySystem.hpp"
 #include "model/components/BuildingComponents.hpp"
+#include "model/components/UnitComponents.hpp"
 
 #include <gtest/gtest.h>
 
@@ -38,6 +40,22 @@ TEST_F(BuildingSystemTest, RequiresACommandCenterBeforeWallsCanBeBuilt)
 
     // Then no wall is created.
     EXPECT_TRUE(placements_.empty());
+}
+
+TEST_F(BuildingSystemTest, GivesNewBuildingsCombatHealth)
+{
+    // Given a player placing a Command Center.
+    buildings_.select(kPlayer, model::BuildingType::CommandCenter);
+
+    // When the building is created.
+    buildings_.place(kPlayer, {0, 0});
+
+    // Then it has a full health pool for combat.
+    ASSERT_EQ(placements_.size(), 1U);
+    const auto* health = world_.tryGet<model::components::Health>(placements_.front().entity);
+    ASSERT_NE(health, nullptr);
+    EXPECT_EQ(health->current, 500);
+    EXPECT_EQ(health->max, 500);
 }
 
 TEST_F(BuildingSystemTest, CreatesTheCommandCenterFootprintAndPreventsOverlap)
@@ -91,4 +109,23 @@ TEST_F(BuildingSystemTest, UnlocksWallsAfterTheCommandCenterIsBuilt)
     EXPECT_EQ(wall.size, 1);
     EXPECT_TRUE(wall.origin == wallTile);
     EXPECT_TRUE(buildings_.isOccupied(wallTile));
+}
+
+TEST_F(BuildingSystemTest, ChargesBuildingCostsAndAppliesHousePopulationCapacity)
+{
+    // Given a player with an initialized economy and a completed Command Center.
+    model::EconomySystem economy;
+    buildings_.setEconomy(&economy);
+    buildings_.initializePlayer(kPlayer);
+    buildings_.select(kPlayer, model::BuildingType::CommandCenter);
+    buildings_.place(kPlayer, {0, 0});
+
+    // When the player places a House.
+    buildings_.select(kPlayer, model::BuildingType::House);
+    buildings_.place(kPlayer, {10, 10});
+
+    // Then its cost is deducted and the population capacity increases.
+    EXPECT_EQ(economy.amount(kPlayer, model::Resource::Gold), 80);
+    EXPECT_EQ(economy.amount(kPlayer, model::Resource::Wood), 80);
+    EXPECT_EQ(economy.populationCapacity(kPlayer), 20);
 }

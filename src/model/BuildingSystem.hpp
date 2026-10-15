@@ -2,6 +2,7 @@
 
 #include "core/EventBus.hpp"
 #include "model/BuildingType.hpp"
+#include "model/EconomySystem.hpp"
 #include "model/GridPos.hpp"
 #include "model/Player.hpp"
 #include "model/ecs/Registry.hpp"
@@ -22,11 +23,13 @@ public:
     // Call after the world is cleared.
     void reset();
     void initializePlayer(PlayerId player);
+    void setEconomy(EconomySystem* economy) { economy_ = economy; }
 
     void select(PlayerId player, BuildingType type);
     void cancel(PlayerId player);
     void moveCursor(PlayerId player, std::optional<GridPos> tile);
     void place(PlayerId player, GridPos anchor);
+    void remove(ecs::Entity entity);
 
     // Extra rule for free tiles (e.g. units standing there). Buildings never cover a blocked tile.
     void setTileBlocker(std::function<bool(GridPos)> blocker) { tileBlocker_ = std::move(blocker); }
@@ -34,6 +37,7 @@ public:
     void refreshPreviews() const;
 
     [[nodiscard]] bool isOccupied(GridPos tile) const { return occupied_.contains(tile); }
+    [[nodiscard]] bool hasBuilding(PlayerId player, BuildingType type) const;
 
 private:
     struct BuilderState {
@@ -57,6 +61,7 @@ private:
     std::unordered_map<PlayerId, BuilderState> builders_;
     std::unordered_map<PlayerId, ecs::Entity> commandCenters_;
     std::function<bool(GridPos)> tileBlocker_;
+    EconomySystem* economy_ = nullptr;
 };
 
 } // namespace model

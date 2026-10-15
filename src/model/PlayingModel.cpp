@@ -7,11 +7,15 @@ namespace model {
 PlayingModel::PlayingModel(core::EventBus& bus)
     : bus_(bus)
     , world_(std::make_unique<ecs::Registry>())
+    , economy_(std::make_unique<EconomySystem>(&bus_))
     , buildings_(std::make_unique<BuildingSystem>(bus_, *world_))
     , units_(std::make_unique<UnitSystem>(bus_, *world_, *buildings_))
+    , combat_(std::make_unique<CombatSystem>(bus_, *world_, *units_, *buildings_))
     , selection_(std::make_unique<SelectionSystem>(bus_, *world_))
     , merges_(std::make_unique<MergeSystem>(bus_, *world_, *units_, *selection_))
 {
+    buildings_->setEconomy(economy_.get());
+    units_->setEconomy(economy_.get());
     buildings_->setTileBlocker([this](GridPos tile) { return units_->isTileTaken(tile); });
 
     bus_.subscribe<events::SceneChanged>([this](const auto& e) { scene_ = e.scene; });
@@ -90,10 +94,12 @@ void PlayingModel::update(float deltaSeconds)
     if (!inMatch()) {
         return;
     }
+    economy_->update(deltaSeconds);
     // Moving units can make a placement preview (in)valid.
     if (units_->update(deltaSeconds)) {
         buildings_->refreshPreviews();
     }
+    combat_->update(deltaSeconds);
     // Merge validity depends on positions and free space; it only republishes on change.
     merges_->refreshAll();
 }
@@ -123,9 +129,11 @@ void PlayingModel::changeScene(Scene scene)
 void PlayingModel::resetWorld()
 {
     world_->clear();
+    economy_->reset();
     bus_.publish(events::WorldReset{});
     buildings_->reset();
     units_->reset();
+    combat_->reset();
     selection_->reset();
     merges_->reset();
 }

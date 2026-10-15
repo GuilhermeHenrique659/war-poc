@@ -3,6 +3,7 @@
 #include "model/GridPos.hpp"
 #include "model/UnitType.hpp"
 #include "model/components/Owner.hpp"
+#include "model/ecs/Entity.hpp"
 
 #include <cstddef>
 #include <vector>
@@ -23,6 +24,11 @@ struct Health {
 struct Combat {
     int damage;
     float range; // Tiles.
+};
+
+struct AttackOrder {
+    ecs::Entity target;
+    float cooldownRemaining;
 };
 
 // Continuous grid coordinates of the unit's center. A unit of size N whose square starts at

@@ -50,6 +50,10 @@ WorldView::WorldView(core::EventBus& bus)
         resetCamera();
     });
     bus_.subscribe<events::BuildingPlaced>([this](const events::BuildingPlaced& e) { onBuildingPlaced(e); });
+    bus_.subscribe<events::BuildingRemoved>([this](const events::BuildingRemoved& e) {
+        std::erase_if(buildings_, [&e](const BuildingVisual& building) { return building.entity == e.entity; });
+        if (selectedBuilding_ == e.entity) selectedBuilding_.reset();
+    });
     bus_.subscribe<events::LocalPlayerChanged>([this](const events::LocalPlayerChanged& e) { localPlayerId_ = e.player; });
     bus_.subscribe<events::BuildPreviewChanged>([this](const events::BuildPreviewChanged& e) {
         if (e.player == localPlayerId_) {
@@ -77,6 +81,14 @@ void WorldView::subscribeUnits()
         }
         it->second.x = e.x;
         it->second.y = e.y;
+    });
+    bus_.subscribe<events::HealthChanged>([this](const events::HealthChanged& e) {
+        const auto it = units_.find(e.entity);
+        if (it == units_.end()) {
+            return;
+        }
+        it->second.health = e.health;
+        it->second.maxHealth = e.maxHealth;
     });
     bus_.subscribe<events::SelectionChanged>([this](const events::SelectionChanged& e) { onSelectionChanged(e); });
     bus_.subscribe<events::SelectionBoxChanged>([this](const events::SelectionBoxChanged& e) { selectionBox_ = e; });
