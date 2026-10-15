@@ -55,6 +55,11 @@ struct WindowConfigurationRequested {
     bool fullscreen;
 };
 
+// Menu model -> match model
+struct StartMatchRequested {
+    std::string playerName;
+};
+
 struct ReturnToMenuRequested {};
 
 // Selecting the already selected building toggles it off.
