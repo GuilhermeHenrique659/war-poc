@@ -1,5 +1,7 @@
 #pragma once
 
+#include "view/EconomyPanelLayout.hpp"
+
 #include <raylib.h>
 
 #include <cstddef>
@@ -9,6 +11,7 @@ namespace view::recruit_panel_layout {
 
 inline constexpr float kWidth = 290.0f;
 inline constexpr float kMargin = 10.0f;
+inline constexpr float kTop = economy_panel_layout::kMargin + economy_panel_layout::kHeight + 10.0f;
 inline constexpr float kPadding = 10.0f;
 inline constexpr float kHeaderHeight = 36.0f;
 inline constexpr float kSlotHeight = 70.0f;
@@ -20,7 +23,7 @@ inline constexpr float kCloseSize = 24.0f;
     const float slots = static_cast<float>(count) * kSlotHeight
         + static_cast<float>(count > 0 ? count - 1 : 0) * kSlotSpacing;
     const float height = kHeaderHeight + slots + 2.0f * kPadding;
-    return Rectangle{static_cast<float>(screenWidth) - kWidth - kMargin, kMargin, kWidth, height};
+    return Rectangle{static_cast<float>(screenWidth) - kWidth - kMargin, kTop, kWidth, height};
 }
 
 [[nodiscard]] inline Rectangle closeBounds(std::size_t count, int screenWidth)

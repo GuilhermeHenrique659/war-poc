@@ -37,6 +37,7 @@ Documento vivo com as regras do jogo. Itens marcados como **TBD** ainda não for
 
 ## Economia / recursos
 - Recursos limitados por jogador: ouro, madeira, aço e petróleo. Cada recurso tem estoque inicial e capacidade; produção acima da capacidade é descartada.
+- Durante a partida, o HUD no canto superior direito mostra o estoque e a capacidade de cada recurso, além da população ocupada e da capacidade populacional.
 - Estoque inicial: 100 ouro, 100 madeira, 25 aço e 10 petróleo. Capacidade inicial: 500 de cada recurso.
 - O Gerador produz por segundo: 2 ouro, 1 madeira, 0,25 aço e 0,25 petróleo. O Depósito aumenta em 250 a capacidade de cada recurso.
 - Custos de construção: Centro de Comando grátis; Muro 5 madeira; Casa 20 ouro + 20 madeira; Gerador 30 ouro + 10 madeira; Depósito 25 ouro + 15 madeira; Quartel 50 ouro + 30 madeira + 10 aço.
