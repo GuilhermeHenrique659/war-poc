@@ -9,12 +9,27 @@
         "CMAKE_BUILD_TYPE": "Debug",
         "CMAKE_CXX_COMPILER": "g++"
       }
+    },
+    {
+      "name": "release",
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/build/release",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release",
+        "BUILD_TESTING": "OFF",
+        "CMAKE_CXX_COMPILER": "g++"
+      }
     }
   ],
   "buildPresets": [
     {
       "name": "default",
       "configurePreset": "default",
+      "jobs": 8
+    },
+    {
+      "name": "release",
+      "configurePreset": "release",
       "jobs": 8
     }
   ]
