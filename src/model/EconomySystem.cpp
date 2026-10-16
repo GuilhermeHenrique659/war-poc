@@ -64,6 +64,7 @@ void EconomySystem::applyBuilding(PlayerId player, BuildingType type)
     case BuildingType::CommandCenter: addPopulationCapacity(player, 5); break;
     case BuildingType::Wall:
     case BuildingType::Barracks:
+    case BuildingType::Cruzador:
     case BuildingType::Tower: break;
     }
 }

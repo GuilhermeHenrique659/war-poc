@@ -88,7 +88,7 @@ num frame e mostra, passo a passo, uma funcionalidade real (colocar um prédio) 
   <text x="155" y="266" text-anchor="middle" font-size="17" font-weight="700" fill="#f0a640">View</text>
   <text x="155" y="290" text-anchor="middle" font-size="12">Renderer → MenuView | PlayingView</text>
   <text x="155" y="308" text-anchor="middle" font-size="12">PlayingView → WorldView, BuildBarView,</text>
-  <text x="155" y="326" text-anchor="middle" font-size="12">RecruitPanelView, MergePanelView</text>
+  <text x="155" y="326" text-anchor="middle" font-size="12">RecruitPanelView</text>
   <text x="155" y="344" text-anchor="middle" font-size="12">+ DebugOverlay, IsoProjection</text>
   <text x="155" y="368" text-anchor="middle" font-size="11" fill="#9a9ab0">BeginDrawing / BeginMode2D / Draw*</text>
   <!-- Bus -->
@@ -108,7 +108,7 @@ num frame e mostra, passo a passo, uma funcionalidade real (colocar um prédio) 
   <text x="745" y="178" text-anchor="middle" font-size="12">BuildingSystem</text>
   <text x="745" y="196" text-anchor="middle" font-size="12">UnitSystem (+ Pathfinding)</text>
   <text x="745" y="214" text-anchor="middle" font-size="12">SelectionSystem</text>
-  <text x="745" y="232" text-anchor="middle" font-size="12">MergeSystem</text>
+  <text x="745" y="232" text-anchor="middle" font-size="12">GenealogySystem</text>
   <text x="745" y="268" text-anchor="middle" font-size="11" fill="#9a9ab0">lógica pura, sem raylib</text>
   <rect x="630" y="300" width="230" height="60" rx="6" fill="#0f2418" stroke="#2f7a4f"/>
   <text x="745" y="324" text-anchor="middle" font-size="12" font-weight="600">ecs::Registry (world_)</text>
@@ -195,7 +195,7 @@ std::unique_ptr&lt;controller::InputController&gt; controller_;</code></pre>
   <rect x="325" y="30" width="250" height="90" rx="10" fill="#14301f" stroke="#46c37b" stroke-width="2"/>
   <text x="450" y="58" text-anchor="middle" font-size="15" font-weight="700" fill="#46c37b">2. model_-&gt;update(dt)</text>
   <text x="450" y="80" text-anchor="middle" font-size="12">simulação contínua (unidades andando)</text>
-  <text x="450" y="98" text-anchor="middle" font-size="11" fill="#9a9ab0">publica UnitMoved, previews, merge</text>
+  <text x="450" y="98" text-anchor="middle" font-size="11" fill="#9a9ab0">publica UnitMoved, previews, genealogia</text>
   <rect x="630" y="30" width="250" height="90" rx="10" fill="#33270f" stroke="#f0a640" stroke-width="2"/>
   <text x="755" y="58" text-anchor="middle" font-size="15" font-weight="700" fill="#f0a640">3. renderer_-&gt;render()</text>
   <text x="755" y="80" text-anchor="middle" font-size="12">desenha as cópias locais</text>
@@ -215,11 +215,11 @@ std::unique_ptr&lt;controller::InputController&gt; controller_;</code></pre>
 <td><code>MenuNavigateRequested</code>, <code>MenuItemHovered</code>, <code>MenuConfirmRequested</code>, <code>ReturnToMenuRequested</code>,
 <code>BuildSelectRequested</code>, <code>BuildCancelRequested</code>, <code>BuildCursorMoved</code>, <code>BuildPlaceRequested</code>,
 <code>RecruitRequested</code>, <code>SelectUnitsRequested</code>, <code>SelectBuildingRequested</code>, <code>SelectionClearRequested</code>,
-<code>MoveOrderRequested</code>, <code>MergeRequested</code></td></tr>
+<code>MoveOrderRequested</code>, <code>CruzadorOrderRequested</code></td></tr>
 <tr><td><span class="tag m">Model</span> → <span class="tag v">View</span> / <span class="tag c">Controller</span><br>notificações</td>
 <td><code>SceneChanged</code>, <code>MenuStateChanged</code>, <code>WorldReset</code>, <code>BuildBarChanged</code>, <code>BuildPreviewChanged</code>,
 <code>LocalPlayerChanged</code>, <code>BuildingPlaced</code>, <code>UnitSpawned</code>, <code>UnitMoved</code>, <code>UnitRemoved</code>, <code>SelectionChanged</code>,
-<code>RecruitPanelChanged</code>, <code>MergePanelChanged</code></td></tr>
+<code>RecruitPanelChanged</code></td></tr>
 <tr><td><span class="tag c">Controller</span> → <span class="tag v">View</span><br>apresentação</td>
 <td><code>CameraPanRequested</code>, <code>SelectionBoxChanged</code>, <code>DebugToggleRequested</code></td></tr>
 <tr><td><span class="tag v">View</span> → <span class="tag c">Controller</span></td><td><code>CameraChanged</code> (o Controller precisa da câmera para converter o mouse em tile)</td></tr>
@@ -237,7 +237,7 @@ O estado da partida mora no <code>ecs::Registry world_</code>: entidade = ID (<c
   <rect x="10" y="90" width="120" height="36" rx="6" fill="#0f2418" stroke="#2f7a4f"/><text x="70" y="113" text-anchor="middle" font-size="12">BuildingSystem</text>
   <rect x="150" y="90" width="120" height="36" rx="6" fill="#0f2418" stroke="#2f7a4f"/><text x="210" y="113" text-anchor="middle" font-size="12">UnitSystem</text>
   <rect x="290" y="90" width="120" height="36" rx="6" fill="#0f2418" stroke="#2f7a4f"/><text x="350" y="113" text-anchor="middle" font-size="12">SelectionSystem</text>
-  <rect x="220" y="150" width="120" height="36" rx="6" fill="#0f2418" stroke="#2f7a4f"/><text x="280" y="173" text-anchor="middle" font-size="12">MergeSystem</text>
+  <rect x="220" y="150" width="120" height="36" rx="6" fill="#0f2418" stroke="#2f7a4f"/><text x="280" y="173" text-anchor="middle" font-size="12">GenealogySystem</text>
   <rect x="110" y="214" width="200" height="36" rx="6" fill="#262636" stroke="#46c37b"/><text x="210" y="237" text-anchor="middle" font-size="12" font-weight="600">ecs::Registry world_</text>
   <line x1="210" y1="50" x2="70" y2="88" stroke="#c8c8dc" marker-end="url(#ar)"/>
   <line x1="210" y1="50" x2="210" y2="88" stroke="#c8c8dc" marker-end="url(#ar)"/>

@@ -60,7 +60,7 @@ TEST(UnitPopulationTests, RemovingUnitReleasesItsBasePopulation)
     economy.initializePlayer(2);
     economy.reservePopulation(2, 3);
     units.setEconomy(&economy);
-    auto stats = model::recruitStats(model::UnitType::Infantry);
+    auto stats = model::recruitStats(model::UnitType::Soldier);
     stats.type = model::UnitType::Combined;
     stats.baseCount = 3;
     const auto entity = units.spawn(2, stats, {0, 0});

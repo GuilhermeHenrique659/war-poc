@@ -5,7 +5,7 @@
 #include "model/BuildingSystem.hpp"
 #include "model/EconomySystem.hpp"
 #include "model/CombatSystem.hpp"
-#include "model/MergeSystem.hpp"
+#include "model/GenealogySystem.hpp"
 #include "model/SelectionSystem.hpp"
 #include "model/Player.hpp"
 #include "model/PlayerAvatarSystem.hpp"
@@ -47,7 +47,7 @@ private:
     std::unique_ptr<PlayerAvatarSystem> playerAvatars_;
     std::unique_ptr<CombatSystem> combat_;
     std::unique_ptr<SelectionSystem> selection_;
-    std::unique_ptr<MergeSystem> merges_; // References units_ and selection_.
+    std::unique_ptr<GenealogySystem> genealogy_; // References buildings_, units_ and selection_.
 };
 
 } // namespace model

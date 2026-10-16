@@ -158,6 +158,7 @@ std::string_view BuildingSystem::lockedReason(PlayerId player, BuildingType type
     case BuildingType::Warehouse:
         return hasCommandCenter(player) ? "" : "Requer Centro";
     case BuildingType::Barracks:
+    case BuildingType::Cruzador:
         return hasCommandCenter(player) ? "" : "Requer Centro";
     case BuildingType::Tower:
         return hasCommandCenter(player) ? "" : "Requer Centro";

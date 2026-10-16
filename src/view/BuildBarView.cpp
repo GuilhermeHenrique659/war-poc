@@ -31,7 +31,7 @@ constexpr std::array kHelpLines{
     "Clique no Centro de Comando: recrutar tropas",
     "Clique / arraste: selecionar tropas (Shift soma)",
     "Botao direito: mover tropas selecionadas",
-    "M ou botao Juntar: combinar tropas selecionadas",
+    "Botao direito no Cruzador: enviar 2 tropas para cruzamento",
     "WASD: mover jogador",
     "Zoom fixo   |   ESC: limpar selecao / menu",
 };
@@ -52,7 +52,7 @@ BuildBarView::BuildBarView(core::EventBus& bus)
 
 void BuildBarView::draw() const
 {
-    const Rectangle bar = build_bar_layout::barBounds(GetScreenWidth(), GetScreenHeight());
+    const Rectangle bar = build_bar_layout::barBounds(GetScreenWidth(), GetScreenHeight(), entries_.size());
     DrawRectangleRec(bar, kBarColor);
     DrawLineEx(Vector2{bar.x, bar.y}, Vector2{bar.x + bar.width, bar.y}, 2.0f, kBarBorder);
 
@@ -65,7 +65,8 @@ void BuildBarView::draw() const
 void BuildBarView::drawSlot(std::size_t index) const
 {
     const events::BuildBarEntry& entry = entries_[index];
-    const Rectangle bounds = build_bar_layout::slotBounds(index, GetScreenWidth(), GetScreenHeight());
+    const Rectangle bounds
+        = build_bar_layout::slotBounds(index, GetScreenWidth(), GetScreenHeight(), entries_.size());
     const bool selected = selected_ == entry.type;
 
     const Color background = selected ? kSlotSelected : (entry.enabled ? kSlotColor : kSlotDisabled);

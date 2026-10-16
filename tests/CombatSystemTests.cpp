@@ -34,9 +34,9 @@ protected:
 
 TEST_F(CombatSystemTest, AttackOrderDamagesEnemyInRangeAfterCooldown)
 {
-    // Given opposing infantry units one tile apart.
-    const auto attacker = units_.spawn(1, model::recruitStats(model::UnitType::Infantry), {0, 0});
-    const auto target = units_.spawn(2, model::recruitStats(model::UnitType::Infantry), {1, 0});
+    // Given opposing Soldier units one tile apart.
+    const auto attacker = units_.spawn(1, model::recruitStats(model::UnitType::Soldier), {0, 0});
+    const auto target = units_.spawn(2, model::recruitStats(model::UnitType::Soldier), {1, 0});
 
     // When the attacker receives an order and its attack cooldown elapses.
     combat_.orderAttack(1, {attacker}, target);
@@ -51,8 +51,8 @@ TEST_F(CombatSystemTest, AttackOrderDamagesEnemyInRangeAfterCooldown)
 TEST_F(CombatSystemTest, RejectsFriendlyTargetsAndRetainsHealthOutsideRange)
 {
     // Given an attacker and a distant enemy.
-    const auto attacker = units_.spawn(1, model::recruitStats(model::UnitType::Infantry), {0, 0});
-    const auto distant = units_.spawn(2, model::recruitStats(model::UnitType::Infantry), {8, 0});
+    const auto attacker = units_.spawn(1, model::recruitStats(model::UnitType::Soldier), {0, 0});
+    const auto distant = units_.spawn(2, model::recruitStats(model::UnitType::Soldier), {8, 0});
 
     // When the attacker orders an invalid friendly target, then a distant target.
     combat_.orderAttack(1, {attacker}, attacker);
@@ -76,7 +76,7 @@ TEST_F(CombatSystemTest, TowerAutomaticallyAttacksNearestEnemyInRange)
         if (b.type == model::BuildingType::Tower) tower = entity;
     });
     ASSERT_NE(tower, 0U);
-    const auto enemy = units_.spawn(2, model::recruitStats(model::UnitType::Infantry), {11, 0});
+    const auto enemy = units_.spawn(2, model::recruitStats(model::UnitType::Soldier), {11, 0});
 
     // When the combat simulation advances for one firing interval.
     combat_.update(1.0F);
@@ -99,7 +99,7 @@ TEST_F(CombatSystemTest, TowerAttacksTargetExactlyAtMaximumRange)
         if (b.type == model::BuildingType::Tower) tower = entity;
     });
     ASSERT_NE(tower, 0U);
-    const auto enemy = units_.spawn(2, model::recruitStats(model::UnitType::Infantry), {16, 0});
+    const auto enemy = units_.spawn(2, model::recruitStats(model::UnitType::Soldier), {16, 0});
     world_.tryGet<model::components::Position>(enemy)->x = 16.0F;
     world_.tryGet<model::components::Position>(enemy)->y = 0.0F;
 
@@ -134,8 +134,8 @@ TEST_F(CombatSystemTest, TowerAutomaticallyAttacksAnEnemyPlayerAvatar)
 TEST_F(CombatSystemTest, PublishesHealthChangeAfterDamage)
 {
     // Given an attacker and an enemy, with health notifications observed.
-    const auto attacker = units_.spawn(1, model::recruitStats(model::UnitType::Infantry), {0, 0});
-    const auto target = units_.spawn(2, model::recruitStats(model::UnitType::Infantry), {1, 0});
+    const auto attacker = units_.spawn(1, model::recruitStats(model::UnitType::Soldier), {0, 0});
+    const auto target = units_.spawn(2, model::recruitStats(model::UnitType::Soldier), {1, 0});
     std::vector<events::HealthChanged> changes;
     bus_.subscribe<events::HealthChanged>([&](const auto& event) { changes.push_back(event); });
 
@@ -153,7 +153,7 @@ TEST_F(CombatSystemTest, PublishesHealthChangeAfterDamage)
 TEST_F(CombatSystemTest, RespawnsAPlayerAvatarWhenCombatReducesItsHealthToZero)
 {
     // Given an attacker beside a player avatar with a Command Center respawn point.
-    const auto attacker = units_.spawn(1, model::recruitStats(model::UnitType::Infantry), {0, 0});
+    const auto attacker = units_.spawn(1, model::recruitStats(model::UnitType::Soldier), {0, 0});
     const auto avatar = players_.create(2, "Jogador");
     bus_.publish(events::BuildingPlaced{99, 2, model::BuildingType::CommandCenter, {3, 4}, 5});
     world_.tryGet<model::components::Position>(avatar)->x = 1.5F;

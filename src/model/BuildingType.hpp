@@ -7,11 +7,12 @@
 
 namespace model {
 
-enum class BuildingType { CommandCenter, Wall, House, Generator, Warehouse, Barracks, Tower };
+enum class BuildingType { CommandCenter, Wall, House, Generator, Warehouse, Barracks, Cruzador, Tower };
 
 // Order in which the build bar lists the buildings.
 inline constexpr std::array kBuildingTypes{BuildingType::CommandCenter, BuildingType::Wall, BuildingType::House,
-    BuildingType::Generator, BuildingType::Warehouse, BuildingType::Barracks, BuildingType::Tower};
+    BuildingType::Generator, BuildingType::Warehouse, BuildingType::Barracks, BuildingType::Cruzador,
+    BuildingType::Tower};
 
 struct BuildingSpec {
     std::string_view label;
@@ -33,6 +34,8 @@ struct BuildingSpec {
         return BuildingSpec{"Deposito", 2};
     case BuildingType::Barracks:
         return BuildingSpec{"Quartel", 3};
+    case BuildingType::Cruzador:
+        return BuildingSpec{"Cruzador", 3};
     case BuildingType::Tower:
         return BuildingSpec{"Torre", 2};
     }

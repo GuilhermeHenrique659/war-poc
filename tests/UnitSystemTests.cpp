@@ -1,6 +1,7 @@
 #include "core/EventBus.hpp"
 #include "core/Events.hpp"
 #include "model/BuildingSystem.hpp"
+#include "model/UnitType.hpp"
 #include "model/UnitSystem.hpp"
 
 #include <gtest/gtest.h>
@@ -36,9 +37,9 @@ protected:
 
 TEST_F(UnitSystemTest, MovesAnOwnedUnitToTheRequestedFreeDestination)
 {
-    // Given an infantry unit standing at the origin.
-    const model::UnitStats infantry = model::recruitStats(model::UnitType::Infantry);
-    const model::ecs::Entity unit = units_.spawn(kPlayer, infantry, {0, 0});
+    // Given a Soldier unit standing at the origin.
+    const model::UnitStats soldier = model::recruitStats(model::UnitType::Soldier);
+    const model::ecs::Entity unit = units_.spawn(kPlayer, soldier, {0, 0});
     ASSERT_EQ(spawns_.size(), 1U);
 
     // When its owner orders it to move two tiles east and time advances by one second.
@@ -54,4 +55,19 @@ TEST_F(UnitSystemTest, MovesAnOwnedUnitToTheRequestedFreeDestination)
     EXPECT_TRUE(units_.isTileTaken(destination));
     ASSERT_EQ(moves_.size(), 1U);
     EXPECT_EQ(moves_.front().entity, unit);
+}
+
+TEST(UnitNameTests, ShowsTheNewRecruitableNames)
+{
+    // Given the three recruitable unit types.
+    const model::UnitSpec soldier = model::unitSpec(model::UnitType::Soldier);
+    const model::UnitSpec bat = model::unitSpec(model::UnitType::Bat);
+    const model::UnitSpec goat = model::unitSpec(model::UnitType::Goat);
+
+    // When their presentation labels are read.
+
+    // Then the initial units are named Soldado, Morcego, and Bode.
+    EXPECT_EQ(soldier.label, "Soldado");
+    EXPECT_EQ(bat.label, "Morcego");
+    EXPECT_EQ(goat.label, "Bode");
 }

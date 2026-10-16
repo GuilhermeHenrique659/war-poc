@@ -12,7 +12,7 @@ namespace model::components {
 
 struct Unit {
     UnitType type;
-    int baseCount; // Recruited units inside it (merges add up).
+    int baseCount; // Recruited units represented by this unit.
     int size; // Square footprint, in tiles per side.
 };
 

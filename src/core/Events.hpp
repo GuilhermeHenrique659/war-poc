@@ -125,9 +125,11 @@ struct AttackOrderRequested {
     model::ecs::Entity target;
 };
 
-// Merges all of the player's selected units into one Combined unit.
-struct MergeRequested {
+// Sends the selected pair to a Cruzador for genealogical combination.
+struct CruzadorOrderRequested {
     model::PlayerId player;
+    model::ecs::Entity cruzador;
+    std::vector<model::ecs::Entity> units;
 };
 
 // Controller -> View (selection box being dragged, in screen pixels)
@@ -267,22 +269,6 @@ struct HealthChanged {
 
 struct UnitRemoved {
     model::ecs::Entity entity;
-};
-
-// Open while the player has two or more units selected. Stats describe the unit the merge would create.
-struct MergePanelChanged {
-    model::PlayerId player = model::kNoPlayer;
-    bool open = false;
-    int unitCount = 0;
-    bool canMerge = false;
-    std::string blockedReason;
-    int maxHealth = 0;
-    int damage = 0;
-    float range = 0.0f;
-    float speed = 0.0f;
-    int size = 1;
-
-    friend bool operator==(const MergePanelChanged&, const MergePanelChanged&) = default;
 };
 
 struct SelectionChanged {

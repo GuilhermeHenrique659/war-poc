@@ -129,3 +129,31 @@ TEST_F(BuildingSystemTest, ChargesBuildingCostsAndAppliesHousePopulationCapacity
     EXPECT_EQ(economy.amount(kPlayer, model::Resource::Wood), 80);
     EXPECT_EQ(economy.populationCapacity(kPlayer), 20);
 }
+
+TEST_F(BuildingSystemTest, CruzadorUsesTheBarracksFootprintAndCost)
+{
+    // Given an initialized player with a completed Command Center.
+    model::EconomySystem economy;
+    buildings_.setEconomy(&economy);
+    buildings_.initializePlayer(kPlayer);
+    buildings_.select(kPlayer, model::BuildingType::CommandCenter);
+    buildings_.place(kPlayer, {0, 0});
+
+    // When the player builds a Cruzador.
+    buildings_.select(kPlayer, model::BuildingType::Cruzador);
+    buildings_.place(kPlayer, {12, 12});
+
+    // Then it occupies 3x3 tiles and charges the same resources as a Barracks.
+    ASSERT_EQ(placements_.size(), 2U);
+    EXPECT_EQ(placements_.back().type, model::BuildingType::Cruzador);
+    EXPECT_EQ(placements_.back().size, 3);
+    EXPECT_EQ(economy.amount(kPlayer, model::Resource::Gold), 50);
+    EXPECT_EQ(economy.amount(kPlayer, model::Resource::Wood), 70);
+    EXPECT_EQ(economy.amount(kPlayer, model::Resource::Steel), 15);
+    EXPECT_EQ(model::buildingCost(model::BuildingType::Cruzador).gold,
+        model::buildingCost(model::BuildingType::Barracks).gold);
+    EXPECT_EQ(model::buildingCost(model::BuildingType::Cruzador).wood,
+        model::buildingCost(model::BuildingType::Barracks).wood);
+    EXPECT_EQ(model::buildingCost(model::BuildingType::Cruzador).steel,
+        model::buildingCost(model::BuildingType::Barracks).steel);
+}

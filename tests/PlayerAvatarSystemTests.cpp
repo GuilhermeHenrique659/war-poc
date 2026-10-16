@@ -100,7 +100,7 @@ TEST_F(PlayerAvatarSystemTest, IgnoresOtherBuildingTypesWhenWaitingToSpawn)
     EXPECT_EQ(world_.tryGet<model::components::Health>(entity), nullptr);
 }
 
-TEST_F(PlayerAvatarSystemTest, MovesTheAvatarAtCavalrySpeedAndPublishesItsPosition)
+TEST_F(PlayerAvatarSystemTest, MovesTheAvatarAtGoatSpeedAndPublishesItsPosition)
 {
     // Given a player avatar whose Command Center is centered at (4, 6).
     constexpr model::PlayerId playerId = 3;
@@ -112,7 +112,7 @@ TEST_F(PlayerAvatarSystemTest, MovesTheAvatarAtCavalrySpeedAndPublishesItsPositi
     // When the player requests one second of movement along the X grid axis.
     bus_.publish(events::PlayerMoveRequested{playerId, 1.0F, 0.0F, 1.0F});
 
-    // Then it moves at cavalry speed and publishes the updated position.
+    // Then it moves at Goat speed and publishes the updated position.
     const auto* position = world_.tryGet<model::components::Position>(entity);
     ASSERT_NE(position, nullptr);
     EXPECT_FLOAT_EQ(position->x, 8.0F);
@@ -146,7 +146,7 @@ TEST_F(PlayerAvatarSystemTest, RespawnsAPlayerAtItsStartingPositionWithFullHealt
     EXPECT_EQ(health->current, 10);
 }
 
-TEST_F(PlayerAvatarSystemTest, DiagonalMovementDoesNotExceedCavalrySpeed)
+TEST_F(PlayerAvatarSystemTest, DiagonalMovementDoesNotExceedGoatSpeed)
 {
     // Given a player avatar spawned from its Command Center.
     constexpr model::PlayerId playerId = 9;
@@ -160,7 +160,7 @@ TEST_F(PlayerAvatarSystemTest, DiagonalMovementDoesNotExceedCavalrySpeed)
     // When it moves diagonally for one second.
     players_.move(playerId, 1.0F, 1.0F, 1.0F);
 
-    // Then its total displacement equals the cavalry speed, not a faster diagonal.
+    // Then its total displacement equals the Goat speed, not a faster diagonal.
     const auto* position = world_.tryGet<model::components::Position>(entity);
     ASSERT_NE(position, nullptr);
     EXPECT_FLOAT_EQ(std::hypot(position->x - startX, position->y - startY), 3.5F);

@@ -11,7 +11,7 @@ PlayingModel::PlayingModel(core::EventBus& bus)
     , playerAvatars_(std::make_unique<PlayerAvatarSystem>(bus_, *world_))
     , combat_(std::make_unique<CombatSystem>(bus_, *world_, *units_, *buildings_))
     , selection_(std::make_unique<SelectionSystem>(bus_, *world_))
-    , merges_(std::make_unique<MergeSystem>(bus_, *world_, *units_, *selection_))
+    , genealogy_(std::make_unique<GenealogySystem>(*world_, *units_, *selection_))
 {
     buildings_->setEconomy(economy_.get());
     units_->setEconomy(economy_.get());
@@ -37,19 +37,16 @@ void PlayingModel::subscribeUnitCommands()
     bus_.subscribe<events::SelectUnitsRequested>([this](const events::SelectUnitsRequested& e) {
         if (inMatch()) {
             selection_->selectUnits(e.player, e.units, e.additive);
-            merges_->refresh(e.player);
         }
     });
     bus_.subscribe<events::SelectBuildingRequested>([this](const events::SelectBuildingRequested& e) {
         if (inMatch()) {
             selection_->selectBuilding(e.player, e.building);
-            merges_->refresh(e.player);
         }
     });
     bus_.subscribe<events::SelectionClearRequested>([this](const events::SelectionClearRequested& e) {
         if (inMatch()) {
             selection_->clear(e.player);
-            merges_->refresh(e.player);
         }
     });
     bus_.subscribe<events::MoveOrderRequested>([this](const events::MoveOrderRequested& e) {
@@ -57,9 +54,9 @@ void PlayingModel::subscribeUnitCommands()
             units_->orderMove(e.player, selection_->selectedUnits(e.player), e.tile);
         }
     });
-    bus_.subscribe<events::MergeRequested>([this](const events::MergeRequested& e) {
+    bus_.subscribe<events::CruzadorOrderRequested>([this](const events::CruzadorOrderRequested& e) {
         if (inMatch()) {
-            merges_->merge(e.player);
+            (void)genealogy_->send(e.player, e.cruzador, e.units);
         }
     });
 }
@@ -99,8 +96,7 @@ void PlayingModel::update(float deltaSeconds)
         buildings_->refreshPreviews();
     }
     combat_->update(deltaSeconds);
-    // Merge validity depends on positions and free space; it only republishes on change.
-    merges_->refreshAll();
+    genealogy_->update();
 }
 
 void PlayingModel::onStartMatch(const events::StartMatchRequested& event)
@@ -135,7 +131,7 @@ void PlayingModel::resetWorld()
     playerAvatars_->reset();
     combat_->reset();
     selection_->reset();
-    merges_->reset();
+    genealogy_->reset();
 }
 
 void PlayingModel::createLocalPlayer(const std::string& playerName)
@@ -145,7 +141,6 @@ void PlayingModel::createLocalPlayer(const std::string& playerName)
     (void)playerAvatars_->create(localPlayerId_, playerName);
     buildings_->initializePlayer(localPlayerId_);
     selection_->initializePlayer(localPlayerId_);
-    merges_->initializePlayer(localPlayerId_);
 }
 
 } // namespace model

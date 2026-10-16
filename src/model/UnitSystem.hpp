@@ -38,8 +38,8 @@ public:
 
     ecs::Entity spawn(PlayerId player, const UnitStats& stats, GridPos origin);
     void remove(ecs::Entity entity);
-    // Merge replaces source units with one unit representing the same population.
-    void removeForMerge(ecs::Entity entity);
+    // Replacing source units keeps their population reserved for the offspring.
+    void removeForCombination(ecs::Entity entity);
 
     // Origin of the free square of `size` nearest to `center`, at most `radius` rings away.
     // Tiles covered or reserved by the `ignored` units count as free.

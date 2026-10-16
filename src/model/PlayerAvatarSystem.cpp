@@ -16,7 +16,7 @@ namespace {
 constexpr int kPlayerHealth = 10;
 constexpr int kPlayerDamage = 1;
 constexpr float kPlayerRange = 1.0F;
-constexpr float kPlayerSpeed = unitSpec(UnitType::Cavalry).speed;
+constexpr float kPlayerSpeed = unitSpec(UnitType::Goat).speed;
 constexpr float kPlayerCollisionRadius = 0.3F;
 
 } // namespace

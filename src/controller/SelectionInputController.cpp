@@ -53,7 +53,7 @@ void SelectionInputController::subscribe()
         it->second.y = e.y;
     });
     bus_.subscribe<events::BuildingPlaced>([this](const events::BuildingPlaced& e) {
-        buildings_.push_back(BuildingInfo{e.entity, e.owner, e.origin, e.size});
+        buildings_.push_back(BuildingInfo{e.entity, e.owner, e.origin, e.size, e.type});
     });
     bus_.subscribe<events::BuildingRemoved>([this](const events::BuildingRemoved& e) {
         std::erase_if(buildings_, [&e](const BuildingInfo& building) { return building.entity == e.entity; });
@@ -172,6 +172,15 @@ void SelectionInputController::issueOrder(Vector2 mouse, const Camera2D& camera)
         return;
     }
     const model::GridPos tile = view::iso::worldToGrid(world);
+    const auto cruzador = std::find_if(buildings_.begin(), buildings_.end(), [this, tile](const BuildingInfo& building) {
+        return building.owner == localPlayerId_ && building.type == model::BuildingType::Cruzador
+            && tile.x >= building.origin.x && tile.x < building.origin.x + building.size
+            && tile.y >= building.origin.y && tile.y < building.origin.y + building.size;
+    });
+    if (cruzador != buildings_.end()) {
+        bus_.publish(events::CruzadorOrderRequested{localPlayerId_, cruzador->entity, selectedUnits_});
+        return;
+    }
     const auto enemyBuilding = std::find_if(buildings_.begin(), buildings_.end(), [this, tile](const auto& building) {
         return building.owner != localPlayerId_ && tile.x >= building.origin.x
             && tile.x < building.origin.x + building.size && tile.y >= building.origin.y

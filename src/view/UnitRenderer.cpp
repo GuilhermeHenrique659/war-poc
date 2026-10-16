@@ -10,12 +10,12 @@ namespace view {
 
 namespace {
 
-constexpr Color kInfantryColor{190, 60, 50, 255};
-constexpr Color kRangedColor{60, 150, 70, 255};
-constexpr Color kCavalryColor{210, 165, 60, 255};
+constexpr Color kSoldierColor{190, 60, 50, 255};
+constexpr Color kBatColor{75, 75, 150, 255};
+constexpr Color kGoatColor{170, 145, 105, 255};
 constexpr Color kCombinedColor{140, 80, 200, 255};
 constexpr Color kSkinColor{230, 190, 150, 255};
-constexpr Color kHorseColor{120, 80, 50, 255};
+constexpr Color kHornColor{60, 50, 40, 255};
 constexpr Color kShieldColor{90, 90, 110, 255};
 constexpr Color kRingColor{90, 255, 120, 255};
 
@@ -30,47 +30,44 @@ void drawHead(float gx, float gy, float elevation)
     iso::drawPrism(centered(gx, gy, 0.16f, elevation, 7.0f), iso::boxColors(kSkinColor, 255));
 }
 
-void drawInfantry(float gx, float gy)
+void drawSoldier(float gx, float gy)
 {
     constexpr float kBody = 16.0f;
-    iso::drawPrism(centered(gx, gy, 0.3f, 0.0f, kBody), iso::boxColors(kInfantryColor, 255));
+    iso::drawPrism(centered(gx, gy, 0.3f, 0.0f, kBody), iso::boxColors(kSoldierColor, 255));
     drawHead(gx, gy, kBody);
     // Shield on the front (south-east) side.
     iso::drawPrism(iso::Prism{gx + 0.15f, gy - 0.12f, 0.06f, 0.24f, 3.0f, 11.0f}, iso::boxColors(kShieldColor, 255));
 }
 
-void drawRanged(float gx, float gy)
+void drawBat(float gx, float gy)
 {
-    constexpr float kBody = 17.0f;
-    iso::drawPrism(centered(gx, gy, 0.24f, 0.0f, kBody), iso::boxColors(kRangedColor, 255));
-    drawHead(gx, gy, kBody);
-
-    // Bow held on the side.
+    constexpr float kBody = 10.0f;
+    const Color wings = iso::shade(kBatColor, 0.75f);
     const Vector2 ground = unit_layout::groundPoint(gx, gy);
-    const Vector2 top{ground.x + 10.0f, ground.y - 24.0f};
-    const Vector2 bottom{ground.x + 10.0f, ground.y - 4.0f};
-    const Vector2 grip{ground.x + 15.0f, ground.y - 14.0f};
-    DrawLineEx(top, grip, 2.0f, kHorseColor);
-    DrawLineEx(grip, bottom, 2.0f, kHorseColor);
-    DrawLineV(top, bottom, LIGHTGRAY);
+    DrawTriangle(Vector2{ground.x, ground.y - 15.0f}, Vector2{ground.x - 20.0f, ground.y - 24.0f},
+        Vector2{ground.x - 13.0f, ground.y - 7.0f}, wings);
+    DrawTriangle(Vector2{ground.x, ground.y - 15.0f}, Vector2{ground.x + 20.0f, ground.y - 24.0f},
+        Vector2{ground.x + 13.0f, ground.y - 7.0f}, wings);
+    iso::drawPrism(centered(gx, gy, 0.2f, 0.0f, kBody), iso::boxColors(kBatColor, 255));
+    iso::drawPrism(centered(gx, gy, 0.12f, kBody, 5.0f), iso::boxColors(kBatColor, 255));
 }
 
-void drawCavalry(float gx, float gy)
+void drawGoat(float gx, float gy)
 {
-    constexpr float kLegs = 6.0f;
-    constexpr float kHorse = 9.0f;
-    constexpr float kRider = 11.0f;
-    const iso::BoxColors horse = iso::boxColors(kHorseColor, 255);
-
-    iso::drawPrism(iso::Prism{gx - 0.3f, gy - 0.14f, 0.6f, 0.28f, kLegs, kHorse}, horse);
-    iso::drawPrism(iso::Prism{gx + 0.22f, gy - 0.1f, 0.16f, 0.2f, kLegs + kHorse, 7.0f}, horse);
-    iso::drawPrism(centered(gx, gy, 0.22f, kLegs + kHorse, kRider), iso::boxColors(kCavalryColor, 255));
-    drawHead(gx, gy, kLegs + kHorse + kRider);
-
+    constexpr float kLegHeight = 7.0f;
+    constexpr float kBodyHeight = 10.0f;
+    const iso::BoxColors body = iso::boxColors(kGoatColor, 255);
+    iso::drawPrism(iso::Prism{gx - 0.26f, gy - 0.16f, 0.52f, 0.32f, kLegHeight, kBodyHeight}, body);
+    iso::drawPrism(iso::Prism{gx + 0.18f, gy - 0.12f, 0.18f, 0.24f, kLegHeight + kBodyHeight, 7.0f}, body);
+    iso::drawPrism(centered(gx + 0.28f, gy - 0.12f, 0.18f, kLegHeight + kBodyHeight + 5.0f, 7.0f), body);
     const Vector2 ground = unit_layout::groundPoint(gx, gy);
-    const Color legs = iso::shade(kHorseColor, 0.6f);
-    DrawLineEx(Vector2{ground.x - 10.0f, ground.y - kLegs}, Vector2{ground.x - 10.0f, ground.y}, 2.0f, legs);
-    DrawLineEx(Vector2{ground.x + 10.0f, ground.y - kLegs}, Vector2{ground.x + 10.0f, ground.y}, 2.0f, legs);
+    const Vector2 head = unit_layout::groundPoint(gx + 0.28f, gy - 0.12f);
+    for (const float offset : {-8.0f, 8.0f}) {
+        DrawLineEx(Vector2{ground.x + offset, ground.y - kLegHeight}, Vector2{ground.x + offset, ground.y},
+            2.0f, kHornColor);
+    }
+    DrawLineEx(Vector2{head.x - 4.0f, head.y - 22.0f}, Vector2{head.x - 7.0f, head.y - 29.0f}, 2.0f, kHornColor);
+    DrawLineEx(Vector2{head.x + 4.0f, head.y - 22.0f}, Vector2{head.x + 7.0f, head.y - 29.0f}, 2.0f, kHornColor);
 }
 
 } // namespace
@@ -78,12 +75,12 @@ void drawCavalry(float gx, float gy)
 Color unitColor(model::UnitType type)
 {
     switch (type) {
-    case model::UnitType::Infantry:
-        return kInfantryColor;
-    case model::UnitType::Ranged:
-        return kRangedColor;
-    case model::UnitType::Cavalry:
-        return kCavalryColor;
+    case model::UnitType::Soldier:
+        return kSoldierColor;
+    case model::UnitType::Bat:
+        return kBatColor;
+    case model::UnitType::Goat:
+        return kGoatColor;
     case model::UnitType::Combined:
         return kCombinedColor;
     }
@@ -97,14 +94,14 @@ void drawUnit(model::UnitType type, float gx, float gy, int size)
     DrawEllipse(static_cast<int>(ground.x), static_cast<int>(ground.y), shadow, shadow / 2.0f, Color{0, 0, 0, 70});
 
     switch (type) {
-    case model::UnitType::Infantry:
-        drawInfantry(gx, gy);
+    case model::UnitType::Soldier:
+        drawSoldier(gx, gy);
         return;
-    case model::UnitType::Ranged:
-        drawRanged(gx, gy);
+    case model::UnitType::Bat:
+        drawBat(gx, gy);
         return;
-    case model::UnitType::Cavalry:
-        drawCavalry(gx, gy);
+    case model::UnitType::Goat:
+        drawGoat(gx, gy);
         return;
     case model::UnitType::Combined:
         drawMech(gx, gy, size);

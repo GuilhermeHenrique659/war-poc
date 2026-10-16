@@ -124,7 +124,7 @@ void UnitSystem::remove(ecs::Entity entity)
     remove(entity, true);
 }
 
-void UnitSystem::removeForMerge(ecs::Entity entity)
+void UnitSystem::removeForCombination(ecs::Entity entity)
 {
     remove(entity, false);
 }

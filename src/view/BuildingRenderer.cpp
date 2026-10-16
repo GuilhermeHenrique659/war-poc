@@ -12,6 +12,7 @@ constexpr Color kWallColor{150, 148, 138, 255};
 constexpr Color kFlagColor{220, 60, 50, 255};
 constexpr Color kEconomyColor{90, 160, 100, 255};
 constexpr Color kBarracksColor{160, 100, 75, 255};
+constexpr Color kCruzadorColor{100, 95, 180, 255};
 constexpr Color kTowerColor{190, 125, 55, 255};
 
 void drawCommandCenter(model::GridPos origin, int size, unsigned char alpha)
@@ -79,6 +80,8 @@ Color buildingColor(model::BuildingType type)
         return kEconomyColor;
     case model::BuildingType::Barracks:
         return kBarracksColor;
+    case model::BuildingType::Cruzador:
+        return kCruzadorColor;
     case model::BuildingType::Tower:
         return kTowerColor;
     }
@@ -98,6 +101,7 @@ void drawBuilding(model::BuildingType type, model::GridPos origin, int size, uns
     case model::BuildingType::Generator:
     case model::BuildingType::Warehouse:
     case model::BuildingType::Barracks:
+    case model::BuildingType::Cruzador:
         iso::drawPrism({static_cast<float>(origin.x), static_cast<float>(origin.y), static_cast<float>(size),
                            static_cast<float>(size), 0.0f, 24.0f},
             iso::boxColors(buildingColor(type), alpha));

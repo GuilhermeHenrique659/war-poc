@@ -6,11 +6,11 @@
 
 namespace model {
 
-// Combined is the result of merging units; it cannot be recruited.
-enum class UnitType { Infantry, Ranged, Cavalry, Combined };
+// Combined is the temporary legacy offspring type; it cannot be recruited.
+enum class UnitType { Soldier, Bat, Goat, Combined };
 
 // Order in which the recruit panel lists the units.
-inline constexpr std::array kRecruitableUnitTypes{UnitType::Infantry, UnitType::Ranged, UnitType::Cavalry};
+inline constexpr std::array kRecruitableUnitTypes{UnitType::Soldier, UnitType::Bat, UnitType::Goat};
 
 // Combat stats (health, damage, range) are stored but not used until combat exists.
 struct UnitSpec {
@@ -21,16 +21,16 @@ struct UnitSpec {
     float speed; // Tiles per second.
 };
 
-// Combined units take their stats from the merge, so their spec only carries the label.
+// The legacy Combined offspring takes its stats from its parents.
 [[nodiscard]] constexpr UnitSpec unitSpec(UnitType type)
 {
     switch (type) {
-    case UnitType::Infantry:
-        return UnitSpec{"Infantaria", 100, 10, 1.0f, 2.0f};
-    case UnitType::Ranged:
-        return UnitSpec{"Longa Distancia", 60, 8, 5.0f, 1.6f};
-    case UnitType::Cavalry:
-        return UnitSpec{"Cavalaria", 140, 14, 1.0f, 3.5f};
+    case UnitType::Soldier:
+        return UnitSpec{"Soldado", 100, 10, 1.0f, 2.0f};
+    case UnitType::Bat:
+        return UnitSpec{"Morcego", 60, 8, 5.0f, 1.6f};
+    case UnitType::Goat:
+        return UnitSpec{"Bode", 140, 14, 1.0f, 3.5f};
     case UnitType::Combined:
         return UnitSpec{"Tropa Combinada", 0, 0, 0.0f, 0.0f};
     }

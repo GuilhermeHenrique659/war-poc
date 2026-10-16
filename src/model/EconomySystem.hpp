@@ -28,6 +28,7 @@ struct ResourceCost {
     case BuildingType::Generator: return {30, 10, 0, 0};
     case BuildingType::Warehouse: return {25, 15, 0, 0};
     case BuildingType::Barracks: return {50, 30, 10, 0};
+    case BuildingType::Cruzador: return {50, 30, 10, 0};
     case BuildingType::Tower: return {40, 20, 5, 0};
     }
     return {};
@@ -36,9 +37,9 @@ struct ResourceCost {
 [[nodiscard]] constexpr ResourceCost recruitmentCost(UnitType type)
 {
     switch (type) {
-    case UnitType::Infantry: return {50, 0, 0, 0};
-    case UnitType::Ranged: return {40, 10, 0, 0};
-    case UnitType::Cavalry: return {75, 0, 5, 0};
+    case UnitType::Soldier: return {50, 0, 0, 0};
+    case UnitType::Bat: return {40, 10, 0, 0};
+    case UnitType::Goat: return {75, 0, 5, 0};
     case UnitType::Combined: return {};
     }
     return {};

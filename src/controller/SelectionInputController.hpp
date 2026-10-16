@@ -1,6 +1,7 @@
 #pragma once
 
 #include "core/EventBus.hpp"
+#include "model/BuildingType.hpp"
 #include "model/GridPos.hpp"
 #include "model/Player.hpp"
 #include "model/ecs/Entity.hpp"
@@ -39,6 +40,7 @@ private:
         model::PlayerId owner;
         model::GridPos origin;
         int size;
+        model::BuildingType type;
     };
 
     void subscribe();

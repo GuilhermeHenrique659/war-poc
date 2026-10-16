@@ -14,7 +14,7 @@ TEST(SelectionSystemTest, RemovesDestroyedUnitFromPublishedSelection)
     model::BuildingSystem buildings(bus, world);
     model::UnitSystem units(bus, world, buildings);
     model::SelectionSystem selection(bus, world);
-    const auto unit = units.spawn(1, model::recruitStats(model::UnitType::Infantry), {0, 0});
+    const auto unit = units.spawn(1, model::recruitStats(model::UnitType::Soldier), {0, 0});
     selection.selectUnits(1, {unit}, false);
     std::vector<events::SelectionChanged> changes;
     bus.subscribe<events::SelectionChanged>([&](const auto& event) { changes.push_back(event); });

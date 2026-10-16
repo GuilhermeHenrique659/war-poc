@@ -8,7 +8,6 @@ PlayingView::PlayingView(core::EventBus& bus)
     , buildBar_(std::make_unique<BuildBarView>(bus))
     , economyPanel_(std::make_unique<EconomyPanelView>(bus))
     , recruitPanel_(std::make_unique<RecruitPanelView>(bus))
-    , mergePanel_(std::make_unique<MergePanelView>(bus))
 {
 }
 
@@ -19,7 +18,6 @@ void PlayingView::draw() const
     economyPanel_->draw();
     buildBar_->draw();
     recruitPanel_->draw();
-    mergePanel_->draw();
 }
 
 } // namespace view

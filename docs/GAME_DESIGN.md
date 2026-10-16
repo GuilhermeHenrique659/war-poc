@@ -18,7 +18,7 @@ Documento vivo com as regras do jogo. Itens marcados como **TBD** ainda não for
 ## Jogador
 - Cada partida cria a entidade ECS de identidade do jogador local, com o `PlayerId` gerado pelo Model, o nome configurado e o componente de dono. Ela ainda não tem posição, vida, combate nem representação visual.
 - O avatar só spawna quando o jogador coloca o Centro de Comando: nesse momento recebe `Position`, vida e atributos de combate e passa a ser representado no mundo.
-- O avatar tem 10 de vida, causa 1 de dano, tem alcance de 1 tile e velocidade de 3,5 tiles/s (a velocidade da Cavalaria).
+- O avatar tem 10 de vida, causa 1 de dano, tem alcance de 1 tile e velocidade de 3,5 tiles/s (a velocidade do Bode).
 - WASD controla o avatar nas quatro direções da tela isométrica. O movimento é contínuo em coordenadas lógicas; diagonais mantêm a mesma velocidade.
 - O ponto inicial é a casa livre mais próxima, fora do Centro de Comando colocado pelo jogador. Ao chegar a 0 de vida, o avatar reaparece nessa casa com a vida cheia.
 - O avatar colide com os footprints das construções, tem raio de colisão de 0,3 tile e desliza pelas paredes ao mover-se na diagonal.
@@ -46,10 +46,10 @@ Documento vivo com as regras do jogo. Itens marcados como **TBD** ainda não for
 - Durante a partida, o HUD no canto superior direito mostra o estoque e a capacidade de cada recurso, além da população ocupada e da capacidade populacional. Ao lado dele, uma barra mostra a vida atual e máxima do avatar.
 - Estoque inicial: 100 ouro, 100 madeira, 25 aço e 10 petróleo. Capacidade inicial: 500 de cada recurso.
 - O Gerador produz por segundo: 2 ouro, 1 madeira, 0,25 aço e 0,25 petróleo. O Depósito aumenta em 250 a capacidade de cada recurso.
-- Custos de construção: Centro de Comando grátis; Muro 5 madeira; Casa 20 ouro + 20 madeira; Gerador 30 ouro + 10 madeira; Depósito 25 ouro + 15 madeira; Quartel 50 ouro + 30 madeira + 10 aço.
+- Custos de construção: Centro de Comando grátis; Muro 5 madeira; Casa 20 ouro + 20 madeira; Gerador 30 ouro + 10 madeira; Depósito 25 ouro + 15 madeira; Quartel e Cruzador 50 ouro + 30 madeira + 10 aço.
 - População: capacidade inicial 10, Centro de Comando +5, cada Casa +5. Cada tropa recrutada ocupa 1 população.
 - No MVP sandbox, recrutamento usa os custos abaixo e exige Quartel; cada tropa ocupa 1 população. O recrutamento é instantâneo. Não existe um modo de recrutamento grátis separado.
-- Custos de recrutamento: Infantaria 50 ouro; Longa Distância 40 ouro + 10 madeira; Cavalaria 75 ouro + 5 aço.
+- Custos de recrutamento: Soldado 50 ouro; Morcego 40 ouro + 10 madeira; Bode 75 ouro + 5 aço.
 
 ## Construção
 - Barra de construção no rodapé da tela: clique (ou teclas `1`-`9`) seleciona a estrutura. Clicar de novo na mesma desmarca.
@@ -67,6 +67,7 @@ Documento vivo com as regras do jogo. Itens marcados como **TBD** ainda não for
 | Gerador | 2x2 | Requer Centro de Comando; produz recursos periodicamente. |
 | Depósito | 2x2 | Requer Centro de Comando; aumenta a capacidade de estoque. |
 | Quartel | 3x3 | Requer Centro de Comando; libera recrutamento. |
+| Cruzador | 3x3 | Requer Centro de Comando; recebe duas tropas para gerar uma descendente. Custa o mesmo que o Quartel. |
 
 - Custos definidos na seção Economia / recursos.
 - **TBD**: tempo de construção, demolição/reembolso, terreno válido.
@@ -93,27 +94,19 @@ Documento vivo com as regras do jogo. Itens marcados como **TBD** ainda não for
 
 | Tropa | Vida | Dano | Alcance | Velocidade |
 |---|---|---|---|---|
-| Infantaria | 100 | 10 | 1 | 2.0 |
-| Longa Distância | 60 | 8 | 5 | 1.6 |
-| Cavalaria | 140 | 14 | 1 | 3.5 |
+| Soldado | 100 | 10 | 1 | 2.0 |
+| Morcego | 60 | 8 | 5 | 1.6 |
+| Bode | 140 | 14 | 1 | 3.5 |
 
 - Unidades mantêm vida, dano e alcance. Uma ordem de ataque dispara após um segundo de cooldown e repete a cada segundo enquanto o alvo permanecer dentro do alcance.
 
-### Juntar tropas (merge)
-- Com 2 ou mais tropas selecionadas aparece o painel de merge no canto superior direito, mostrando os atributos da tropa que vai nascer. O botão `Juntar` (ou a tecla `M`) junta **todas** as tropas selecionadas em uma **Tropa Combinada** (um mech).
-- Qualquer combinação vale: tipos iguais, diferentes e tropas que já são combinadas.
-- Atributos da tropa nova:
-  - Vida máxima = soma das vidas máximas. Vida atual = soma das vidas atuais.
-  - Dano = soma dos danos.
-  - Alcance = o maior alcance.
-  - Velocidade = média ponderada pela quantidade de tropas recrutadas dentro de cada uma. Juntar em etapas dá o mesmo resultado que juntar tudo de uma vez.
-- **Tamanho**: poder = vida máxima + 10 × dano. O lado do quadrado ocupado é `1 + poder / 400` (divisão inteira), de 1x1 até no máximo 5x5. Ex.: 2 Infantarias = poder 400, vira 2x2.
-- Requisitos (sem eles o botão fica desativado e mostra o motivo):
-  - Todas as tropas a até 3 tiles do centro do grupo ("Muito longe").
-  - Um espaço livre do tamanho da tropa nova a até 3 tiles do centro do grupo ("Sem espaco"). Os tiles das tropas que vão se juntar contam como livres.
-- O merge é instantâneo. As tropas de origem somem, a nova aparece no espaço livre mais próximo do centro e fica selecionada.
-- Tropas maiores que 1x1 ocupam e reservam o quadrado inteiro: nada é construído em cima e o caminho só passa por onde o quadrado inteiro cabe (um mech 2x2 não passa num vão de 1 tile).
-- **TBD**: desfazer o merge (separar), custo ou tempo do merge fora do sandbox.
+### Cruzador e genealogia de tropas
+- O jogador seleciona exatamente duas tropas próprias e clica com o botão direito sobre um Cruzador próprio. As duas caminham até a construção; quando ambas chegam, são consumidas e a descendente aparece no espaço livre mais próximo.
+- Se não houver espaço para a descendente, as tropas aguardam junto ao Cruzador até existir um tile livre. Uma nova ordem de movimento cancela a entrega.
+- As combinações e descendentes são registradas em [`UNIT_GENEALOGY.md`](UNIT_GENEALOGY.md). Combinações ainda não cadastradas usam provisoriamente o resultado legado `Tropa Combinada`, com vida e dano somados, maior alcance, velocidade média ponderada pela população e tamanho calculado pelo poder.
+- O jogador recebe a descendente selecionada. A população representada pelas tropas de origem é mantida.
+- **TBD**: receitas e tipos descendentes, se a ordem dos pais importa, atributos próprios das descendentes e custo/tempo de cruzamento fora do sandbox.
+- Tropas maiores que 1x1 ocupam e reservam o quadrado inteiro: nada é construído em cima e o caminho só passa por onde o quadrado inteiro cabe.
 - **TBD**: custo e tempo de recrutamento fora do sandbox, limite de tropas, colisão entre tropas.
 
 ## Vitória / derrota
