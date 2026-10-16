@@ -16,8 +16,13 @@ Documento vivo com as regras do jogo. Itens marcados como **TBD** ainda não for
 3. **Partida**: o mundo é criado vazio ao iniciar. `ESC` cancela a construção selecionada ou limpa a seleção de tropas/construção; sem nada selecionado, volta ao menu e descarta a partida atual.
 
 ## Jogador
-- Cada partida cria uma entidade lógica para o jogador local. Ela não tem posição nem representação visual.
-- A entidade recebe um `PlayerId` gerado pelo Model e guarda o nome configurado. Construções e tropas registram esse `PlayerId` como dono.
+- Cada partida cria a entidade ECS de identidade do jogador local, com o `PlayerId` gerado pelo Model, o nome configurado e o componente de dono. Ela ainda não tem posição, vida, combate nem representação visual.
+- O avatar só spawna quando o jogador coloca o Centro de Comando: nesse momento recebe `Position`, vida e atributos de combate e passa a ser representado no mundo.
+- O avatar tem 10 de vida, causa 1 de dano, tem alcance de 1 tile e velocidade de 3,5 tiles/s (a velocidade da Cavalaria).
+- WASD controla o avatar nas quatro direções da tela isométrica. O movimento é contínuo em coordenadas lógicas; diagonais mantêm a mesma velocidade.
+- O ponto inicial é a casa livre mais próxima, fora do Centro de Comando colocado pelo jogador. Ao chegar a 0 de vida, o avatar reaparece nessa casa com a vida cheia.
+- O avatar colide com os footprints das construções, tem raio de colisão de 0,3 tile e desliza pelas paredes ao mover-se na diagonal.
+- A câmera acompanha o avatar; o zoom permanece fixo.
 - No sandbox atual há somente o jogador local. O `PlayerId` é propagado aos Controllers e Views pelo event bus, permitindo que novos jogadores sejam adicionados depois.
 
 ## Modo debug
@@ -32,12 +37,13 @@ Documento vivo com as regras do jogo. Itens marcados como **TBD** ainda não for
 - Grid isométrico. Toda posição de jogo é uma coordenada de tile (lógica), independente da projeção na tela.
 - Tile de 64x32 px na tela (zoom 1).
 - O sandbox segue com mapa **infinito** e sem terreno. O Model também oferece `BoundedMap` para missões finitas: retângulo definido por origem lógica, largura e altura; tiles dentro dele começam como planície transitável, tiles fora são bloqueados e o terreno pode ser marcado como bloqueado. A classe não depende de raylib.
-- Câmera: WASD/setas ou botão do meio do mouse arrastando para mover. Roda do mouse para zoom.
+- Câmera: acompanha o avatar do jogador com zoom fixo de 1,0x.
+- Renderização de construções, tropas e avatar usa o algoritmo do pintor: objetos mais distantes no eixo de profundidade do grid são desenhados primeiro.
 - Origem do mapa definitivo (Tiled `.tmx` ou procedural), tamanho e tipos de terreno: **TBD**.
 
 ## Economia / recursos
 - Recursos limitados por jogador: ouro, madeira, aço e petróleo. Cada recurso tem estoque inicial e capacidade; produção acima da capacidade é descartada.
-- Durante a partida, o HUD no canto superior direito mostra o estoque e a capacidade de cada recurso, além da população ocupada e da capacidade populacional.
+- Durante a partida, o HUD no canto superior direito mostra o estoque e a capacidade de cada recurso, além da população ocupada e da capacidade populacional. Ao lado dele, uma barra mostra a vida atual e máxima do avatar.
 - Estoque inicial: 100 ouro, 100 madeira, 25 aço e 10 petróleo. Capacidade inicial: 500 de cada recurso.
 - O Gerador produz por segundo: 2 ouro, 1 madeira, 0,25 aço e 0,25 petróleo. O Depósito aumenta em 250 a capacidade de cada recurso.
 - Custos de construção: Centro de Comando grátis; Muro 5 madeira; Casa 20 ouro + 20 madeira; Gerador 30 ouro + 10 madeira; Depósito 25 ouro + 15 madeira; Quartel 50 ouro + 30 madeira + 10 aço.
@@ -67,7 +73,7 @@ Documento vivo com as regras do jogo. Itens marcados como **TBD** ainda não for
 
 ## Defesa (tower defense)
 - Torre defensiva: construção 2x2, custa 40 ouro, 20 madeira e 5 aço, tem 500 de vida, alcance de 6 tiles e causa 20 de dano a cada segundo.
-- A torre ataca automaticamente a unidade inimiga mais próxima já dentro do alcance. Torres e unidades podem receber ordens de ataque por comando do Model; alvos aliados, mortos ou sem vida são inválidos. Ataques fora de alcance não causam dano.
+- A torre ataca automaticamente a unidade ou avatar inimigo mais próximo já dentro do alcance. Torres e unidades podem receber ordens de ataque por comando do Model; alvos aliados, mortos ou sem vida são inválidos. Ataques fora de alcance não causam dano.
 - Ataques reduzem vida; ao chegar a zero, unidades ou construções são removidas do mundo e liberam a área ocupada.
 - Ondas e comportamento/pathfinding de inimigos ainda não fazem parte desta fatia; os alvos inimigos são entidades de jogador distintas criadas pelo jogo ou pelos testes.
 

@@ -90,6 +90,13 @@ struct RecruitRequested {
     model::UnitType type;
 };
 
+struct PlayerMoveRequested {
+    model::PlayerId player;
+    float directionX;
+    float directionY;
+    float deltaSeconds;
+};
+
 // Additive keeps the current unit selection and adds to it.
 struct SelectUnitsRequested {
     model::PlayerId player;
@@ -138,12 +145,6 @@ struct CameraPanRequested {
     float dy;
 };
 
-struct CameraZoomRequested {
-    float steps;
-    float screenX; // Zoom pivot, in screen pixels.
-    float screenY;
-};
-
 // Controller -> View (debug overlay is presentation state)
 struct DebugToggleRequested {};
 
@@ -158,6 +159,26 @@ struct SceneChanged {
 // The player controlled by this client changed. Views and controllers cache this value locally.
 struct LocalPlayerChanged {
     model::PlayerId player;
+};
+
+struct PlayerSpawned {
+    model::ecs::Entity entity;
+    model::PlayerId player;
+    float x;
+    float y;
+    int health;
+    int maxHealth;
+};
+
+struct PlayerMoved {
+    model::ecs::Entity entity;
+    model::PlayerId player;
+    float x;
+    float y;
+};
+
+struct PlayerRespawnRequested {
+    model::ecs::Entity entity;
 };
 
 struct EconomyChanged {

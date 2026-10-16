@@ -17,7 +17,7 @@
 
 namespace view {
 
-// Draws the isometric map (infinite grid, buildings, units, placement preview, selection) and owns the camera.
+// Draws the isometric map (infinite grid, buildings, units, player, placement preview) and owns the camera.
 class WorldView {
 public:
     explicit WorldView(core::EventBus& bus);
@@ -42,28 +42,36 @@ private:
         int size;
     };
 
+    struct PlayerVisual {
+        model::ecs::Entity entity;
+        model::PlayerId player;
+        float x;
+        float y;
+    };
+
     void subscribeUnits();
+    void subscribePlayers();
     void onBuildingPlaced(const events::BuildingPlaced& event);
     void onSelectionChanged(const events::SelectionChanged& event);
+    void onPlayerMoved(const events::PlayerMoved& event);
     void onPan(const events::CameraPanRequested& event);
-    void onZoom(const events::CameraZoomRequested& event);
+    void focusCameraOn(float x, float y);
     void resetCamera();
     void publishCamera() const;
     [[nodiscard]] Camera2D camera() const;
 
     void drawGrid(const Camera2D& camera) const;
-    void drawSelectedBuilding() const;
-    // Buildings and units together, back to front.
+    // Buildings, units and player are drawn back to front in one painter-order pass.
     void drawObjects() const;
-    void drawHealthBars() const;
     void drawPreview() const;
     void drawSelectionBox() const;
 
     core::EventBus& bus_;
     Vector2 cameraTarget_{0.0f, 0.0f};
     float cameraZoom_ = 1.0f;
-    std::vector<BuildingVisual> buildings_; // Kept sorted back to front.
+    std::vector<BuildingVisual> buildings_;
     std::unordered_map<model::ecs::Entity, UnitVisual> units_;
+    std::unordered_map<model::ecs::Entity, PlayerVisual> players_;
     std::unordered_set<model::ecs::Entity> selectedUnits_;
     std::optional<model::ecs::Entity> selectedBuilding_;
     events::BuildPreviewChanged preview_{};

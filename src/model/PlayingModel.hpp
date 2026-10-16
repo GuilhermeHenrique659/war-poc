@@ -8,6 +8,7 @@
 #include "model/MergeSystem.hpp"
 #include "model/SelectionSystem.hpp"
 #include "model/Player.hpp"
+#include "model/PlayerAvatarSystem.hpp"
 #include "model/Scene.hpp"
 #include "model/UnitSystem.hpp"
 #include "model/ecs/Registry.hpp"
@@ -43,6 +44,7 @@ private:
     // Systems hold references to world_ (and units_ to buildings_); preserve declaration order.
     std::unique_ptr<BuildingSystem> buildings_;
     std::unique_ptr<UnitSystem> units_;
+    std::unique_ptr<PlayerAvatarSystem> playerAvatars_;
     std::unique_ptr<CombatSystem> combat_;
     std::unique_ptr<SelectionSystem> selection_;
     std::unique_ptr<MergeSystem> merges_; // References units_ and selection_.

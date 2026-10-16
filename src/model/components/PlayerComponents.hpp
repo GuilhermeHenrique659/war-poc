@@ -6,7 +6,7 @@
 
 namespace model::components {
 
-// Identifies a player entity. It intentionally has no spatial component.
+// Identity and display name for a player's in-world avatar entity.
 struct PlayerProfile {
     PlayerId id;
     std::string name;

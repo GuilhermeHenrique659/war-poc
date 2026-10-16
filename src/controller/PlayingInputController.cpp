@@ -11,7 +11,6 @@ namespace controller {
 
 namespace {
 
-constexpr float kPanSpeed = 700.0f; // Screen pixels per second.
 constexpr std::size_t kMaxShortcuts = 9;
 
 } // namespace
@@ -65,7 +64,7 @@ void PlayingInputController::update()
     if (handleCancel()) {
         return;
     }
-    handleCamera();
+    handlePlayerMovement();
     handleShortcuts();
 
     // Sampled before handling clicks: placing the Command Center unselects it in the same frame.
@@ -117,38 +116,30 @@ bool PlayingInputController::handleCancel()
     return true;
 }
 
-void PlayingInputController::handleCamera()
+void PlayingInputController::handlePlayerMovement()
 {
-    Vector2 direction{0.0f, 0.0f};
-    if (IsKeyDown(KEY_A) || IsKeyDown(KEY_LEFT)) {
-        direction.x -= 1.0f;
+    float directionX = 0.0F;
+    float directionY = 0.0F;
+    if (IsKeyDown(KEY_W)) {
+        directionX -= 1.0F;
+        directionY -= 1.0F;
     }
-    if (IsKeyDown(KEY_D) || IsKeyDown(KEY_RIGHT)) {
-        direction.x += 1.0f;
+    if (IsKeyDown(KEY_A)) {
+        directionX -= 1.0F;
+        directionY += 1.0F;
     }
-    if (IsKeyDown(KEY_W) || IsKeyDown(KEY_UP)) {
-        direction.y -= 1.0f;
+    if (IsKeyDown(KEY_S)) {
+        directionX += 1.0F;
+        directionY += 1.0F;
     }
-    if (IsKeyDown(KEY_S) || IsKeyDown(KEY_DOWN)) {
-        direction.y += 1.0f;
+    if (IsKeyDown(KEY_D)) {
+        directionX += 1.0F;
+        directionY -= 1.0F;
     }
-    if (direction.x != 0.0f || direction.y != 0.0f) {
-        const float step = kPanSpeed * GetFrameTime();
-        bus_.publish(events::CameraPanRequested{direction.x * step, direction.y * step});
-    }
-
-    if (IsMouseButtonDown(MOUSE_BUTTON_MIDDLE)) {
-        const Vector2 delta = GetMouseDelta();
-        if (delta.x != 0.0f || delta.y != 0.0f) {
-            bus_.publish(events::CameraPanRequested{-delta.x, -delta.y});
-        }
+    if (directionX != 0.0F || directionY != 0.0F) {
+        bus_.publish(events::PlayerMoveRequested{localPlayerId_, directionX, directionY, GetFrameTime()});
     }
 
-    const float wheel = GetMouseWheelMove();
-    if (wheel != 0.0f) {
-        const Vector2 mouse = GetMousePosition();
-        bus_.publish(events::CameraZoomRequested{wheel, mouse.x, mouse.y});
-    }
 }
 
 void PlayingInputController::handleShortcuts()

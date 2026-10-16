@@ -3,9 +3,11 @@
 #include "core/Events.hpp"
 #include "model/components/Owner.hpp"
 #include "model/components/BuildingComponents.hpp"
+#include "model/components/PlayerComponents.hpp"
 #include "model/components/UnitComponents.hpp"
 
 #include <cmath>
+#include <unordered_set>
 #include <vector>
 
 namespace model {
@@ -58,7 +60,7 @@ void CombatSystem::orderAttack(PlayerId player, const std::vector<ecs::Entity>& 
 
 void CombatSystem::update(float deltaSeconds)
 {
-    // Towers acquire the nearest enemy unit that is already inside their range.
+    // Towers acquire the nearest enemy unit or player avatar already inside their range.
     world_.each<components::Building>([this](ecs::Entity tower, components::Building& building) {
         if (building.type != BuildingType::Tower) {
             return;
@@ -71,16 +73,17 @@ void CombatSystem::update(float deltaSeconds)
         }
         ecs::Entity nearest = 0;
         float nearestDistance = towerCombat->range * towerCombat->range;
-        world_.each<components::Unit>([&](ecs::Entity target, components::Unit&) {
+        world_.each<components::Position>([&](ecs::Entity target, const components::Position& position) {
             const auto* owner = world_.tryGet<components::Owner>(target);
-            const auto* position = world_.tryGet<components::Position>(target);
-            if (owner == nullptr || owner->player == towerOwner->player || position == nullptr
-                || world_.tryGet<components::Unit>(target) == nullptr
-                || world_.tryGet<components::Health>(target) == nullptr) {
+            const auto* health = world_.tryGet<components::Health>(target);
+            const bool isCombatUnit = world_.tryGet<components::Unit>(target) != nullptr
+                || world_.tryGet<components::PlayerProfile>(target) != nullptr;
+            if (owner == nullptr || owner->player == towerOwner->player || health == nullptr
+                || health->current <= 0 || !isCombatUnit) {
                 return;
             }
-            const float dx = position->x - towerPosition->x;
-            const float dy = position->y - towerPosition->y;
+            const float dx = position.x - towerPosition->x;
+            const float dy = position.y - towerPosition->y;
             const float distance = dx * dx + dy * dy;
             if (distance <= nearestDistance) {
                 nearestDistance = distance;
@@ -97,7 +100,8 @@ void CombatSystem::update(float deltaSeconds)
         }
     });
 
-    std::vector<ecs::Entity> dead;
+    std::vector<ecs::Entity> defeated;
+    std::vector<ecs::Entity> invalidOrders;
     world_.each<components::AttackOrder>([&](ecs::Entity entity, components::AttackOrder& order) {
         auto* health = world_.tryGet<components::Health>(order.target);
         auto* attacker = world_.tryGet<components::Combat>(entity);
@@ -106,7 +110,11 @@ void CombatSystem::update(float deltaSeconds)
         const auto* owner = world_.tryGet<components::Owner>(entity);
         if (health == nullptr || attacker == nullptr || sourcePosition == nullptr || targetPosition == nullptr
             || owner == nullptr || !validTarget(owner->player, order.target)) {
-            dead.push_back(entity);
+            invalidOrders.push_back(entity);
+            return;
+        }
+        if (health->current <= 0) {
+            defeated.push_back(order.target);
             return;
         }
 
@@ -123,11 +131,24 @@ void CombatSystem::update(float deltaSeconds)
         bus_.publish(events::HealthChanged{order.target, health->current, health->max});
         order.cooldownRemaining += kAttackCooldown;
         if (health->current <= 0) {
-            dead.push_back(order.target);
+            defeated.push_back(order.target);
         }
     });
 
-    for (const ecs::Entity entity : dead) {
+    for (const ecs::Entity entity : invalidOrders) {
+        if (world_.isAlive(entity)) {
+            world_.remove<components::AttackOrder>(entity);
+        }
+    }
+    std::unordered_set<ecs::Entity> handledDefeats;
+    for (const ecs::Entity entity : defeated) {
+        if (!handledDefeats.insert(entity).second || !world_.isAlive(entity)) {
+            continue;
+        }
+        if (world_.tryGet<components::PlayerProfile>(entity) != nullptr) {
+            bus_.publish(events::PlayerRespawnRequested{entity});
+            continue;
+        }
         if (world_.tryGet<components::Unit>(entity) != nullptr) {
             units_.remove(entity);
         } else {

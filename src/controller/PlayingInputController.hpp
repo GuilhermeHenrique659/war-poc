@@ -26,7 +26,7 @@ public:
 private:
     // Returns true when the input was consumed.
     bool handleCancel();
-    void handleCamera();
+    void handlePlayerMovement();
     void handleShortcuts();
     void handleBarMouse(Vector2 mouse);
     void handlePanelMouse(Vector2 mouse);

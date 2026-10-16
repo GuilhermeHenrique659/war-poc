@@ -1,7 +1,5 @@
 #include "model/PlayingModel.hpp"
 
-#include "model/components/PlayerComponents.hpp"
-
 namespace model {
 
 PlayingModel::PlayingModel(core::EventBus& bus)
@@ -10,6 +8,7 @@ PlayingModel::PlayingModel(core::EventBus& bus)
     , economy_(std::make_unique<EconomySystem>(&bus_))
     , buildings_(std::make_unique<BuildingSystem>(bus_, *world_))
     , units_(std::make_unique<UnitSystem>(bus_, *world_, *buildings_))
+    , playerAvatars_(std::make_unique<PlayerAvatarSystem>(bus_, *world_))
     , combat_(std::make_unique<CombatSystem>(bus_, *world_, *units_, *buildings_))
     , selection_(std::make_unique<SelectionSystem>(bus_, *world_))
     , merges_(std::make_unique<MergeSystem>(bus_, *world_, *units_, *selection_))
@@ -133,6 +132,7 @@ void PlayingModel::resetWorld()
     bus_.publish(events::WorldReset{});
     buildings_->reset();
     units_->reset();
+    playerAvatars_->reset();
     combat_->reset();
     selection_->reset();
     merges_->reset();
@@ -140,10 +140,9 @@ void PlayingModel::resetWorld()
 
 void PlayingModel::createLocalPlayer(const std::string& playerName)
 {
-    const ecs::Entity entity = world_->create();
     localPlayerId_ = nextPlayerId_++;
-    world_->emplace<components::PlayerProfile>(entity, localPlayerId_, playerName);
     bus_.publish(events::LocalPlayerChanged{localPlayerId_});
+    (void)playerAvatars_->create(localPlayerId_, playerName);
     buildings_->initializePlayer(localPlayerId_);
     selection_->initializePlayer(localPlayerId_);
     merges_->initializePlayer(localPlayerId_);

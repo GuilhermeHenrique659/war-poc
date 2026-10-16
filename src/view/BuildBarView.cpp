@@ -32,8 +32,8 @@ constexpr std::array kHelpLines{
     "Clique / arraste: selecionar tropas (Shift soma)",
     "Botao direito: mover tropas selecionadas",
     "M ou botao Juntar: combinar tropas selecionadas",
-    "WASD / setas / botao do meio: mover camera",
-    "Roda do mouse: zoom   |   ESC: limpar selecao / menu",
+    "WASD: mover jogador",
+    "Zoom fixo   |   ESC: limpar selecao / menu",
 };
 
 } // namespace

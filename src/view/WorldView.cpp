@@ -4,6 +4,7 @@
 #include "view/BuildingRenderer.hpp"
 #include "view/IsoProjection.hpp"
 #include "view/IsoShapes.hpp"
+#include "view/PlayerRenderer.hpp"
 #include "view/UnitRenderer.hpp"
 
 #include <algorithm>
@@ -11,7 +12,6 @@
 #include <climits>
 #include <cmath>
 #include <cstddef>
-#include <limits>
 
 namespace view {
 
@@ -25,9 +25,7 @@ constexpr Color kInvalidColor{230, 60, 50, 130};
 constexpr Color kSelectedFill{90, 255, 120, 50};
 constexpr Color kSelectedOutline{90, 255, 120, 255};
 constexpr unsigned char kGhostAlpha = 150;
-constexpr float kMinZoom = 0.25f;
-constexpr float kMaxZoom = 2.5f;
-constexpr float kZoomStep = 1.1f;
+constexpr float kFixedZoom = 1.0f;
 
 // Painter's order for square footprints: farther (smaller x + y) first.
 [[nodiscard]] int depthKey(model::GridPos origin, int size)
@@ -43,6 +41,7 @@ WorldView::WorldView(core::EventBus& bus)
     bus_.subscribe<events::WorldReset>([this](const events::WorldReset&) {
         buildings_.clear();
         units_.clear();
+        players_.clear();
         selectedUnits_.clear();
         selectedBuilding_.reset();
         preview_ = {};
@@ -54,15 +53,24 @@ WorldView::WorldView(core::EventBus& bus)
         std::erase_if(buildings_, [&e](const BuildingVisual& building) { return building.entity == e.entity; });
         if (selectedBuilding_ == e.entity) selectedBuilding_.reset();
     });
-    bus_.subscribe<events::LocalPlayerChanged>([this](const events::LocalPlayerChanged& e) { localPlayerId_ = e.player; });
+    bus_.subscribe<events::LocalPlayerChanged>([this](const events::LocalPlayerChanged& e) {
+        localPlayerId_ = e.player;
+        for (const auto& [entity, player] : players_) {
+            (void)entity;
+            if (player.player == localPlayerId_) {
+                focusCameraOn(player.x, player.y);
+                break;
+            }
+        }
+    });
     bus_.subscribe<events::BuildPreviewChanged>([this](const events::BuildPreviewChanged& e) {
         if (e.player == localPlayerId_) {
             preview_ = e;
         }
     });
     bus_.subscribe<events::CameraPanRequested>([this](const events::CameraPanRequested& e) { onPan(e); });
-    bus_.subscribe<events::CameraZoomRequested>([this](const events::CameraZoomRequested& e) { onZoom(e); });
     subscribeUnits();
+    subscribePlayers();
 }
 
 void WorldView::subscribeUnits()
@@ -84,14 +92,24 @@ void WorldView::subscribeUnits()
     });
     bus_.subscribe<events::HealthChanged>([this](const events::HealthChanged& e) {
         const auto it = units_.find(e.entity);
-        if (it == units_.end()) {
-            return;
+        if (it != units_.end()) {
+            it->second.health = e.health;
+            it->second.maxHealth = e.maxHealth;
         }
-        it->second.health = e.health;
-        it->second.maxHealth = e.maxHealth;
     });
     bus_.subscribe<events::SelectionChanged>([this](const events::SelectionChanged& e) { onSelectionChanged(e); });
     bus_.subscribe<events::SelectionBoxChanged>([this](const events::SelectionBoxChanged& e) { selectionBox_ = e; });
+}
+
+void WorldView::subscribePlayers()
+{
+    bus_.subscribe<events::PlayerSpawned>([this](const events::PlayerSpawned& e) {
+        players_[e.entity] = PlayerVisual{e.entity, e.player, e.x, e.y};
+        if (e.player == localPlayerId_) {
+            focusCameraOn(e.x, e.y);
+        }
+    });
+    bus_.subscribe<events::PlayerMoved>([this](const events::PlayerMoved& e) { onPlayerMoved(e); });
 }
 
 void WorldView::draw() const
@@ -101,9 +119,7 @@ void WorldView::draw() const
     const Camera2D cam = camera();
     BeginMode2D(cam);
     drawGrid(cam);
-    drawSelectedBuilding();
     drawObjects();
-    drawHealthBars();
     drawPreview();
     EndMode2D();
     drawSelectionBox();
@@ -118,13 +134,23 @@ void WorldView::onSelectionChanged(const events::SelectionChanged& event)
     selectedBuilding_ = event.building;
 }
 
+void WorldView::onPlayerMoved(const events::PlayerMoved& event)
+{
+    const auto player = players_.find(event.entity);
+    if (player == players_.end()) {
+        return;
+    }
+
+    player->second.x = event.x;
+    player->second.y = event.y;
+    if (event.player == localPlayerId_) {
+        focusCameraOn(event.x, event.y);
+    }
+}
+
 void WorldView::onBuildingPlaced(const events::BuildingPlaced& event)
 {
-    const BuildingVisual visual{event.entity, event.type, event.origin, event.size};
-    const int key = depthKey(visual.origin, visual.size);
-    const auto it = std::upper_bound(buildings_.begin(), buildings_.end(), key,
-        [](int value, const BuildingVisual& other) { return value < depthKey(other.origin, other.size); });
-    buildings_.insert(it, visual);
+    buildings_.push_back(BuildingVisual{event.entity, event.type, event.origin, event.size});
 }
 
 void WorldView::onPan(const events::CameraPanRequested& event)
@@ -134,23 +160,16 @@ void WorldView::onPan(const events::CameraPanRequested& event)
     publishCamera();
 }
 
-void WorldView::onZoom(const events::CameraZoomRequested& event)
+void WorldView::focusCameraOn(float x, float y)
 {
-    // Keep the world point under the pivot fixed while zooming.
-    const Vector2 pivot{event.screenX, event.screenY};
-    const Camera2D before = camera();
-    const Vector2 anchor = GetScreenToWorld2D(pivot, before);
-
-    cameraZoom_ = std::clamp(cameraZoom_ * std::pow(kZoomStep, event.steps), kMinZoom, kMaxZoom);
-    cameraTarget_.x = anchor.x - (pivot.x - before.offset.x) / cameraZoom_;
-    cameraTarget_.y = anchor.y - (pivot.y - before.offset.y) / cameraZoom_;
+    cameraTarget_ = iso::gridToWorld(x, y);
     publishCamera();
 }
 
 void WorldView::resetCamera()
 {
     cameraTarget_ = Vector2{0.0f, 0.0f};
-    cameraZoom_ = 1.0f;
+    cameraZoom_ = kFixedZoom;
     publishCamera();
 }
 
@@ -197,65 +216,62 @@ void WorldView::drawGrid(const Camera2D& cam) const
     }
 }
 
-void WorldView::drawSelectedBuilding() const
-{
-    if (!selectedBuilding_) {
-        return;
-    }
-    const auto it = std::find_if(buildings_.begin(), buildings_.end(),
-        [this](const BuildingVisual& building) { return building.entity == *selectedBuilding_; });
-    if (it == buildings_.end()) {
-        return;
-    }
-
-    // Slightly larger than the footprint so the outline shows around the building's base.
-    constexpr float kMargin = 0.2f;
-    const float x = static_cast<float>(it->origin.x) - kMargin;
-    const float y = static_cast<float>(it->origin.y) - kMargin;
-    const float size = static_cast<float>(it->size) + 2.0f * kMargin;
-    iso::drawFootprint(x, y, size, size, kSelectedFill, kSelectedOutline);
-}
-
 void WorldView::drawObjects() const
 {
-    std::vector<const UnitVisual*> units;
-    units.reserve(units_.size());
-    for (const auto& [entity, unit] : units_) {
-        units.push_back(&unit);
-    }
-    std::sort(units.begin(), units.end(),
-        [](const UnitVisual* a, const UnitVisual* b) { return a->x + a->y < b->x + b->y; });
-
-    // Both lists are sorted by depth; merge them while drawing.
-    std::size_t next = 0;
-    const auto drawBuildingsUpTo = [&](float depth) {
-        while (next < buildings_.size()
-            && static_cast<float>(depthKey(buildings_[next].origin, buildings_[next].size)) <= depth) {
-            const BuildingVisual& building = buildings_[next++];
-            drawBuilding(building.type, building.origin, building.size);
-        }
+    enum class Kind { Building, Unit, Player };
+    struct Drawable {
+        float depth;
+        model::ecs::Entity entity;
+        Kind kind;
+        const BuildingVisual* building;
+        const UnitVisual* unit;
+        const PlayerVisual* player;
     };
 
-    for (const UnitVisual* unit : units) {
-        drawBuildingsUpTo(unit->x + unit->y);
-        if (selectedUnits_.contains(unit->entity)) {
-            drawUnitSelectionRing(unit->x, unit->y, unit->size);
-        }
-        drawUnit(unit->type, unit->x, unit->y, unit->size);
+    std::vector<Drawable> objects;
+    objects.reserve(buildings_.size() + units_.size() + players_.size());
+    for (const BuildingVisual& building : buildings_) {
+        objects.push_back(Drawable{static_cast<float>(depthKey(building.origin, building.size)),
+            building.entity, Kind::Building, &building, nullptr, nullptr});
     }
-    drawBuildingsUpTo(std::numeric_limits<float>::max());
-}
+    for (const auto& [entity, unit] : units_) {
+        objects.push_back(Drawable{unit.x + unit.y, entity, Kind::Unit, nullptr, &unit, nullptr});
+    }
+    for (const auto& [entity, player] : players_) {
+        objects.push_back(Drawable{player.x + player.y, entity, Kind::Player, nullptr, nullptr, &player});
+    }
+    std::sort(objects.begin(), objects.end(),
+        [](const Drawable& a, const Drawable& b) {
+            return a.depth != b.depth ? a.depth < b.depth : a.entity < b.entity;
+        });
 
-void WorldView::drawHealthBars() const
-{
-    for (const model::ecs::Entity entity : selectedUnits_) {
-        const auto it = units_.find(entity);
-        if (it == units_.end() || it->second.maxHealth <= 0) {
-            continue;
+    for (const Drawable& object : objects) {
+        switch (object.kind) {
+        case Kind::Building:
+            if (selectedBuilding_ == object.entity) {
+                constexpr float kMargin = 0.2f;
+                const BuildingVisual& building = *object.building;
+                const float x = static_cast<float>(building.origin.x) - kMargin;
+                const float y = static_cast<float>(building.origin.y) - kMargin;
+                const float size = static_cast<float>(building.size) + 2.0f * kMargin;
+                iso::drawFootprint(x, y, size, size, kSelectedFill, kSelectedOutline);
+            }
+            drawBuilding(object.building->type, object.building->origin, object.building->size);
+            break;
+        case Kind::Unit:
+            if (selectedUnits_.contains(object.entity)) {
+                drawUnitSelectionRing(object.unit->x, object.unit->y, object.unit->size);
+            }
+            drawUnit(object.unit->type, object.unit->x, object.unit->y, object.unit->size);
+            if (object.unit->maxHealth > 0) {
+                drawUnitHealthBar(object.unit->x, object.unit->y, object.unit->size,
+                    static_cast<float>(object.unit->health) / static_cast<float>(object.unit->maxHealth));
+            }
+            break;
+        case Kind::Player:
+            drawPlayerAvatar(object.player->x, object.player->y);
+            break;
         }
-        const UnitVisual& unit = it->second;
-        drawUnitHealthBar(
-            unit.x, unit.y, unit.size, static_cast<float>(unit.health) / static_cast<float>(unit.maxHealth));
     }
 }
 
