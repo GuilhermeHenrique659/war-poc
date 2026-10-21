@@ -11,6 +11,9 @@ namespace model::components {
 
 using LogisticsRouteId = std::uint64_t;
 
+inline constexpr int kTransportDroneIronCost = 50;
+inline constexpr int kTransportDroneElectronicsCost = 50;
+
 struct LogisticsRoute {
     LogisticsRouteId id;
     ecs::Entity source;

@@ -6,6 +6,7 @@
 #include "model/economy/InventoryComponents.hpp"
 #include "model/economy/InventorySystem.hpp"
 #include "model/economy/ProductionComponents.hpp"
+#include "model/player/PlayerComponents.hpp"
 #include "model/units/UnitComponents.hpp"
 
 #include <algorithm>
@@ -164,6 +165,17 @@ bool LogisticsSystem::ownedBy(ecs::Entity entity, PlayerId player) const
     return owner != nullptr && owner->player == player;
 }
 
+components::Inventory* LogisticsSystem::playerInventory(PlayerId player) const
+{
+    components::Inventory* inventory = nullptr;
+    world_.each<components::PlayerProfile>([&](ecs::Entity entity, const components::PlayerProfile& profile) {
+        if (profile.id == player) {
+            inventory = world_.tryGet<components::Inventory>(entity);
+        }
+    });
+    return inventory;
+}
+
 std::optional<ecs::Entity> LogisticsSystem::recruitDrone(PlayerId player, ecs::Entity warehouse)
 {
     const auto* building = world_.tryGet<components::Building>(warehouse);
@@ -172,8 +184,30 @@ std::optional<ecs::Entity> LogisticsSystem::recruitDrone(PlayerId player, ecs::E
         || !ownedBy(warehouse, player)) {
         return std::nullopt;
     }
+    components::Inventory* inventory = playerInventory(player);
+    if (inventory == nullptr
+        || InventorySystem::amount(*inventory, ItemId::Iron) < components::kTransportDroneIronCost
+        || InventorySystem::amount(*inventory, ItemId::Electronics) < components::kTransportDroneElectronicsCost) {
+        return std::nullopt;
+    }
+
+    const int removedIron = InventorySystem::remove(*inventory, ItemId::Iron, components::kTransportDroneIronCost);
+    const int removedElectronics =
+        InventorySystem::remove(*inventory, ItemId::Electronics, components::kTransportDroneElectronicsCost);
+    if (removedIron != components::kTransportDroneIronCost
+        || removedElectronics != components::kTransportDroneElectronicsCost) {
+        (void)InventorySystem::add(*inventory, ItemId::Iron, removedIron);
+        (void)InventorySystem::add(*inventory, ItemId::Electronics, removedElectronics);
+        return std::nullopt;
+    }
+
     const GridPos center{footprint->origin.x + footprint->size / 2, footprint->origin.y + footprint->size / 2};
-    return units_.spawnTransportDrone(player, center);
+    const auto drone = units_.spawnTransportDrone(player, center);
+    if (!drone) {
+        (void)InventorySystem::add(*inventory, ItemId::Iron, removedIron);
+        (void)InventorySystem::add(*inventory, ItemId::Electronics, removedElectronics);
+    }
+    return drone;
 }
 
 bool LogisticsSystem::assignIdleDrone(

@@ -1,6 +1,7 @@
 #include "view/economy/LogisticsPanelView.hpp"
 
 #include "model/economy/Item.hpp"
+#include "model/economy/LogisticsComponents.hpp"
 #include "view/economy/LogisticsPanelLayout.hpp"
 #include "view/ui/Button.hpp"
 #include "view/ui/Card.hpp"
@@ -72,8 +73,10 @@ void LogisticsPanelView::draw() const
             kButtonColor, Color{72, 130, 92, 255}, Color{38, 76, 54, 255},
             GRAY, GRAY, RAYWHITE, 1};
         ui::Button{recruitStyle}.draw(recruit,
-            TextFormat("Recrutar drone (ociosos: %d)", panel_.idleDrones),
-            CheckCollisionPointRec(GetMousePosition(), recruit) ? ui::ButtonState::Selected : ui::ButtonState::Normal, 15);
+            TextFormat("Drone: %d ferro + %d eletr. (ociosos: %d)",
+                model::components::kTransportDroneIronCost, model::components::kTransportDroneElectronicsCost,
+                panel_.idleDrones),
+            CheckCollisionPointRec(GetMousePosition(), recruit) ? ui::ButtonState::Selected : ui::ButtonState::Normal, 12);
         nextY += logistics_panel_layout::kRecruitHeight;
     }
 

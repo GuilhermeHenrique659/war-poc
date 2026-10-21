@@ -33,6 +33,7 @@ private:
         ecs::Entity source, components::LogisticsRouteId routeId) const;
     [[nodiscard]] std::optional<ecs::Entity> buildingForRoute(components::LogisticsRouteId routeId) const;
     [[nodiscard]] bool ownedBy(ecs::Entity entity, PlayerId player) const;
+    [[nodiscard]] components::Inventory* playerInventory(PlayerId player) const;
     [[nodiscard]] bool sendToBuilding(ecs::Entity drone, ecs::Entity building);
     void loadCargo(ecs::Entity drone, const components::LogisticsRoute& route);
     void unloadCargo(ecs::Entity drone, const components::LogisticsRoute& route);

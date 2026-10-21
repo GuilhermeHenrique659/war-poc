@@ -9,6 +9,7 @@
 #include "model/economy/ProductionComponents.hpp"
 #include "model/economy/LogisticsSystem.hpp"
 #include "model/ecs/Registry.hpp"
+#include "model/player/PlayerComponents.hpp"
 #include "model/units/UnitComponents.hpp"
 #include "model/units/UnitSystem.hpp"
 
@@ -25,6 +26,11 @@ protected:
         , units_(bus_, world_, buildings_)
         , logistics_(bus_, world_, units_)
     {
+        const auto player = world_.create();
+        world_.emplace<model::components::PlayerProfile>(player, kPlayer, "Tester");
+        auto& inventory = world_.emplace<model::components::Inventory>(player, std::size_t{32});
+        EXPECT_EQ(model::InventorySystem::add(inventory, model::ItemId::Iron, 500), 500);
+        EXPECT_EQ(model::InventorySystem::add(inventory, model::ItemId::Electronics, 500), 500);
     }
 
     model::ecs::Entity makeBuilding(
@@ -48,6 +54,19 @@ protected:
         const auto* footprint = world_.tryGet<model::components::Footprint>(entity);
         ASSERT_NE(footprint, nullptr);
         bus_.publish(events::BuildingPlaced{entity, owner, type, footprint->origin, footprint->size});
+    }
+
+    model::components::Inventory& playerInventory()
+    {
+        model::components::Inventory* inventory = nullptr;
+        world_.each<model::components::PlayerProfile>([&](model::ecs::Entity entity,
+            const model::components::PlayerProfile& profile) {
+            if (profile.id == kPlayer) {
+                inventory = world_.tryGet<model::components::Inventory>(entity);
+            }
+        });
+        EXPECT_NE(inventory, nullptr);
+        return *inventory;
     }
 
     core::EventBus bus_;
@@ -99,6 +118,8 @@ TEST_F(LogisticsSystemTest, RecruitsIdleDronesAtWarehousesAndAssignsThemToOwnedR
     // When the player recruits a drone and assigns it to the route.
     const auto drone = logistics_.recruitDrone(kPlayer, warehouse);
     ASSERT_TRUE(drone.has_value());
+    EXPECT_EQ(model::InventorySystem::amount(playerInventory(), model::ItemId::Iron), 450);
+    EXPECT_EQ(model::InventorySystem::amount(playerInventory(), model::ItemId::Electronics), 450);
     EXPECT_TRUE(logistics_.assignIdleDrone(kPlayer, mine, routeId));
 
     // Then the drone has a ten-slot cargo inventory and the route reports its assignment.
@@ -110,6 +131,26 @@ TEST_F(LogisticsSystemTest, RecruitsIdleDronesAtWarehousesAndAssignsThemToOwnedR
     ASSERT_NE(routes, nullptr);
     ASSERT_EQ(routes->routes.size(), 1U);
     EXPECT_EQ(routes->routes.front().assignedDrones, 1);
+}
+
+TEST_F(LogisticsSystemTest, DoesNotRecruitDroneWhenPlayerCannotAffordIt)
+{
+    // Given a warehouse and enough iron but only 49 electronics.
+    const auto warehouse = makeBuilding(model::BuildingType::Warehouse, kPlayer, {10, 10}, model::ItemId::Count);
+    auto& inventory = playerInventory();
+    EXPECT_EQ(model::InventorySystem::remove(inventory, model::ItemId::Electronics, 451), 451);
+
+    // When the player tries to recruit a drone.
+    const auto drone = logistics_.recruitDrone(kPlayer, warehouse);
+
+    // Then no drone is created and neither resource is spent.
+    EXPECT_FALSE(drone.has_value());
+    EXPECT_EQ(model::InventorySystem::amount(inventory, model::ItemId::Iron), 500);
+    EXPECT_EQ(model::InventorySystem::amount(inventory, model::ItemId::Electronics), 49);
+    int droneCount = 0;
+    world_.each<model::components::TransportDrone>(
+        [&droneCount](model::ecs::Entity, const model::components::TransportDrone&) { ++droneCount; });
+    EXPECT_EQ(droneCount, 0);
 }
 
 TEST_F(LogisticsSystemTest, UnassignsDroneAndReturnsItsCargoToTheRouteSource)
