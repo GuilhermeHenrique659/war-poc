@@ -3,6 +3,8 @@
 #include "core/Events.hpp"
 #include "model/Pathfinding.hpp"
 #include "model/build/BuildingComponents.hpp"
+#include "model/economy/InventoryComponents.hpp"
+#include "model/economy/LogisticsComponents.hpp"
 
 #include <algorithm>
 #include <cmath>
@@ -91,6 +93,45 @@ void UnitSystem::recruit(PlayerId player, UnitType type, ecs::Entity commandCent
         return;
     }
     spawn(player, stats, *origin);
+}
+
+std::optional<ecs::Entity> UnitSystem::spawnTransportDrone(PlayerId player, GridPos center)
+{
+    const auto origin = findSpawnSquare(center, 1, {}, pathfinding::kUnlimitedRadius);
+    if (!origin) {
+        return std::nullopt;
+    }
+    const components::Position position = centerOf(*origin, 1);
+    const ecs::Entity entity = world_.create();
+    world_.emplace<components::Owner>(entity, player);
+    world_.emplace<components::Position>(entity, position);
+    world_.emplace<components::Mover>(entity, components::Mover{2.0F, {}, 0, *origin});
+    world_.emplace<components::Inventory>(entity, std::size_t{10});
+    world_.emplace<components::TransportDrone>(entity);
+    reserve(entity, *origin, 1);
+    bus_.publish(events::DroneSpawned{entity, player, position.x, position.y});
+    return entity;
+}
+
+bool UnitSystem::moveToAdjacent(ecs::Entity entity, GridPos center)
+{
+    auto* mover = world_.tryGet<components::Mover>(entity);
+    auto* position = world_.tryGet<components::Position>(entity);
+    if (mover == nullptr || position == nullptr) {
+        return false;
+    }
+    const std::vector<ecs::Entity> ignored{entity};
+    const auto destination = findSpawnSquare(center, sizeOf(entity), ignored, pathfinding::kUnlimitedRadius);
+    if (!destination) {
+        return false;
+    }
+    const Walker walker{entity, mover, position, sizeOf(entity)};
+    release(walker);
+    if (startPath(walker, *destination)) {
+        return true;
+    }
+    reserve(entity, mover->destination, sizeOf(entity));
+    return false;
 }
 
 ecs::Entity UnitSystem::spawn(PlayerId player, const UnitStats& stats, GridPos origin)
@@ -182,7 +223,11 @@ bool UnitSystem::update(float deltaSeconds)
             return;
         }
         anyMoved = true;
-        bus_.publish(events::UnitMoved{entity, position->x, position->y});
+        if (world_.has<components::TransportDrone>(entity)) {
+            bus_.publish(events::DroneMoved{entity, position->x, position->y});
+        } else {
+            bus_.publish(events::UnitMoved{entity, position->x, position->y});
+        }
     });
     return anyMoved;
 }

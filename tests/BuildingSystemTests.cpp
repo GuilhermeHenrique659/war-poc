@@ -137,6 +137,31 @@ TEST_F(BuildingSystemTest, UnlocksWallsAfterTheCommandCenterIsBuilt)
     EXPECT_TRUE(buildings_.isOccupied(wallTile));
 }
 
+TEST_F(BuildingSystemTest, WarehouseCostsOnlyOneHundredIron)
+{
+    // Given a player with a Command Center and 100 units of each resource.
+    buildings_.select(kPlayer, model::BuildingType::CommandCenter);
+    buildings_.place(kPlayer, {0, 0});
+    addResource(model::ItemId::Coal, 100);
+    addResource(model::ItemId::Steel, 100);
+    addResource(model::ItemId::Copper, 100);
+    addResource(model::ItemId::Electronics, 100);
+    addResource(model::ItemId::Tools, 100);
+
+    // When the player builds an Armazem.
+    buildings_.select(kPlayer, model::BuildingType::Warehouse);
+    buildings_.place(kPlayer, {10, 10});
+
+    // Then only 100 iron are deducted.
+    ASSERT_EQ(placements_.size(), 2U);
+    EXPECT_EQ(model::InventorySystem::amount(*playerInventory_, model::ItemId::Iron), 400);
+    EXPECT_EQ(model::InventorySystem::amount(*playerInventory_, model::ItemId::Coal), 100);
+    EXPECT_EQ(model::InventorySystem::amount(*playerInventory_, model::ItemId::Steel), 100);
+    EXPECT_EQ(model::InventorySystem::amount(*playerInventory_, model::ItemId::Copper), 100);
+    EXPECT_EQ(model::InventorySystem::amount(*playerInventory_, model::ItemId::Electronics), 100);
+    EXPECT_EQ(model::InventorySystem::amount(*playerInventory_, model::ItemId::Tools), 100);
+}
+
 TEST_F(BuildingSystemTest, IronMineCostsOneHundredIronAndHasInventorySlots)
 {
     // Given a player with a completed Command Center and enough iron for a mine.

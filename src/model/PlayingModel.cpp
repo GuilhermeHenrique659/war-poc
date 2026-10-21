@@ -4,6 +4,7 @@
 #include "model/components/Owner.hpp"
 #include "model/economy/InventoryComponents.hpp"
 #include "model/economy/InventorySystem.hpp"
+#include "model/economy/LogisticsComponents.hpp"
 #include "model/player/PlayerComponents.hpp"
 
 namespace model {
@@ -13,6 +14,7 @@ PlayingModel::PlayingModel(core::EventBus& bus)
     , world_(std::make_unique<ecs::Registry>())
     , buildings_(std::make_unique<BuildingSystem>(bus_, *world_))
     , units_(std::make_unique<UnitSystem>(bus_, *world_, *buildings_))
+    , logistics_(std::make_unique<LogisticsSystem>(bus_, *world_, *units_))
     , playerAvatars_(std::make_unique<PlayerAvatarSystem>(bus_, *world_))
     , combat_(std::make_unique<CombatSystem>(bus_, *world_, *units_, *buildings_))
     , selection_(std::make_unique<SelectionSystem>(bus_, *world_))
@@ -27,8 +29,15 @@ PlayingModel::PlayingModel(core::EventBus& bus)
         if (!inMatch()) {
             return;
         }
+        const auto* owner = event.building ? world_->tryGet<components::Owner>(*event.building) : nullptr;
+        if (event.building && owner != nullptr && owner->player == event.player
+            && logistics_->supportsBuilding(*event.building)) {
+            logisticsPanels_[event.player] = *event.building;
+        } else {
+            logisticsPanels_.erase(event.player);
+        }
+        publishLogisticsPanel(event.player);
         if (event.building && world_->has<components::Inventory>(*event.building)) {
-            const auto* owner = world_->tryGet<components::Owner>(*event.building);
             if (owner != nullptr && owner->player == event.player) {
                 inventoryPanels_[event.player] = *event.building;
                 publishInventoryPanel(event.player);
@@ -83,6 +92,27 @@ PlayingModel::PlayingModel(core::EventBus& bus)
         }
         publishInventoryPanel(e.player);
         buildings_->refreshPreviews();
+    });
+    bus_.subscribe<events::RecruitDroneRequested>([this](const events::RecruitDroneRequested& e) {
+        if (!inMatch()) {
+            return;
+        }
+        (void)logistics_->recruitDrone(e.player, e.warehouse);
+        publishLogisticsPanel(e.player);
+    });
+    bus_.subscribe<events::AssignDroneToRouteRequested>([this](const events::AssignDroneToRouteRequested& e) {
+        if (!inMatch()) {
+            return;
+        }
+        (void)logistics_->assignIdleDrone(e.player, e.source, e.routeId);
+        publishLogisticsPanel(e.player);
+    });
+    bus_.subscribe<events::UnassignDroneFromRouteRequested>([this](const events::UnassignDroneFromRouteRequested& e) {
+        if (!inMatch()) {
+            return;
+        }
+        (void)logistics_->unassignDrone(e.player, e.source, e.routeId);
+        publishLogisticsPanel(e.player);
     });
     subscribeBuildCommands();
     subscribeUnitCommands();
@@ -163,6 +193,11 @@ void PlayingModel::update(float deltaSeconds)
     if (units_->update(deltaSeconds)) {
         buildings_->refreshPreviews();
     }
+    logistics_->update();
+    for (const auto& [player, building] : logisticsPanels_) {
+        (void)building;
+        publishLogisticsPanel(player);
+    }
     combat_->update(deltaSeconds);
     genealogy_->update();
 }
@@ -193,8 +228,10 @@ void PlayingModel::resetWorld()
 {
     world_->clear();
     inventoryPanels_.clear();
+    logisticsPanels_.clear();
     playerInventoryOpen_.clear();
     production_.reset();
+    logistics_->reset();
     bus_.publish(events::WorldReset{});
     buildings_->reset();
     units_->reset();
@@ -211,6 +248,46 @@ void PlayingModel::createLocalPlayer(const std::string& playerName)
     (void)playerAvatars_->create(localPlayerId_, playerName);
     buildings_->initializePlayer(localPlayerId_);
     selection_->initializePlayer(localPlayerId_);
+}
+
+void PlayingModel::publishLogisticsPanel(PlayerId player) const
+{
+    const auto panel = logisticsPanels_.find(player);
+    if (panel == logisticsPanels_.end()) {
+        events::LogisticsPanelChanged closed{};
+        closed.player = player;
+        bus_.publish(closed);
+        return;
+    }
+    const ecs::Entity buildingEntity = panel->second;
+    const auto* building = world_->tryGet<components::Building>(buildingEntity);
+    const auto* owner = world_->tryGet<components::Owner>(buildingEntity);
+    if (building == nullptr || owner == nullptr || owner->player != player
+        || !logistics_->supportsBuilding(buildingEntity)) {
+        events::LogisticsPanelChanged closed{};
+        closed.player = player;
+        bus_.publish(closed);
+        return;
+    }
+
+    events::LogisticsPanelChanged event{};
+    event.player = player;
+    event.open = true;
+    event.building = buildingEntity;
+    event.buildingName = building->name;
+    event.warehouse = building->type == BuildingType::Warehouse;
+    event.idleDrones = logistics_->idleDroneCount(player);
+    if (const auto* routes = world_->tryGet<components::LogisticsRoutes>(buildingEntity)) {
+        for (const components::LogisticsRoute& route : routes->routes) {
+            const auto* destination = world_->tryGet<components::Building>(route.destination);
+            if (destination == nullptr) {
+                continue;
+            }
+            event.routes.push_back(events::LogisticsRouteEntry{
+                route.id, route.destination, destination->name, route.item, route.assignedDrones});
+        }
+    }
+    bus_.publish(event);
 }
 
 void PlayingModel::publishInventoryPanel(PlayerId player) const

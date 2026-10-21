@@ -9,6 +9,7 @@
 #include "model/ecs/Entity.hpp"
 
 #include <cstddef>
+#include <cstdint>
 #include <array>
 #include <optional>
 #include <string>
@@ -89,6 +90,23 @@ struct BuildPlaceRequested {
 struct RecruitRequested {
     model::PlayerId player;
     model::UnitType type;
+};
+
+struct RecruitDroneRequested {
+    model::PlayerId player;
+    model::ecs::Entity warehouse;
+};
+
+struct AssignDroneToRouteRequested {
+    model::PlayerId player;
+    model::ecs::Entity source;
+    std::uint64_t routeId;
+};
+
+struct UnassignDroneFromRouteRequested {
+    model::PlayerId player;
+    model::ecs::Entity source;
+    std::uint64_t routeId;
 };
 
 struct TransferInventoryItemRequested {
@@ -296,6 +314,19 @@ struct UnitMoved {
     float y;
 };
 
+struct DroneSpawned {
+    model::ecs::Entity entity;
+    model::PlayerId owner;
+    float x;
+    float y;
+};
+
+struct DroneMoved {
+    model::ecs::Entity entity;
+    float x;
+    float y;
+};
+
 struct HealthChanged {
     model::ecs::Entity entity;
     int health;
@@ -326,6 +357,24 @@ struct RecruitPanelChanged {
     model::PlayerId player;
     bool open;
     std::vector<RecruitEntry> entries;
+};
+
+struct LogisticsRouteEntry {
+    std::uint64_t id = 0;
+    model::ecs::Entity destination = 0;
+    std::string destinationName;
+    model::ItemId item = model::ItemId::Count;
+    int assignedDrones = 0;
+};
+
+struct LogisticsPanelChanged {
+    model::PlayerId player = model::kNoPlayer;
+    bool open = false;
+    model::ecs::Entity building = 0;
+    std::string buildingName;
+    bool warehouse = false;
+    int idleDrones = 0;
+    std::vector<LogisticsRouteEntry> routes;
 };
 
 // View -> Controller (needed for mouse picking)

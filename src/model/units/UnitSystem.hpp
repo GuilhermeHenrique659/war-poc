@@ -26,6 +26,9 @@ public:
 
     // Spawns next to the Command Center, on the nearest free tile.
     void recruit(PlayerId player, UnitType type, ecs::Entity commandCenter);
+    // Spawns a non-combat drone next to the supplied tile.
+    [[nodiscard]] std::optional<ecs::Entity> spawnTransportDrone(PlayerId player, GridPos center);
+    [[nodiscard]] bool moveToAdjacent(ecs::Entity entity, GridPos center);
     void orderMove(PlayerId player, const std::vector<ecs::Entity>& units, GridPos target);
 
     // Returns true when any unit moved.

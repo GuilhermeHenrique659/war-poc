@@ -36,7 +36,6 @@ namespace {
     case BuildingType::Wall:
     case BuildingType::House:
     case BuildingType::Generator:
-    case BuildingType::Warehouse:
     case BuildingType::Barracks:
     case BuildingType::Cruzador:
     case BuildingType::Tower:

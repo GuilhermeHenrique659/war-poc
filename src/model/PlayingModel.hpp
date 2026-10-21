@@ -3,6 +3,7 @@
 #include "core/EventBus.hpp"
 #include "core/Events.hpp"
 #include "model/build/BuildingSystem.hpp"
+#include "model/economy/LogisticsSystem.hpp"
 #include "model/economy/ProductionSystem.hpp"
 #include "model/units/CombatSystem.hpp"
 #include "model/units/GenealogySystem.hpp"
@@ -36,6 +37,7 @@ private:
     void resetWorld();
     void createLocalPlayer(const std::string& playerName);
     void publishInventoryPanel(PlayerId player) const;
+    void publishLogisticsPanel(PlayerId player) const;
 
     core::EventBus& bus_;
     Scene scene_ = Scene::MainMenu;
@@ -45,12 +47,14 @@ private:
     // Systems hold references to world_ (and units_ to buildings_); preserve declaration order.
     std::unique_ptr<BuildingSystem> buildings_;
     std::unique_ptr<UnitSystem> units_;
+    std::unique_ptr<LogisticsSystem> logistics_;
     std::unique_ptr<PlayerAvatarSystem> playerAvatars_;
     std::unique_ptr<CombatSystem> combat_;
     std::unique_ptr<SelectionSystem> selection_;
     std::unique_ptr<GenealogySystem> genealogy_; // References buildings_, units_ and selection_.
     ProductionSystem production_;
     std::unordered_map<PlayerId, ecs::Entity> inventoryPanels_;
+    std::unordered_map<PlayerId, ecs::Entity> logisticsPanels_;
     std::unordered_map<PlayerId, bool> playerInventoryOpen_;
 };
 

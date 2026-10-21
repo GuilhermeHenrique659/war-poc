@@ -42,6 +42,12 @@ private:
         int size;
     };
 
+    struct DroneVisual {
+        model::ecs::Entity entity;
+        float x;
+        float y;
+    };
+
     struct PlayerVisual {
         model::ecs::Entity entity;
         model::PlayerId player;
@@ -71,6 +77,7 @@ private:
     float cameraZoom_ = 1.0f;
     std::vector<BuildingVisual> buildings_;
     std::unordered_map<model::ecs::Entity, UnitVisual> units_;
+    std::unordered_map<model::ecs::Entity, DroneVisual> drones_;
     std::unordered_map<model::ecs::Entity, PlayerVisual> players_;
     std::unordered_set<model::ecs::Entity> selectedUnits_;
     std::optional<model::ecs::Entity> selectedBuilding_;

@@ -53,7 +53,11 @@ Documento vivo com as regras do jogo. Itens marcados como **TBD** ainda não for
   - Fábrica de Eletrônicos: consome 1 ferro/s e 1 cobre/s e produz 0,5 eletrônico/s.
   - Fábrica de Ferramentas: consome 1 aço/s e 1 eletrônico/s e produz 0,5 ferramenta/s.
 - As construções descontam seu custo do inventário do jogador no momento da colocação; recursos armazenados em construções não contam para pagar o custo. A prévia fica inválida quando faltam recursos. O recrutamento continua instantâneo, requer Quartel e não tem custo nem limite populacional.
-- Casa, Gerador e Depósito permanecem como estruturas sem efeitos econômicos nesta etapa. Unidades ainda não recebem inventários.
+- Casa e Gerador permanecem como estruturas sem efeitos econômicos nesta etapa. Unidades de combate ainda não recebem inventários.
+- O Depósito existente passa a ser chamado **Armazém**, mantém sua área 2x2 e inventário de 64 slots, custa 100 de ferro e permite recrutar drones de transporte instantaneamente, sem custo ou limite.
+- Cada construção produtora cria rotas de saída para todos os Armazéns do mesmo jogador e para as construções do mesmo jogador que consomem seu produto. Ao criar um Armazém ou uma construção consumidora, também são criadas rotas de produtores existentes para ela. Cada rota tem ID único, origem, destino, item e quantidade de drones atribuídos; sua lista pertence à construção de origem.
+- Um drone de transporte é uma unidade logística com dono, sem combate nem ordens de tropa. É recrutado no Armazém e pode ser atribuído ou desatribuído de uma rota pela interface da construção de origem. Ao desatribuir um drone que carrega itens, ele retorna à origem e devolve a carga antes de ficar ocioso. O drone percorre continuamente origem → destino → origem a 2 tiles/s, usando os caminhos do mapa.
+- Cada drone tem inventário de 10 slots, com pilhas de até 100 itens. Ele carrega o produto da origem até preencher o inventário ou esgotar o estoque disponível, descarrega no destino o que couber e mantém a carga restante se o destino estiver cheio. Sem produto, aguarda na origem; se não houver espaço no destino, aguarda no destino para tentar descarregar novamente.
 
 ## Construção
 - Barra de construção no rodapé da tela: clique (ou teclas `1`-`9`) seleciona a estrutura. Clicar de novo na mesma desmarca.
@@ -69,7 +73,7 @@ Documento vivo com as regras do jogo. Itens marcados como **TBD** ainda não for
 | Muro | 1x1 | 100 de cada recurso | Só liberado depois que o jogador tem um Centro de Comando. |
 | Casa | 2x2 | 100 de cada recurso | Requer Centro de Comando; sem efeito econômico nesta etapa. |
 | Gerador | 2x2 | 100 de cada recurso | Requer Centro de Comando; sem efeito econômico nesta etapa. |
-| Depósito | 2x2 | 100 de cada recurso | Requer Centro de Comando; sem efeito econômico nesta etapa. |
+| Armazém | 2x2 | 100 ferro | Requer Centro de Comando; inventário de 64 slots; recruta drones de transporte. |
 | Quartel | 3x3 | 100 de cada recurso | Requer Centro de Comando; libera recrutamento. |
 | Cruzador | 3x3 | 100 de cada recurso | Requer Centro de Comando; recebe duas tropas para gerar uma descendente. |
 | Torre | 2x2 | 100 de cada recurso | Requer Centro de Comando. |
@@ -81,6 +85,7 @@ Documento vivo com as regras do jogo. Itens marcados como **TBD** ainda não for
 | Fábrica de Ferramentas | 3x3 | 200 aço, 200 ferro, 100 eletrônicos | Requer Centro de Comando; inventário de 64 slots; consome 1 aço/s e 1 eletrônico/s e produz 0,5 ferramenta/s. |
 
 - Clicar numa construção abre seu inventário para consulta e transferência ao jogador.
+- O Armazém (antigo Depósito) também abre o painel de logística, onde drones podem ser recrutados. Selecionar uma construção produtora mostra as rotas de saída e permite atribuir drones ociosos.
 - **TBD**: tempo de construção, demolição/reembolso, terreno válido.
 
 ## Defesa (tower defense)

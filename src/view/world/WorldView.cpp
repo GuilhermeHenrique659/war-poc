@@ -24,6 +24,7 @@ constexpr Color kValidColor{80, 220, 100, 110};
 constexpr Color kInvalidColor{230, 60, 50, 130};
 constexpr Color kSelectedFill{90, 255, 120, 50};
 constexpr Color kSelectedOutline{90, 255, 120, 255};
+constexpr Color kDroneColor{70, 220, 230, 255};
 constexpr unsigned char kGhostAlpha = 150;
 constexpr float kFixedZoom = 1.0f;
 
@@ -41,6 +42,7 @@ WorldView::WorldView(core::EventBus& bus)
     bus_.subscribe<events::WorldReset>([this](const events::WorldReset&) {
         buildings_.clear();
         units_.clear();
+        drones_.clear();
         players_.clear();
         selectedUnits_.clear();
         selectedBuilding_.reset();
@@ -80,7 +82,18 @@ void WorldView::subscribeUnits()
     });
     bus_.subscribe<events::UnitRemoved>([this](const events::UnitRemoved& e) {
         units_.erase(e.entity);
+        drones_.erase(e.entity);
         selectedUnits_.erase(e.entity);
+    });
+    bus_.subscribe<events::DroneSpawned>([this](const events::DroneSpawned& e) {
+        drones_[e.entity] = DroneVisual{e.entity, e.x, e.y};
+    });
+    bus_.subscribe<events::DroneMoved>([this](const events::DroneMoved& e) {
+        const auto it = drones_.find(e.entity);
+        if (it != drones_.end()) {
+            it->second.x = e.x;
+            it->second.y = e.y;
+        }
     });
     bus_.subscribe<events::UnitMoved>([this](const events::UnitMoved& e) {
         const auto it = units_.find(e.entity);
@@ -218,27 +231,31 @@ void WorldView::drawGrid(const Camera2D& cam) const
 
 void WorldView::drawObjects() const
 {
-    enum class Kind { Building, Unit, Player };
+    enum class Kind { Building, Unit, Drone, Player };
     struct Drawable {
         float depth;
         model::ecs::Entity entity;
         Kind kind;
         const BuildingVisual* building;
         const UnitVisual* unit;
+        const DroneVisual* drone;
         const PlayerVisual* player;
     };
 
     std::vector<Drawable> objects;
-    objects.reserve(buildings_.size() + units_.size() + players_.size());
+    objects.reserve(buildings_.size() + units_.size() + drones_.size() + players_.size());
     for (const BuildingVisual& building : buildings_) {
         objects.push_back(Drawable{static_cast<float>(depthKey(building.origin, building.size)),
-            building.entity, Kind::Building, &building, nullptr, nullptr});
+            building.entity, Kind::Building, &building, nullptr, nullptr, nullptr});
     }
     for (const auto& [entity, unit] : units_) {
-        objects.push_back(Drawable{unit.x + unit.y, entity, Kind::Unit, nullptr, &unit, nullptr});
+        objects.push_back(Drawable{unit.x + unit.y, entity, Kind::Unit, nullptr, &unit, nullptr, nullptr});
+    }
+    for (const auto& [entity, drone] : drones_) {
+        objects.push_back(Drawable{drone.x + drone.y, entity, Kind::Drone, nullptr, nullptr, &drone, nullptr});
     }
     for (const auto& [entity, player] : players_) {
-        objects.push_back(Drawable{player.x + player.y, entity, Kind::Player, nullptr, nullptr, &player});
+        objects.push_back(Drawable{player.x + player.y, entity, Kind::Player, nullptr, nullptr, nullptr, &player});
     }
     std::sort(objects.begin(), objects.end(),
         [](const Drawable& a, const Drawable& b) {
@@ -268,6 +285,16 @@ void WorldView::drawObjects() const
                     static_cast<float>(object.unit->health) / static_cast<float>(object.unit->maxHealth));
             }
             break;
+        case Kind::Drone: {
+            const DroneVisual& drone = *object.drone;
+            const Vector2 ground = iso::gridToWorld(drone.x, drone.y);
+            DrawEllipse(static_cast<int>(ground.x), static_cast<int>(ground.y), 9.0F, 5.0F, Color{0, 0, 0, 70});
+            iso::drawPrism(iso::Prism{drone.x - 0.18F, drone.y - 0.18F, 0.36F, 0.36F, 7.0F, 7.0F},
+                iso::boxColors(kDroneColor, 255));
+            DrawLineEx(Vector2{ground.x - 7.0F, ground.y - 2.0F},
+                Vector2{ground.x + 7.0F, ground.y - 2.0F}, 2.0F, RAYWHITE);
+            break;
+        }
         case Kind::Player:
             drawPlayerAvatar(object.player->x, object.player->y);
             break;

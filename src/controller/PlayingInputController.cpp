@@ -4,6 +4,7 @@
 #include "model/player/Player.hpp"
 #include "view/build/BuildBarLayout.hpp"
 #include "view/economy/InventoryPanelLayout.hpp"
+#include "view/economy/LogisticsPanelLayout.hpp"
 #include "view/IsoProjection.hpp"
 #include "view/units/RecruitPanelLayout.hpp"
 
@@ -45,11 +46,17 @@ PlayingInputController::PlayingInputController(core::EventBus& bus)
             inventoryPanel_ = e;
         }
     });
+    bus_.subscribe<events::LogisticsPanelChanged>([this](const events::LogisticsPanelChanged& e) {
+        if (e.player == localPlayerId_) {
+            logisticsPanel_ = e;
+        }
+    });
     bus_.subscribe<events::WorldReset>([this](const events::WorldReset&) {
         lastTile_.reset();
         placing_ = false;
         panelTypes_.clear();
         inventoryPanel_ = {};
+        logisticsPanel_ = {};
         inventoryDragSlot_.reset();
     });
 }
@@ -179,6 +186,49 @@ void PlayingInputController::handlePanelMouse(Vector2 mouse)
     placing_ = false;
     publishCursor(std::nullopt);
 
+    if (logisticsPanel_.open) {
+        const int screenWidth = GetScreenWidth();
+        const Rectangle bounds = view::logistics_panel_layout::panelBounds(
+            logisticsPanel_.routes.size(), logisticsPanel_.warehouse, screenWidth);
+        if (CheckCollisionPointRec(mouse, bounds)) {
+            if (!IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
+                return;
+            }
+            const Rectangle close = view::logistics_panel_layout::closeBounds(
+                logisticsPanel_.routes.size(), logisticsPanel_.warehouse, screenWidth);
+            if (CheckCollisionPointRec(mouse, close)) {
+                bus_.publish(events::SelectionClearRequested{localPlayerId_});
+                return;
+            }
+            if (logisticsPanel_.warehouse) {
+                const Rectangle recruit = view::logistics_panel_layout::recruitBounds(
+                    logisticsPanel_.routes.size(), screenWidth);
+                if (CheckCollisionPointRec(mouse, recruit)) {
+                    bus_.publish(events::RecruitDroneRequested{localPlayerId_, logisticsPanel_.building});
+                    return;
+                }
+            }
+            for (std::size_t index = 0; index < logisticsPanel_.routes.size(); ++index) {
+                const auto& route = logisticsPanel_.routes[index];
+                const Rectangle unassign = view::logistics_panel_layout::unassignBounds(
+                    index, logisticsPanel_.routes.size(), screenWidth);
+                if (CheckCollisionPointRec(mouse, unassign) && route.assignedDrones > 0) {
+                    bus_.publish(events::UnassignDroneFromRouteRequested{
+                        localPlayerId_, logisticsPanel_.building, route.id});
+                    return;
+                }
+                const Rectangle assign = view::logistics_panel_layout::assignBounds(
+                    index, logisticsPanel_.routes.size(), screenWidth);
+                if (CheckCollisionPointRec(mouse, assign) && logisticsPanel_.idleDrones > 0) {
+                    bus_.publish(events::AssignDroneToRouteRequested{
+                        localPlayerId_, logisticsPanel_.building, route.id});
+                    return;
+                }
+            }
+            return;
+        }
+    }
+
     if (inventoryPanel_.open) {
         const int screenWidth = GetScreenWidth();
         const Rectangle inventoryBounds = view::inventory_panel_layout::panelBounds(screenWidth);
@@ -295,6 +345,11 @@ std::optional<std::size_t> PlayingInputController::slotUnderMouse(Vector2 mouse)
 
 bool PlayingInputController::isOverPanel(Vector2 mouse) const
 {
+    if (logisticsPanel_.open
+        && CheckCollisionPointRec(mouse, view::logistics_panel_layout::panelBounds(
+            logisticsPanel_.routes.size(), logisticsPanel_.warehouse, GetScreenWidth()))) {
+        return true;
+    }
     if (inventoryPanel_.open
         && CheckCollisionPointRec(mouse, view::inventory_panel_layout::panelBounds(GetScreenWidth()))) {
         return true;
