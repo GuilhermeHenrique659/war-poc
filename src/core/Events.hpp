@@ -1,13 +1,15 @@
 #pragma once
 
-#include "model/BuildingType.hpp"
+#include "model/build/BuildingType.hpp"
+#include "model/economy/Item.hpp"
 #include "model/GridPos.hpp"
-#include "model/Player.hpp"
+#include "model/player/Player.hpp"
 #include "model/Scene.hpp"
-#include "model/UnitType.hpp"
+#include "model/units/UnitType.hpp"
 #include "model/ecs/Entity.hpp"
 
 #include <cstddef>
+#include <array>
 #include <optional>
 #include <string>
 #include <vector>
@@ -89,6 +91,28 @@ struct RecruitRequested {
     model::UnitType type;
 };
 
+struct TransferInventoryItemRequested {
+    model::PlayerId player;
+    model::ecs::Entity building;
+    std::size_t slotIndex;
+    bool fromPlayer;
+};
+
+struct TogglePlayerInventoryRequested {
+    model::PlayerId player;
+};
+
+struct CloseInventoryRequested {
+    model::PlayerId player;
+};
+
+struct PlayerMoveRequested {
+    model::PlayerId player;
+    float directionX;
+    float directionY;
+    float deltaSeconds;
+};
+
 // Additive keeps the current unit selection and adds to it.
 struct SelectUnitsRequested {
     model::PlayerId player;
@@ -111,9 +135,17 @@ struct MoveOrderRequested {
     model::GridPos tile;
 };
 
-// Merges all of the player's selected units into one Combined unit.
-struct MergeRequested {
+struct AttackOrderRequested {
     model::PlayerId player;
+    std::vector<model::ecs::Entity> attackers;
+    model::ecs::Entity target;
+};
+
+// Sends the selected pair to a Cruzador for genealogical combination.
+struct CruzadorOrderRequested {
+    model::PlayerId player;
+    model::ecs::Entity cruzador;
+    std::vector<model::ecs::Entity> units;
 };
 
 // Controller -> View (selection box being dragged, in screen pixels)
@@ -131,12 +163,6 @@ struct CameraPanRequested {
     float dy;
 };
 
-struct CameraZoomRequested {
-    float steps;
-    float screenX; // Zoom pivot, in screen pixels.
-    float screenY;
-};
-
 // Controller -> View (debug overlay is presentation state)
 struct DebugToggleRequested {};
 
@@ -151,6 +177,52 @@ struct SceneChanged {
 // The player controlled by this client changed. Views and controllers cache this value locally.
 struct LocalPlayerChanged {
     model::PlayerId player;
+};
+
+struct PlayerSpawned {
+    model::ecs::Entity entity;
+    model::PlayerId player;
+    float x;
+    float y;
+    int health;
+    int maxHealth;
+};
+
+struct PlayerMoved {
+    model::ecs::Entity entity;
+    model::PlayerId player;
+    float x;
+    float y;
+};
+
+struct PlayerRespawnRequested {
+    model::ecs::Entity entity;
+};
+
+struct InventorySlotState {
+    bool occupied = false;
+    model::ItemId item = model::ItemId::Count;
+    int currentQuantity = 0;
+    int maxQuantity = 0;
+};
+
+struct InventoryPanelChanged {
+    model::PlayerId player = model::kNoPlayer;
+    bool open = false;
+    bool playerVisible = false;
+    bool hasBuilding = false;
+    bool playerInventoryOpen = false;
+    model::ecs::Entity building = 0;
+    std::string buildingName;
+    std::vector<InventorySlotState> buildingSlots;
+    std::vector<InventorySlotState> playerSlots;
+};
+
+struct InventoryDragChanged {
+    model::PlayerId player = model::kNoPlayer;
+    bool active = false;
+    model::ItemId item = model::ItemId::Count;
+    int quantity = 0;
 };
 
 struct MenuStateChanged {
@@ -175,6 +247,7 @@ struct BuildBarEntry {
     int size;
     bool enabled;
     std::string lockedReason;
+    std::string cost;
 };
 
 struct BuildBarChanged {
@@ -200,6 +273,10 @@ struct BuildingPlaced {
     int size;
 };
 
+struct BuildingRemoved {
+    model::ecs::Entity entity;
+};
+
 // Unit positions are the continuous grid coordinates of the unit's center (tile center = tile + 0.5).
 struct UnitSpawned {
     model::ecs::Entity entity;
@@ -219,24 +296,14 @@ struct UnitMoved {
     float y;
 };
 
-struct UnitRemoved {
+struct HealthChanged {
     model::ecs::Entity entity;
+    int health;
+    int maxHealth;
 };
 
-// Open while the player has two or more units selected. Stats describe the unit the merge would create.
-struct MergePanelChanged {
-    model::PlayerId player = model::kNoPlayer;
-    bool open = false;
-    int unitCount = 0;
-    bool canMerge = false;
-    std::string blockedReason;
-    int maxHealth = 0;
-    int damage = 0;
-    float range = 0.0f;
-    float speed = 0.0f;
-    int size = 1;
-
-    friend bool operator==(const MergePanelChanged&, const MergePanelChanged&) = default;
+struct UnitRemoved {
+    model::ecs::Entity entity;
 };
 
 struct SelectionChanged {

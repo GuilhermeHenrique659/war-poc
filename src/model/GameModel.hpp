@@ -1,7 +1,7 @@
 #pragma once
 
 #include "core/EventBus.hpp"
-#include "model/MenuModel.hpp"
+#include "model/menu/MenuModel.hpp"
 #include "model/PlayingModel.hpp"
 
 #include <memory>

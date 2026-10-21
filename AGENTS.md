@@ -18,6 +18,7 @@ Jogo de estratégia com construção de base e elementos de tower defense. C++ +
 
 ## Build / rodar
 - Configurar: `cmake --preset default` (Ninja + g++, saída em `build/`). Compilar: `cmake --build --preset default`. Rodar: `.\build\war_poc.exe`.
+- Para compartilhar uma versão de teste no Windows: `cmake --preset release`, `cmake --build --preset release --target package`. O ZIP `build/release/war_poc-windows-x64.zip` contém o executável e, se existir, a pasta `resource/`; quem testar só precisa extrair o ZIP e abrir `war_poc.exe`, sem instalar compilador ou bibliotecas do projeto.
 - Execute os testes com `ctest --test-dir build --output-on-failure`. O alvo `war_poc_tests` usa GoogleTest, não depende de raylib e não abre uma janela. A primeira configuração baixa o GoogleTest via CMake `FetchContent`.
 - Para verificar uma mudança, compile sem warnings (`-Wall -Wextra -Wpedantic -Wshadow -Wconversion` estão ligados) e execute os testes relevantes.
 - Os `.cpp` são achados por `GLOB_RECURSE` em `src/`. Não precisa listar arquivos novos no CMake.

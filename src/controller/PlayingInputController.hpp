@@ -2,10 +2,11 @@
 
 #include "controller/SelectionInputController.hpp"
 #include "core/EventBus.hpp"
-#include "model/BuildingType.hpp"
+#include "core/Events.hpp"
+#include "model/build/BuildingType.hpp"
 #include "model/GridPos.hpp"
-#include "model/UnitType.hpp"
-#include "model/Player.hpp"
+#include "model/units/UnitType.hpp"
+#include "model/player/Player.hpp"
 
 #include <raylib.h>
 
@@ -26,7 +27,7 @@ public:
 private:
     // Returns true when the input was consumed.
     bool handleCancel();
-    void handleCamera();
+    void handlePlayerMovement();
     void handleShortcuts();
     void handleBarMouse(Vector2 mouse);
     void handlePanelMouse(Vector2 mouse);
@@ -44,7 +45,9 @@ private:
     std::optional<model::GridPos> lastTile_;
     bool placing_ = false; // Left button went down on the map and is still held.
     std::vector<model::UnitType> panelTypes_; // Empty while the recruit panel is closed.
-    bool mergeOpen_ = false;
+    events::InventoryPanelChanged inventoryPanel_;
+    std::optional<std::size_t> inventoryDragSlot_;
+    bool inventoryDragFromPlayer_ = false;
     model::PlayerId localPlayerId_ = model::kNoPlayer;
 };
 

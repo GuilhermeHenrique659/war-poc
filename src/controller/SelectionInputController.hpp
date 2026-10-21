@@ -1,8 +1,9 @@
 #pragma once
 
 #include "core/EventBus.hpp"
+#include "model/build/BuildingType.hpp"
 #include "model/GridPos.hpp"
-#include "model/Player.hpp"
+#include "model/player/Player.hpp"
 #include "model/ecs/Entity.hpp"
 
 #include <raylib.h>
@@ -13,7 +14,7 @@
 
 namespace controller {
 
-// Map input while no building is selected: click / box selection and right-click move orders.
+// Map input while no building is selected: click / box selection and right-click orders.
 // Picking uses the unit and building positions announced by the model.
 class SelectionInputController {
 public:
@@ -39,6 +40,7 @@ private:
         model::PlayerId owner;
         model::GridPos origin;
         int size;
+        model::BuildingType type;
     };
 
     void subscribe();
@@ -46,6 +48,7 @@ private:
     void selectInBox(Vector2 corner, const Camera2D& camera, bool additive);
     void selectAt(Vector2 mouse, const Camera2D& camera, bool additive);
     void issueMove(Vector2 mouse, const Camera2D& camera);
+    void issueOrder(Vector2 mouse, const Camera2D& camera);
     void publishBox(Vector2 corner) const;
 
     [[nodiscard]] std::optional<model::ecs::Entity> unitAt(Vector2 world) const;
@@ -54,6 +57,7 @@ private:
     core::EventBus& bus_;
     std::unordered_map<model::ecs::Entity, UnitInfo> units_;
     std::vector<BuildingInfo> buildings_;
+    std::vector<model::ecs::Entity> selectedUnits_;
     bool hasUnitSelection_ = false;
     bool hasBuildingSelection_ = false;
     bool dragging_ = false; // Left button went down on the map and is still held.

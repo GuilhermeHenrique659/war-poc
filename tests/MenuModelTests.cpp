@@ -1,6 +1,6 @@
 #include "core/EventBus.hpp"
 #include "core/Events.hpp"
-#include "model/MenuModel.hpp"
+#include "model/menu/MenuModel.hpp"
 
 #include <gtest/gtest.h>
 

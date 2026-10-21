@@ -34,6 +34,15 @@ target_link_libraries(war_poc PRIVATE raylib opengl32 gdi32 winmm)
 # Static runtime so the executable runs outside the MSYS2 shell.
 target_link_options(war_poc PRIVATE -static)
 
+install(TARGETS war_poc RUNTIME DESTINATION .)
+if(EXISTS "${CMAKE_SOURCE_DIR}/resource")
+    install(DIRECTORY "${CMAKE_SOURCE_DIR}/resource/" DESTINATION resource)
+endif()
+
+set(CPACK_GENERATOR "ZIP")
+set(CPACK_PACKAGE_FILE_NAME "${PROJECT_NAME}-windows-x64")
+include(CPack)
+
 include(CTest)
 if(BUILD_TESTING)
     include(FetchContent)

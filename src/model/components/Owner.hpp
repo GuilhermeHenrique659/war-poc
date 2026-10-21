@@ -1,6 +1,6 @@
 #pragma once
 
-#include "model/Player.hpp"
+#include "model/player/Player.hpp"
 
 namespace model::components {
 

@@ -1,0 +1,93 @@
+#include "model/economy/ProductionSystem.hpp"
+
+#include "model/economy/InventoryComponents.hpp"
+#include "model/economy/InventorySystem.hpp"
+#include "model/economy/ProductionComponents.hpp"
+
+#include <algorithm>
+#include <cmath>
+#include <unordered_set>
+#include <vector>
+
+namespace model {
+
+void ProductionSystem::update(ecs::Registry& world, float deltaSeconds)
+{
+    if (!std::isfinite(deltaSeconds) || deltaSeconds <= 0.0F) {
+        return;
+    }
+
+    std::unordered_set<ecs::Entity> producers;
+    world.each<components::Production>([this, &world, &producers, deltaSeconds](
+                                            ecs::Entity entity, const components::Production& production) {
+        producers.insert(entity);
+        auto* inventory = world.tryGet<components::Inventory>(entity);
+        if (inventory == nullptr || !std::isfinite(production.outputPerSecond)
+            || production.outputPerSecond <= 0.0F) {
+            return;
+        }
+
+        Progress& progress = progress_[entity];
+        if (progress.inputRemainders.size() != production.inputs.size()) {
+            progress.inputRemainders.assign(production.inputs.size(), 0.0F);
+        }
+
+        float productionTime = deltaSeconds;
+        for (const ProductionInput& input : production.inputs) {
+            if (!std::isfinite(input.quantityPerSecond) || input.quantityPerSecond <= 0.0F) {
+                return;
+            }
+            if (InventorySystem::amount(*inventory, input.item) == 0) {
+                return;
+            }
+            productionTime = std::min(productionTime, static_cast<float>(
+                InventorySystem::amount(*inventory, input.item)) / input.quantityPerSecond);
+        }
+        productionTime = std::min(productionTime,
+            static_cast<float>(InventorySystem::availableCapacity(*inventory, production.output))
+                / production.outputPerSecond);
+        if (productionTime <= 0.0F) {
+            return;
+        }
+
+        std::vector<int> inputConsumption;
+        inputConsumption.reserve(production.inputs.size());
+        for (std::size_t index = 0; index < production.inputs.size(); ++index) {
+            const float accumulated = progress.inputRemainders[index]
+                + production.inputs[index].quantityPerSecond * productionTime;
+            const int wholeItems = static_cast<int>(std::floor(accumulated + 0.0001F));
+            if (wholeItems > InventorySystem::amount(*inventory, production.inputs[index].item)) {
+                return;
+            }
+            inputConsumption.push_back(wholeItems);
+        }
+        const float accumulatedOutput = progress.outputRemainder + production.outputPerSecond * productionTime;
+        const int outputItems = static_cast<int>(std::floor(accumulatedOutput + 0.0001F));
+        if (outputItems > InventorySystem::availableCapacity(*inventory, production.output)) {
+            return;
+        }
+
+        for (std::size_t index = 0; index < production.inputs.size(); ++index) {
+            const int consumed = inputConsumption[index];
+            if (consumed > 0) {
+                (void)InventorySystem::remove(*inventory, production.inputs[index].item, consumed);
+            }
+            const float accumulated = progress.inputRemainders[index]
+                + production.inputs[index].quantityPerSecond * productionTime;
+            progress.inputRemainders[index] = accumulated - static_cast<float>(consumed);
+        }
+        if (outputItems > 0) {
+            (void)InventorySystem::add(*inventory, production.output, outputItems);
+        }
+        progress.outputRemainder = accumulatedOutput - static_cast<float>(outputItems);
+    });
+
+    std::erase_if(progress_, [&producers](const auto& entry) { return !producers.contains(entry.first); });
+}
+
+void ProductionSystem::reset()
+{
+    progress_.clear();
+}
+
+} // namespace model
