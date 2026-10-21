@@ -8,8 +8,10 @@
 #include "model/units/UnitComponents.hpp"
 #include "model/ecs/Registry.hpp"
 
+#include <functional>
 #include <optional>
 #include <unordered_map>
+#include <utility>
 #include <vector>
 
 namespace model {
@@ -23,6 +25,7 @@ public:
 
     // Call after the world is cleared.
     void reset();
+    void setTileWalkable(std::function<bool(GridPos)> predicate) { tileWalkable_ = std::move(predicate); }
 
     // Spawns next to the Command Center, on the nearest free tile.
     void recruit(PlayerId player, UnitType type, ecs::Entity commandCenter);
@@ -69,6 +72,7 @@ private:
     ecs::Registry& world_;
     const BuildingSystem& buildings_;
     std::unordered_map<GridPos, ecs::Entity, GridPosHash> reserved_;
+    std::function<bool(GridPos)> tileWalkable_;
 };
 
 } // namespace model

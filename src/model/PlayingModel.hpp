@@ -11,10 +11,12 @@
 #include "model/player/Player.hpp"
 #include "model/player/PlayerAvatarSystem.hpp"
 #include "model/Scene.hpp"
+#include "model/WorldMap.hpp"
 #include "model/units/UnitSystem.hpp"
 #include "model/ecs/Registry.hpp"
 
 #include <memory>
+#include <optional>
 #include <string>
 #include <unordered_map>
 
@@ -43,6 +45,7 @@ private:
     Scene scene_ = Scene::MainMenu;
     PlayerId nextPlayerId_ = 1;
     PlayerId localPlayerId_ = kNoPlayer;
+    std::optional<WorldMap> worldMap_;
     std::unique_ptr<ecs::Registry> world_;
     // Systems hold references to world_ (and units_ to buildings_); preserve declaration order.
     std::unique_ptr<BuildingSystem> buildings_;

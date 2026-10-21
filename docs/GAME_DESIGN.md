@@ -36,10 +36,13 @@ Documento vivo com as regras do jogo. Itens marcados como **TBD** ainda não for
 ## Mapa
 - Grid isométrico. Toda posição de jogo é uma coordenada de tile (lógica), independente da projeção na tela.
 - Tile de 64x32 px na tela (zoom 1).
-- O sandbox segue com mapa **infinito** e sem terreno. O Model também oferece `BoundedMap` para missões finitas: retângulo definido por origem lógica, largura e altura; tiles dentro dele começam como planície transitável, tiles fora são bloqueados e o terreno pode ser marcado como bloqueado. A classe não depende de raylib.
+- Cada partida gera um mapa finito de 1024x1024 tiles a partir de uma seed aleatória, mantida no Model para reproduzir a geração. A origem lógica do mapa é (-512, -512), com o ponto inicial em (0, 0).
+- O mapa tem terra transitável e água em regiões conectadas, com alvo aproximado de 30% de tiles de água. Movimento de jogadores e unidades, assim como construção, só é permitido em terra; tiles fora dos limites também são bloqueados.
+- O Centro de Comando também precisa ter pelo menos um tile de terra adjacente para permitir o surgimento do avatar.
+- Jazidas de ferro, cobre e carvão ocupam áreas de 2x2 tiles em terra. A área inicial contém 2 jazidas de ferro, 1 de cobre e 2 de carvão; fora dela são geradas mais 50 jazidas de cada recurso. Cada tipo de mina só pode ser construído sobre uma jazida do recurso correspondente.
+- `BoundedMap` representa o retângulo lógico e seu terreno, sem dependência de raylib. A View recebe o mapa por evento e desenha somente os tiles visíveis.
 - Câmera: acompanha o avatar do jogador com zoom fixo de 1,0x.
 - Renderização de construções, tropas e avatar usa o algoritmo do pintor: objetos mais distantes no eixo de profundidade do grid são desenhados primeiro.
-- Origem do mapa definitivo (Tiled `.tmx` ou procedural), tamanho e tipos de terreno: **TBD**.
 
 ## Economia / recursos
 - O inventário é composto por slots; cada slot armazena um item e sua quantidade atual em unidades inteiras (não há frações de item). Cada pilha comporta até 100 unidades. O inventário do jogador tem 32 slots e o de cada construção tem 64.
@@ -86,7 +89,7 @@ Documento vivo com as regras do jogo. Itens marcados como **TBD** ainda não for
 
 - Clicar numa construção abre seu inventário para consulta e transferência ao jogador.
 - O Armazém (antigo Depósito) também abre o painel de logística, onde drones podem ser recrutados. Selecionar uma construção produtora mostra as rotas de saída e permite atribuir drones ociosos.
-- **TBD**: tempo de construção, demolição/reembolso, terreno válido.
+- **TBD**: tempo de construção, demolição/reembolso.
 
 ## Defesa (tower defense)
 - Torre defensiva: construção 2x2, tem 500 de vida, alcance de 6 tiles e causa 20 de dano a cada segundo.

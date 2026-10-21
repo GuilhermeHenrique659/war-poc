@@ -18,6 +18,8 @@ namespace view::gameplay {
 namespace {
 
 constexpr Color kGroundColor{58, 94, 52, 255};
+constexpr Color kOutsideMapColor{24, 48, 70, 255};
+constexpr Color kWaterColor{42, 105, 156, 255};
 constexpr Color kGridColor{74, 116, 66, 255};
 constexpr Color kOriginColor{96, 140, 86, 255};
 constexpr Color kValidColor{80, 220, 100, 110};
@@ -48,8 +50,10 @@ WorldView::WorldView(core::EventBus& bus)
         selectedBuilding_.reset();
         preview_ = {};
         selectionBox_ = {};
+        worldMap_.reset();
         resetCamera();
     });
+    bus_.subscribe<events::MapGenerated>([this](const events::MapGenerated& event) { worldMap_ = event; });
     bus_.subscribe<events::BuildingPlaced>([this](const events::BuildingPlaced& e) { onBuildingPlaced(e); });
     bus_.subscribe<events::BuildingRemoved>([this](const events::BuildingRemoved& e) {
         std::erase_if(buildings_, [&e](const BuildingVisual& building) { return building.entity == e.entity; });
@@ -127,11 +131,12 @@ void WorldView::subscribePlayers()
 
 void WorldView::draw() const
 {
-    DrawRectangle(0, 0, GetScreenWidth(), GetScreenHeight(), kGroundColor);
+    DrawRectangle(0, 0, GetScreenWidth(), GetScreenHeight(), worldMap_ ? kOutsideMapColor : kGroundColor);
 
     const Camera2D cam = camera();
     BeginMode2D(cam);
     drawGrid(cam);
+    drawDeposits(cam);
     drawObjects();
     drawPreview();
     EndMode2D();
@@ -214,6 +219,32 @@ void WorldView::drawGrid(const Camera2D& cam) const
         maxY = std::max(maxY, tile.y);
     }
 
+    if (worldMap_) {
+        const int mapMaxX = worldMap_->origin.x + worldMap_->width - 1;
+        const int mapMaxY = worldMap_->origin.y + worldMap_->height - 1;
+        minX = std::max(minX, worldMap_->origin.x);
+        minY = std::max(minY, worldMap_->origin.y);
+        maxX = std::min(maxX, mapMaxX);
+        maxY = std::min(maxY, mapMaxY);
+        if (minX > maxX || minY > maxY) {
+            return;
+        }
+
+        for (int y = minY; y <= maxY; ++y) {
+            for (int x = minX; x <= maxX; ++x) {
+                const int localX = x - worldMap_->origin.x;
+                const int localY = y - worldMap_->origin.y;
+                const std::size_t index
+                    = static_cast<std::size_t>(localY) * static_cast<std::size_t>(worldMap_->width)
+                    + static_cast<std::size_t>(localX);
+                const model::Terrain terrain = worldMap_->terrain[index];
+                const Color fill = terrain == model::Terrain::Water ? kWaterColor : kGroundColor;
+                iso::drawFootprint(static_cast<float>(x), static_cast<float>(y), 1.0f, 1.0f, fill,
+                    Color{fill.r, fill.g, fill.b, 0});
+            }
+        }
+    }
+
     const float top = static_cast<float>(minY);
     const float bottom = static_cast<float>(maxY + 1);
     for (int gx = minX; gx <= maxX + 1; ++gx) {
@@ -226,6 +257,39 @@ void WorldView::drawGrid(const Camera2D& cam) const
     for (int gy = minY; gy <= maxY + 1; ++gy) {
         const float y = static_cast<float>(gy);
         DrawLineV(iso::gridToWorld(left, y), iso::gridToWorld(right, y), gy == 0 ? kOriginColor : kGridColor);
+    }
+}
+
+void WorldView::drawDeposits(const Camera2D& cam) const
+{
+    if (!worldMap_) {
+        return;
+    }
+    for (const model::ResourceDeposit& deposit : worldMap_->deposits) {
+        const Vector2 center = GetWorldToScreen2D(
+            iso::gridToWorld(static_cast<float>(deposit.origin.x) + static_cast<float>(deposit.size) / 2.0F,
+                static_cast<float>(deposit.origin.y) + static_cast<float>(deposit.size) / 2.0F),
+            cam);
+        constexpr float kHorizontalMargin = 64.0F;
+        constexpr float kVerticalMargin = 32.0F;
+        if (center.x < -kHorizontalMargin || center.x > static_cast<float>(GetScreenWidth()) + kHorizontalMargin
+            || center.y < -kVerticalMargin || center.y > static_cast<float>(GetScreenHeight()) + kVerticalMargin) {
+            continue;
+        }
+        Color color{};
+        switch (deposit.resource) {
+        case model::ItemId::Iron: color = Color{170, 180, 190, 190}; break;
+        case model::ItemId::Copper: color = Color{202, 119, 65, 190}; break;
+        case model::ItemId::Coal: color = Color{55, 60, 68, 210}; break;
+        case model::ItemId::Steel:
+        case model::ItemId::Electronics:
+        case model::ItemId::Tools:
+        case model::ItemId::Count: continue;
+        }
+        Color outline = color;
+        outline.a = 255;
+        iso::drawFootprint(static_cast<float>(deposit.origin.x), static_cast<float>(deposit.origin.y),
+            static_cast<float>(deposit.size), static_cast<float>(deposit.size), color, outline);
     }
 }
 

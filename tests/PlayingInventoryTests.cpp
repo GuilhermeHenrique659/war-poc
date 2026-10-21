@@ -20,11 +20,11 @@ TEST(PlayingInventoryTests, StartsWithIronAndTransfersProductionFromASelectedBui
     });
     bus.publish(events::StartMatchRequested{"Tester"});
 
-    // When a free Command Center and Iron Mine are placed, the mine is selected and updated.
+    // When the Command Center and a mine on the starting iron deposit are placed and selected.
     bus.publish(events::BuildSelectRequested{1, model::BuildingType::CommandCenter});
     bus.publish(events::BuildPlaceRequested{1, {0, 0}});
     bus.publish(events::BuildSelectRequested{1, model::BuildingType::IronMine});
-    bus.publish(events::BuildPlaceRequested{1, {10, 10}});
+    bus.publish(events::BuildPlaceRequested{1, {-9, 0}});
     bus.publish(events::SelectBuildingRequested{1, mine.entity});
     playing.update(1.0F);
 

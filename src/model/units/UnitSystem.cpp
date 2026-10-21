@@ -252,7 +252,7 @@ std::optional<GridPos> UnitSystem::findSpawnSquare(
         return std::find(ignored.begin(), ignored.end(), entity) != ignored.end();
     };
     const auto tileTaken = [&](GridPos tile) {
-        if (buildings_.isOccupied(tile)) {
+        if (buildings_.isOccupied(tile) || (tileWalkable_ && !tileWalkable_(tile))) {
             return true;
         }
         if (const auto it = reserved_.find(tile); it != reserved_.end() && !isIgnored(it->second)) {
@@ -281,13 +281,15 @@ int UnitSystem::sizeOf(ecs::Entity entity) const
 
 bool UnitSystem::isSquareWalkable(GridPos origin, int size) const
 {
-    return !anyTileOf(origin, size, [this](GridPos tile) { return buildings_.isOccupied(tile); });
+    return !anyTileOf(origin, size, [this](GridPos tile) {
+        return buildings_.isOccupied(tile) || (tileWalkable_ && !tileWalkable_(tile));
+    });
 }
 
 bool UnitSystem::isSquareFreeDestination(GridPos origin, int size) const
 {
-    return !anyTileOf(
-        origin, size, [this](GridPos tile) { return buildings_.isOccupied(tile) || reserved_.contains(tile); });
+    return isSquareWalkable(origin, size)
+        && !anyTileOf(origin, size, [this](GridPos tile) { return reserved_.contains(tile); });
 }
 
 bool UnitSystem::startPath(const Walker& walker, GridPos destination)

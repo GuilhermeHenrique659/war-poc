@@ -4,6 +4,7 @@
 #include "model/economy/Item.hpp"
 #include "model/GridPos.hpp"
 #include "model/player/Player.hpp"
+#include "model/WorldMap.hpp"
 #include "model/Scene.hpp"
 #include "model/units/UnitType.hpp"
 #include "model/ecs/Entity.hpp"
@@ -258,6 +259,15 @@ struct SettingsStateChanged {
 
 // The match world was emptied; drop every cached entity.
 struct WorldReset {};
+
+struct MapGenerated {
+    std::uint32_t seed = 0;
+    int width = 0;
+    int height = 0;
+    model::GridPos origin{};
+    std::vector<model::Terrain> terrain;
+    std::vector<model::ResourceDeposit> deposits;
+};
 
 struct BuildBarEntry {
     model::BuildingType type;

@@ -276,7 +276,9 @@ bool BuildingSystem::isAreaFree(GridPos origin, int size) const
 
 bool BuildingSystem::canPlace(PlayerId player, BuildingType type, GridPos origin) const
 {
-    return isUnlocked(player, type) && isAreaFree(origin, buildingSpec(type).size) && canAfford(player, type);
+    const int size = buildingSpec(type).size;
+    return isUnlocked(player, type) && isAreaFree(origin, size) && canAfford(player, type)
+        && (!placementRule_ || placementRule_(type, origin, size));
 }
 
 bool BuildingSystem::hasCommandCenter(PlayerId player) const

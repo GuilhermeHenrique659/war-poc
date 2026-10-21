@@ -7,6 +7,8 @@
 #include "model/economy/LogisticsComponents.hpp"
 #include "model/player/PlayerComponents.hpp"
 
+#include <random>
+
 namespace model {
 
 PlayingModel::PlayingModel(core::EventBus& bus)
@@ -21,6 +23,11 @@ PlayingModel::PlayingModel(core::EventBus& bus)
     , genealogy_(std::make_unique<GenealogySystem>(*world_, *units_, *selection_))
 {
     buildings_->setTileBlocker([this](GridPos tile) { return units_->isTileTaken(tile); });
+    buildings_->setPlacementRule([this](BuildingType type, GridPos origin, int size) {
+        return !worldMap_ || worldMap_->canPlaceBuilding(type, origin, size);
+    });
+    units_->setTileWalkable([this](GridPos tile) { return !worldMap_ || worldMap_->isWalkable(tile); });
+    playerAvatars_->setTileWalkable([this](GridPos tile) { return !worldMap_ || worldMap_->isWalkable(tile); });
 
     bus_.subscribe<events::SceneChanged>([this](const auto& e) { scene_ = e.scene; });
     bus_.subscribe<events::StartMatchRequested>([this](const auto& e) { onStartMatch(e); });
@@ -205,6 +212,12 @@ void PlayingModel::update(float deltaSeconds)
 void PlayingModel::onStartMatch(const events::StartMatchRequested& event)
 {
     resetWorld();
+    std::random_device entropy;
+    const std::uint32_t seed = entropy();
+    worldMap_.emplace(generateWorldMap(seed));
+    const BoundedMap& terrain = worldMap_->terrain();
+    bus_.publish(events::MapGenerated{
+        seed, terrain.width(), terrain.height(), terrain.origin(), terrain.tiles(), worldMap_->deposits()});
     createLocalPlayer(event.playerName);
     changeScene(Scene::Playing);
 }
@@ -227,6 +240,7 @@ void PlayingModel::changeScene(Scene scene)
 void PlayingModel::resetWorld()
 {
     world_->clear();
+    worldMap_.reset();
     inventoryPanels_.clear();
     logisticsPanels_.clear();
     playerInventoryOpen_.clear();

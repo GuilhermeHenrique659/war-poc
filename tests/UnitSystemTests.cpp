@@ -57,6 +57,24 @@ TEST_F(UnitSystemTest, MovesAnOwnedUnitToTheRequestedFreeDestination)
     EXPECT_EQ(moves_.front().entity, unit);
 }
 
+TEST_F(UnitSystemTest, DoesNotPathfindThroughBlockedTerrain)
+{
+    // Given a unit separated from its destination by a wall of blocked tiles.
+    units_.setTileWalkable([](model::GridPos tile) { return tile.x != 1; });
+    const model::UnitStats soldier = model::recruitStats(model::UnitType::Soldier);
+    const model::ecs::Entity unit = units_.spawn(kPlayer, soldier, {0, 0});
+
+    // When it is ordered to move across the wall.
+    units_.orderMove(kPlayer, {unit}, {2, 0});
+    (void)units_.update(1.0F);
+
+    // Then it remains on its original tile.
+    const auto* position = world_.tryGet<model::components::Position>(unit);
+    ASSERT_NE(position, nullptr);
+    EXPECT_FLOAT_EQ(position->x, 0.5F);
+    EXPECT_FLOAT_EQ(position->y, 0.5F);
+}
+
 TEST(UnitNameTests, ShowsTheNewRecruitableNames)
 {
     // Given the three recruitable unit types.

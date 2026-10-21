@@ -32,6 +32,7 @@ public:
 
     // Extra rule for free tiles (e.g. units standing there). Buildings never cover a blocked tile.
     void setTileBlocker(std::function<bool(GridPos)> blocker) { tileBlocker_ = std::move(blocker); }
+    void setPlacementRule(std::function<bool(BuildingType, GridPos, int)> rule) { placementRule_ = std::move(rule); }
     // Re-checks preview validity after something other than the cursor changed.
     void refreshPreviews() const;
 
@@ -63,6 +64,7 @@ private:
     std::unordered_map<PlayerId, BuilderState> builders_;
     std::unordered_map<PlayerId, ecs::Entity> commandCenters_;
     std::function<bool(GridPos)> tileBlocker_;
+    std::function<bool(BuildingType, GridPos, int)> placementRule_;
 };
 
 } // namespace model

@@ -17,7 +17,7 @@
 
 namespace view::gameplay {
 
-// Draws the isometric map (infinite grid, buildings, units, player, placement preview) and owns the camera.
+// Draws the isometric map, buildings, units, player and placement preview, and owns the camera.
 class WorldView {
 public:
     explicit WorldView(core::EventBus& bus);
@@ -67,6 +67,7 @@ private:
     [[nodiscard]] Camera2D camera() const;
 
     void drawGrid(const Camera2D& camera) const;
+    void drawDeposits(const Camera2D& camera) const;
     // Buildings, units and player are drawn back to front in one painter-order pass.
     void drawObjects() const;
     void drawPreview() const;
@@ -83,6 +84,7 @@ private:
     std::optional<model::ecs::Entity> selectedBuilding_;
     events::BuildPreviewChanged preview_{};
     events::SelectionBoxChanged selectionBox_{};
+    std::optional<events::MapGenerated> worldMap_;
     model::PlayerId localPlayerId_ = model::kNoPlayer;
 };
 

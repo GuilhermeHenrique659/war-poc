@@ -11,6 +11,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <utility>
 
 namespace model {
 
@@ -129,7 +130,7 @@ components::Position PlayerAvatarSystem::findSpawnPosition(GridPos origin, int s
                 }
 
                 const components::Position candidate{static_cast<float>(x) + 0.5F, static_cast<float>(y) + 0.5F};
-                if (collidesWithBuilding(candidate)) {
+                if (collidesWithBuilding(candidate) || !isPositionWalkable(candidate)) {
                     continue;
                 }
 
@@ -167,6 +168,25 @@ bool PlayerAvatarSystem::collidesWithBuilding(components::Position position) con
     return collides;
 }
 
+bool PlayerAvatarSystem::isPositionWalkable(components::Position position) const
+{
+    if (!tileWalkable_) {
+        return true;
+    }
+    const int minX = static_cast<int>(std::floor(position.x - kPlayerCollisionRadius));
+    const int minY = static_cast<int>(std::floor(position.y - kPlayerCollisionRadius));
+    const int maxX = static_cast<int>(std::floor(position.x + kPlayerCollisionRadius - 0.001F));
+    const int maxY = static_cast<int>(std::floor(position.y + kPlayerCollisionRadius - 0.001F));
+    for (int y = minY; y <= maxY; ++y) {
+        for (int x = minX; x <= maxX; ++x) {
+            if (!tileWalkable_(GridPos{x, y})) {
+                return false;
+            }
+        }
+    }
+    return true;
+}
+
 float PlayerAvatarSystem::moveAlongAxis(components::Position position, float distance, bool xAxis) const
 {
     if (distance == 0.0F) {
@@ -197,6 +217,32 @@ float PlayerAvatarSystem::moveAlongAxis(components::Position position, float dis
             destination = std::max(destination, obstacleEnd + kPlayerCollisionRadius);
         }
     });
+    if (tileWalkable_) {
+        const float current = xAxis ? position.x : position.y;
+        const auto candidateAt = [&](float coordinate) {
+            components::Position candidate = position;
+            if (xAxis) {
+                candidate.x = coordinate;
+            } else {
+                candidate.y = coordinate;
+            }
+            return candidate;
+        };
+        if (!isPositionWalkable(candidateAt(destination))) {
+            float low = 0.0F;
+            float high = 1.0F;
+            for (int iteration = 0; iteration < 20; ++iteration) {
+                const float middle = (low + high) / 2.0F;
+                const float candidate = current + (destination - current) * middle;
+                if (isPositionWalkable(candidateAt(candidate))) {
+                    low = middle;
+                } else {
+                    high = middle;
+                }
+            }
+            destination = current + (destination - current) * low;
+        }
+    }
     return destination;
 }
 
