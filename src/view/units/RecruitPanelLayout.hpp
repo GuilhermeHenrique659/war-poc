@@ -1,7 +1,5 @@
 #pragma once
 
-#include "view/economy/EconomyPanelLayout.hpp"
-
 #include <raylib.h>
 
 #include <cstddef>
@@ -11,7 +9,7 @@ namespace view::recruit_panel_layout {
 
 inline constexpr float kWidth = 290.0f;
 inline constexpr float kMargin = 10.0f;
-inline constexpr float kTop = economy_panel_layout::kMargin + economy_panel_layout::kHeight + 10.0f;
+inline constexpr float kTop = 92.0f;
 inline constexpr float kPadding = 10.0f;
 inline constexpr float kHeaderHeight = 36.0f;
 inline constexpr float kSlotHeight = 70.0f;

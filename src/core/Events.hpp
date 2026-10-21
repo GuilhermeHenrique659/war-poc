@@ -1,6 +1,7 @@
 #pragma once
 
 #include "model/build/BuildingType.hpp"
+#include "model/economy/Item.hpp"
 #include "model/GridPos.hpp"
 #include "model/player/Player.hpp"
 #include "model/Scene.hpp"
@@ -88,6 +89,21 @@ struct BuildPlaceRequested {
 struct RecruitRequested {
     model::PlayerId player;
     model::UnitType type;
+};
+
+struct TransferInventoryItemRequested {
+    model::PlayerId player;
+    model::ecs::Entity building;
+    std::size_t slotIndex;
+    bool fromPlayer;
+};
+
+struct TogglePlayerInventoryRequested {
+    model::PlayerId player;
+};
+
+struct CloseInventoryRequested {
+    model::PlayerId player;
 };
 
 struct PlayerMoveRequested {
@@ -183,12 +199,30 @@ struct PlayerRespawnRequested {
     model::ecs::Entity entity;
 };
 
-struct EconomyChanged {
-    model::PlayerId player;
-    std::array<int, 4> stock;
-    std::array<int, 4> capacity;
-    int populationUsed;
-    int populationCapacity;
+struct InventorySlotState {
+    bool occupied = false;
+    model::ItemId item = model::ItemId::Count;
+    int currentQuantity = 0;
+    int maxQuantity = 0;
+};
+
+struct InventoryPanelChanged {
+    model::PlayerId player = model::kNoPlayer;
+    bool open = false;
+    bool playerVisible = false;
+    bool hasBuilding = false;
+    bool playerInventoryOpen = false;
+    model::ecs::Entity building = 0;
+    std::string buildingName;
+    std::vector<InventorySlotState> buildingSlots;
+    std::vector<InventorySlotState> playerSlots;
+};
+
+struct InventoryDragChanged {
+    model::PlayerId player = model::kNoPlayer;
+    bool active = false;
+    model::ItemId item = model::ItemId::Count;
+    int quantity = 0;
 };
 
 struct MenuStateChanged {

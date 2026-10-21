@@ -2,6 +2,7 @@
 
 #include "controller/SelectionInputController.hpp"
 #include "core/EventBus.hpp"
+#include "core/Events.hpp"
 #include "model/build/BuildingType.hpp"
 #include "model/GridPos.hpp"
 #include "model/units/UnitType.hpp"
@@ -44,6 +45,9 @@ private:
     std::optional<model::GridPos> lastTile_;
     bool placing_ = false; // Left button went down on the map and is still held.
     std::vector<model::UnitType> panelTypes_; // Empty while the recruit panel is closed.
+    events::InventoryPanelChanged inventoryPanel_;
+    std::optional<std::size_t> inventoryDragSlot_;
+    bool inventoryDragFromPlayer_ = false;
     model::PlayerId localPlayerId_ = model::kNoPlayer;
 };
 

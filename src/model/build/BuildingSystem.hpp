@@ -2,7 +2,6 @@
 
 #include "core/EventBus.hpp"
 #include "model/build/BuildingType.hpp"
-#include "model/economy/EconomySystem.hpp"
 #include "model/GridPos.hpp"
 #include "model/player/Player.hpp"
 #include "model/ecs/Registry.hpp"
@@ -23,7 +22,6 @@ public:
     // Call after the world is cleared.
     void reset();
     void initializePlayer(PlayerId player);
-    void setEconomy(EconomySystem* economy) { economy_ = economy; }
 
     void select(PlayerId player, BuildingType type);
     void cancel(PlayerId player);
@@ -61,7 +59,6 @@ private:
     std::unordered_map<PlayerId, BuilderState> builders_;
     std::unordered_map<PlayerId, ecs::Entity> commandCenters_;
     std::function<bool(GridPos)> tileBlocker_;
-    EconomySystem* economy_ = nullptr;
 };
 
 } // namespace model

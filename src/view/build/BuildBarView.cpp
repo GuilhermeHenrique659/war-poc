@@ -30,6 +30,8 @@ constexpr std::array kHelpLines{
     "Botao esquerdo: construir (arraste para muros)",
     "Botao direito / ESC: cancelar construcao",
     "Clique no Centro de Comando: recrutar tropas",
+    "I: abrir inventario do jogador",
+    "Selecione construcao: inventarios; arraste para transferir",
     "Clique / arraste: selecionar tropas (Shift soma)",
     "Botao direito: mover tropas selecionadas",
     "Botao direito no Cruzador: enviar 2 tropas para cruzamento",

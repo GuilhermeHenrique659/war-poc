@@ -9,6 +9,7 @@
 #include "model/ecs/Registry.hpp"
 
 #include <string>
+#include <optional>
 #include <unordered_map>
 
 namespace model {
@@ -18,7 +19,8 @@ public:
     PlayerAvatarSystem(core::EventBus& bus, ecs::Registry& world);
 
     void reset();
-    [[nodiscard]] ecs::Entity create(PlayerId player, const std::string& name);
+    [[nodiscard]]     ecs::Entity create(PlayerId player, const std::string& name);
+    [[nodiscard]] std::optional<ecs::Entity> entity(PlayerId player) const;
     void move(PlayerId player, float directionX, float directionY, float deltaSeconds);
 
 private:

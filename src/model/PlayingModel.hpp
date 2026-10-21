@@ -3,7 +3,7 @@
 #include "core/EventBus.hpp"
 #include "core/Events.hpp"
 #include "model/build/BuildingSystem.hpp"
-#include "model/economy/EconomySystem.hpp"
+#include "model/economy/ProductionSystem.hpp"
 #include "model/units/CombatSystem.hpp"
 #include "model/units/GenealogySystem.hpp"
 #include "model/selection/SelectionSystem.hpp"
@@ -15,6 +15,7 @@
 
 #include <memory>
 #include <string>
+#include <unordered_map>
 
 namespace model {
 
@@ -34,13 +35,13 @@ private:
     void changeScene(Scene scene);
     void resetWorld();
     void createLocalPlayer(const std::string& playerName);
+    void publishInventoryPanel(PlayerId player) const;
 
     core::EventBus& bus_;
     Scene scene_ = Scene::MainMenu;
     PlayerId nextPlayerId_ = 1;
     PlayerId localPlayerId_ = kNoPlayer;
     std::unique_ptr<ecs::Registry> world_;
-    std::unique_ptr<EconomySystem> economy_;
     // Systems hold references to world_ (and units_ to buildings_); preserve declaration order.
     std::unique_ptr<BuildingSystem> buildings_;
     std::unique_ptr<UnitSystem> units_;
@@ -48,6 +49,9 @@ private:
     std::unique_ptr<CombatSystem> combat_;
     std::unique_ptr<SelectionSystem> selection_;
     std::unique_ptr<GenealogySystem> genealogy_; // References buildings_, units_ and selection_.
+    ProductionSystem production_;
+    std::unordered_map<PlayerId, ecs::Entity> inventoryPanels_;
+    std::unordered_map<PlayerId, bool> playerInventoryOpen_;
 };
 
 } // namespace model

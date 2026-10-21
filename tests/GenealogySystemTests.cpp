@@ -1,7 +1,6 @@
 #include "core/EventBus.hpp"
 #include "core/Events.hpp"
 #include "model/build/BuildingSystem.hpp"
-#include "model/economy/EconomySystem.hpp"
 #include "model/units/GenealogySystem.hpp"
 #include "model/selection/SelectionSystem.hpp"
 #include "model/units/UnitSystem.hpp"
@@ -22,9 +21,6 @@ protected:
         , selection_(bus_, world_)
         , genealogy_(world_, units_, selection_)
     {
-        economy_.initializePlayer(kPlayer);
-        buildings_.setEconomy(&economy_);
-        units_.setEconomy(&economy_);
         bus_.subscribe<events::UnitSpawned>([this](const events::UnitSpawned& event) {
             spawns_.push_back(event);
         });
@@ -50,7 +46,6 @@ protected:
     model::ecs::Registry world_;
     model::BuildingSystem buildings_;
     model::UnitSystem units_;
-    model::EconomySystem economy_;
     model::SelectionSystem selection_;
     model::GenealogySystem genealogy_;
     std::vector<events::UnitSpawned> spawns_;
@@ -63,7 +58,6 @@ TEST_F(GenealogySystemTest, SendsExactlyTwoFriendlyUnitsToCruzadorAndUsesLegacyF
 {
     // Given a Cruzador and two nearby units of different types.
     const model::ecs::Entity cruzador = buildCruzador();
-    ASSERT_TRUE(economy_.reservePopulation(kPlayer, 2));
     const model::ecs::Entity soldier = units_.spawn(kPlayer, model::recruitStats(model::UnitType::Soldier), {5, 10});
     const model::ecs::Entity bat = units_.spawn(kPlayer, model::recruitStats(model::UnitType::Bat), {5, 11});
     const std::vector<model::ecs::Entity> parents{soldier, bat};
@@ -90,7 +84,6 @@ TEST_F(GenealogySystemTest, SendsExactlyTwoFriendlyUnitsToCruzadorAndUsesLegacyF
     EXPECT_EQ(health->max, 160);
     EXPECT_EQ(combat->damage, 18);
     EXPECT_FLOAT_EQ(combat->range, 5.0F);
-    EXPECT_EQ(economy_.populationUsed(kPlayer), 2);
 }
 
 TEST_F(GenealogySystemTest, RejectsSendingAnythingOtherThanExactlyTwoUnits)

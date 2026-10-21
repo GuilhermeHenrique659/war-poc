@@ -1,12 +1,14 @@
 #include "core/EventBus.hpp"
 #include "core/Events.hpp"
 #include "model/build/BuildingSystem.hpp"
-#include "model/economy/EconomySystem.hpp"
+#include "model/economy/InventoryComponents.hpp"
+#include "model/economy/ProductionComponents.hpp"
 #include "model/build/BuildingComponents.hpp"
 #include "model/units/UnitComponents.hpp"
 
 #include <gtest/gtest.h>
 
+#include <algorithm>
 #include <vector>
 
 namespace {
@@ -111,49 +113,77 @@ TEST_F(BuildingSystemTest, UnlocksWallsAfterTheCommandCenterIsBuilt)
     EXPECT_TRUE(buildings_.isOccupied(wallTile));
 }
 
-TEST_F(BuildingSystemTest, ChargesBuildingCostsAndAppliesHousePopulationCapacity)
+TEST_F(BuildingSystemTest, BuildingsAreFreeAndHaveInventorySlots)
 {
-    // Given a player with an initialized economy and a completed Command Center.
-    model::EconomySystem economy;
-    buildings_.setEconomy(&economy);
-    buildings_.initializePlayer(kPlayer);
+    // Given a player with a completed Command Center and no construction costs.
     buildings_.select(kPlayer, model::BuildingType::CommandCenter);
     buildings_.place(kPlayer, {0, 0});
 
-    // When the player places a House.
-    buildings_.select(kPlayer, model::BuildingType::House);
+    // When the player places a mine.
+    buildings_.select(kPlayer, model::BuildingType::IronMine);
     buildings_.place(kPlayer, {10, 10});
 
-    // Then its cost is deducted and the population capacity increases.
-    EXPECT_EQ(economy.amount(kPlayer, model::Resource::Gold), 80);
-    EXPECT_EQ(economy.amount(kPlayer, model::Resource::Wood), 80);
-    EXPECT_EQ(economy.populationCapacity(kPlayer), 20);
+    // Then it is created for free with a 64-slot inventory and a primary production recipe.
+    ASSERT_EQ(placements_.size(), 2U);
+    const auto entity = placements_.back().entity;
+    const auto* inventory = world_.tryGet<model::components::Inventory>(entity);
+    const auto* production = world_.tryGet<model::components::Production>(entity);
+    const auto* building = world_.tryGet<model::components::Building>(entity);
+    ASSERT_NE(inventory, nullptr);
+    ASSERT_NE(production, nullptr);
+    ASSERT_NE(building, nullptr);
+    EXPECT_EQ(inventory->slots.size(), 64U);
+    EXPECT_TRUE(std::none_of(inventory->slots.begin(), inventory->slots.end(), [](const auto& slot) {
+        return slot.has_value();
+    }));
+    EXPECT_EQ(building->name, "Mina de Ferro");
+    EXPECT_TRUE(production->inputs.empty());
+    EXPECT_EQ(production->output, model::ItemId::Iron);
+    EXPECT_FLOAT_EQ(production->outputPerSecond, 1.0F);
 }
 
-TEST_F(BuildingSystemTest, CruzadorUsesTheBarracksFootprintAndCost)
+TEST_F(BuildingSystemTest, CoalMineProducesOneCoalPerSecond)
 {
-    // Given an initialized player with a completed Command Center.
-    model::EconomySystem economy;
-    buildings_.setEconomy(&economy);
-    buildings_.initializePlayer(kPlayer);
+    // Given a player with a completed Command Center.
     buildings_.select(kPlayer, model::BuildingType::CommandCenter);
     buildings_.place(kPlayer, {0, 0});
 
-    // When the player builds a Cruzador.
-    buildings_.select(kPlayer, model::BuildingType::Cruzador);
+    // When the player places a Coal Mine.
+    buildings_.select(kPlayer, model::BuildingType::CoalMine);
+    buildings_.place(kPlayer, {10, 10});
+
+    // Then it has a primary recipe for one coal per second.
+    ASSERT_EQ(placements_.size(), 2U);
+    const auto* production = world_.tryGet<model::components::Production>(placements_.back().entity);
+    ASSERT_NE(production, nullptr);
+    EXPECT_EQ(production->type(), model::ProductionType::Primary);
+    EXPECT_TRUE(production->inputs.empty());
+    EXPECT_EQ(production->output, model::ItemId::Coal);
+    EXPECT_FLOAT_EQ(production->outputPerSecond, 1.0F);
+}
+
+TEST_F(BuildingSystemTest, SiderurgiaConsumesIronAndCoalAndProducesSteel)
+{
+    // Given a player with a completed Command Center.
+    buildings_.select(kPlayer, model::BuildingType::CommandCenter);
+    buildings_.place(kPlayer, {0, 0});
+
+    // When the player builds a Siderurgia.
+    buildings_.select(kPlayer, model::BuildingType::Steelworks);
     buildings_.place(kPlayer, {12, 12});
 
-    // Then it occupies 3x3 tiles and charges the same resources as a Barracks.
+    // Then it has the defined input and output rates and a 3x3 footprint.
     ASSERT_EQ(placements_.size(), 2U);
-    EXPECT_EQ(placements_.back().type, model::BuildingType::Cruzador);
+    EXPECT_EQ(placements_.back().type, model::BuildingType::Steelworks);
     EXPECT_EQ(placements_.back().size, 3);
-    EXPECT_EQ(economy.amount(kPlayer, model::Resource::Gold), 50);
-    EXPECT_EQ(economy.amount(kPlayer, model::Resource::Wood), 70);
-    EXPECT_EQ(economy.amount(kPlayer, model::Resource::Steel), 15);
-    EXPECT_EQ(model::buildingCost(model::BuildingType::Cruzador).gold,
-        model::buildingCost(model::BuildingType::Barracks).gold);
-    EXPECT_EQ(model::buildingCost(model::BuildingType::Cruzador).wood,
-        model::buildingCost(model::BuildingType::Barracks).wood);
-    EXPECT_EQ(model::buildingCost(model::BuildingType::Cruzador).steel,
-        model::buildingCost(model::BuildingType::Barracks).steel);
+    const auto* production = world_.tryGet<model::components::Production>(placements_.back().entity);
+    ASSERT_NE(production, nullptr);
+    EXPECT_EQ(production->type(), model::ProductionType::Intermediate);
+    ASSERT_EQ(production->inputs.size(), 2U);
+    EXPECT_EQ(production->inputs[0].item, model::ItemId::Iron);
+    EXPECT_FLOAT_EQ(production->inputs[0].quantityPerSecond, 1.0F);
+    EXPECT_EQ(production->inputs[1].item, model::ItemId::Coal);
+    EXPECT_FLOAT_EQ(production->inputs[1].quantityPerSecond, 1.0F);
+    EXPECT_EQ(production->output, model::ItemId::Steel);
+    EXPECT_FLOAT_EQ(production->outputPerSecond, 0.5F);
 }

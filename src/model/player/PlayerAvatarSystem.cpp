@@ -4,6 +4,9 @@
 #include "model/units/UnitType.hpp"
 #include "model/build/BuildingComponents.hpp"
 #include "model/components/Owner.hpp"
+#include "model/economy/InventoryComponents.hpp"
+#include "model/economy/InventorySystem.hpp"
+#include "model/economy/Item.hpp"
 #include "model/player/PlayerComponents.hpp"
 
 #include <algorithm>
@@ -43,8 +46,16 @@ ecs::Entity PlayerAvatarSystem::create(PlayerId player, const std::string& name)
     const ecs::Entity entity = world_.create();
     world_.emplace<components::PlayerProfile>(entity, player, name);
     world_.emplace<components::Owner>(entity, player);
+    auto& inventory = world_.emplace<components::Inventory>(entity, std::size_t{32});
+    (void)InventorySystem::add(inventory, ItemId::Iron, 500);
     entities_[player] = entity;
     return entity;
+}
+
+std::optional<ecs::Entity> PlayerAvatarSystem::entity(PlayerId player) const
+{
+    const auto it = entities_.find(player);
+    return it == entities_.end() ? std::nullopt : std::optional<ecs::Entity>{it->second};
 }
 
 void PlayerAvatarSystem::move(PlayerId player, float directionX, float directionY, float deltaSeconds)

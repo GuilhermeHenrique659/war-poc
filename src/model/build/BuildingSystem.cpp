@@ -2,6 +2,9 @@
 
 #include "core/Events.hpp"
 #include "model/build/BuildingComponents.hpp"
+#include "model/economy/InventoryComponents.hpp"
+#include "model/economy/ProductionComponents.hpp"
+#include "model/economy/Item.hpp"
 #include "model/units/UnitComponents.hpp"
 
 #include <string>
@@ -23,7 +26,6 @@ void BuildingSystem::reset()
 
 void BuildingSystem::initializePlayer(PlayerId player)
 {
-    if (economy_ != nullptr) economy_->initializePlayer(player);
     publishBar(player);
     publishPreview(player);
 }
@@ -80,17 +82,37 @@ void BuildingSystem::place(PlayerId player, GridPos anchor)
     if (!canPlace(player, type, origin)) {
         return;
     }
-    if (economy_ != nullptr && !economy_->spend(player, buildingCost(type))) return;
-
     const ecs::Entity entity = world_.create();
     world_.emplace<components::Building>(entity, type);
     world_.emplace<components::Owner>(entity, player);
+    world_.emplace<components::Inventory>(entity, std::size_t{64});
     world_.emplace<components::Footprint>(entity, origin, size);
     world_.emplace<components::Health>(entity, 500, 500);
     world_.emplace<components::Position>(entity, static_cast<float>(origin.x) + static_cast<float>(size) / 2.0F,
         static_cast<float>(origin.y) + static_cast<float>(size) / 2.0F);
     if (type == BuildingType::Tower) {
         world_.emplace<components::Combat>(entity, 20, 6.0F);
+    }
+    switch (type) {
+    case BuildingType::IronMine:
+        world_.emplace<components::Production>(entity, std::vector<ProductionInput>{}, ItemId::Iron, 1.0F);
+        break;
+    case BuildingType::CoalMine:
+        world_.emplace<components::Production>(entity, std::vector<ProductionInput>{}, ItemId::Coal, 1.0F);
+        break;
+    case BuildingType::Steelworks:
+        world_.emplace<components::Production>(entity,
+            std::vector<ProductionInput>{{ItemId::Iron, 1.0F}, {ItemId::Coal, 1.0F}}, ItemId::Steel, 0.5F);
+        break;
+    case BuildingType::CommandCenter:
+    case BuildingType::Wall:
+    case BuildingType::House:
+    case BuildingType::Generator:
+    case BuildingType::Warehouse:
+    case BuildingType::Barracks:
+    case BuildingType::Cruzador:
+    case BuildingType::Tower:
+        break;
     }
     for (int dy = 0; dy < size; ++dy) {
         for (int dx = 0; dx < size; ++dx) {
@@ -100,8 +122,6 @@ void BuildingSystem::place(PlayerId player, GridPos anchor)
     if (type == BuildingType::CommandCenter) {
         commandCenters_[player] = entity;
     }
-    if (economy_ != nullptr) economy_->applyBuilding(player, type);
-
     bus_.publish(events::BuildingPlaced{entity, player, type, origin, size});
 
     // Keep the selection for repeated placement (walls) unless the type just got locked.
@@ -156,6 +176,9 @@ std::string_view BuildingSystem::lockedReason(PlayerId player, BuildingType type
     case BuildingType::House:
     case BuildingType::Generator:
     case BuildingType::Warehouse:
+    case BuildingType::IronMine:
+    case BuildingType::CoalMine:
+    case BuildingType::Steelworks:
         return hasCommandCenter(player) ? "" : "Requer Centro";
     case BuildingType::Barracks:
     case BuildingType::Cruzador:
@@ -186,8 +209,7 @@ bool BuildingSystem::isAreaFree(GridPos origin, int size) const
 
 bool BuildingSystem::canPlace(PlayerId player, BuildingType type, GridPos origin) const
 {
-    return isUnlocked(player, type) && isAreaFree(origin, buildingSpec(type).size)
-        && (economy_ == nullptr || economy_->canAfford(player, buildingCost(type)));
+    return isUnlocked(player, type) && isAreaFree(origin, buildingSpec(type).size);
 }
 
 bool BuildingSystem::hasCommandCenter(PlayerId player) const

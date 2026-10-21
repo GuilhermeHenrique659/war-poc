@@ -3,6 +3,7 @@
 #include "core/Events.hpp"
 #include "model/player/Player.hpp"
 #include "view/build/BuildBarLayout.hpp"
+#include "view/economy/InventoryPanelLayout.hpp"
 #include "view/IsoProjection.hpp"
 #include "view/units/RecruitPanelLayout.hpp"
 
@@ -45,16 +46,27 @@ PlayingInputController::PlayingInputController(core::EventBus& bus)
             panelTypes_.push_back(entry.type);
         }
     });
+    bus_.subscribe<events::InventoryPanelChanged>([this](const events::InventoryPanelChanged& e) {
+        if (e.player == localPlayerId_) {
+            inventoryPanel_ = e;
+        }
+    });
     bus_.subscribe<events::WorldReset>([this](const events::WorldReset&) {
         lastTile_.reset();
         placing_ = false;
         panelTypes_.clear();
+        inventoryPanel_ = {};
+        inventoryDragSlot_.reset();
     });
 }
 
 void PlayingInputController::update()
 {
     if (handleCancel()) {
+        return;
+    }
+    if (IsKeyPressed(KEY_I)) {
+        bus_.publish(events::TogglePlayerInventoryRequested{localPlayerId_});
         return;
     }
     handlePlayerMovement();
@@ -64,7 +76,7 @@ void PlayingInputController::update()
     const bool wasBuilding = hasBuildSelection_;
     const Vector2 mouse = GetMousePosition();
     const Camera2D camera = view::iso::makeCamera(cameraTarget_, cameraZoom_, GetScreenWidth(), GetScreenHeight());
-    const bool overPanel = isOverPanel(mouse);
+    const bool overPanel = isOverPanel(mouse) || inventoryDragSlot_.has_value();
     const bool overBar
         = CheckCollisionPointRec(
             mouse, view::build_bar_layout::barBounds(GetScreenWidth(), GetScreenHeight(), barTypes_.size()));
@@ -91,6 +103,13 @@ bool PlayingInputController::handleCancel()
     const bool rightClick = IsMouseButtonPressed(MOUSE_BUTTON_RIGHT);
     if (!escape && !rightClick) {
         return false;
+    }
+
+    if (escape && inventoryPanel_.open) {
+        bus_.publish(events::CloseInventoryRequested{localPlayerId_});
+        inventoryDragSlot_.reset();
+        bus_.publish(events::InventoryDragChanged{localPlayerId_, false, model::ItemId::Count, 0});
+        return true;
     }
 
     if (hasBuildSelection_) {
@@ -166,6 +185,60 @@ void PlayingInputController::handlePanelMouse(Vector2 mouse)
     placing_ = false;
     publishCursor(std::nullopt);
 
+    if (inventoryPanel_.open) {
+        const int screenWidth = GetScreenWidth();
+        const Rectangle inventoryBounds = view::inventory_panel_layout::panelBounds(screenWidth);
+        if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT)
+            && CheckCollisionPointRec(mouse, view::inventory_panel_layout::closeBounds(screenWidth))) {
+            bus_.publish(events::CloseInventoryRequested{localPlayerId_});
+            inventoryDragSlot_.reset();
+            bus_.publish(events::InventoryDragChanged{localPlayerId_, false, model::ItemId::Count, 0});
+            return;
+        }
+
+        if (!inventoryDragSlot_ && inventoryPanel_.hasBuilding
+            && IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
+            for (std::size_t index = 0; index < inventoryPanel_.playerSlots.size(); ++index) {
+                const Rectangle slot = view::inventory_panel_layout::slotBounds(index, true, screenWidth);
+                if (inventoryPanel_.playerSlots[index].occupied && CheckCollisionPointRec(mouse, slot)) {
+                    inventoryDragSlot_ = index;
+                    inventoryDragFromPlayer_ = true;
+                    bus_.publish(events::InventoryDragChanged{
+                        localPlayerId_, true, inventoryPanel_.playerSlots[index].item,
+                        inventoryPanel_.playerSlots[index].currentQuantity});
+                    return;
+                }
+            }
+            for (std::size_t index = 0; index < inventoryPanel_.buildingSlots.size(); ++index) {
+                const Rectangle slot = view::inventory_panel_layout::slotBounds(index, false, screenWidth);
+                if (inventoryPanel_.buildingSlots[index].occupied && CheckCollisionPointRec(mouse, slot)) {
+                    inventoryDragSlot_ = index;
+                    inventoryDragFromPlayer_ = false;
+                    bus_.publish(events::InventoryDragChanged{
+                        localPlayerId_, true, inventoryPanel_.buildingSlots[index].item,
+                        inventoryPanel_.buildingSlots[index].currentQuantity});
+                    return;
+                }
+            }
+        }
+
+        if (inventoryDragSlot_ && IsMouseButtonReleased(MOUSE_BUTTON_LEFT)) {
+            const bool targetIsPlayer = !inventoryDragFromPlayer_;
+            const Rectangle targetPane = view::inventory_panel_layout::paneBounds(targetIsPlayer, screenWidth);
+            if (CheckCollisionPointRec(mouse, targetPane)) {
+                bus_.publish(events::TransferInventoryItemRequested{
+                    localPlayerId_, inventoryPanel_.building, *inventoryDragSlot_, inventoryDragFromPlayer_});
+            }
+            inventoryDragSlot_.reset();
+            bus_.publish(events::InventoryDragChanged{localPlayerId_, false, model::ItemId::Count, 0});
+            return;
+        }
+
+        if (CheckCollisionPointRec(mouse, inventoryBounds)) {
+            return;
+        }
+    }
+
     if (!IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
         return;
     }
@@ -228,6 +301,10 @@ std::optional<std::size_t> PlayingInputController::slotUnderMouse(Vector2 mouse)
 
 bool PlayingInputController::isOverPanel(Vector2 mouse) const
 {
+    if (inventoryPanel_.open
+        && CheckCollisionPointRec(mouse, view::inventory_panel_layout::panelBounds(GetScreenWidth()))) {
+        return true;
+    }
     if (panelTypes_.empty()) {
         return false;
     }

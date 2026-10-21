@@ -42,14 +42,15 @@ Documento vivo com as regras do jogo. Itens marcados como **TBD** ainda não for
 - Origem do mapa definitivo (Tiled `.tmx` ou procedural), tamanho e tipos de terreno: **TBD**.
 
 ## Economia / recursos
-- Recursos limitados por jogador: ouro, madeira, aço e petróleo. Cada recurso tem estoque inicial e capacidade; produção acima da capacidade é descartada.
-- Durante a partida, o HUD no canto superior direito mostra o estoque e a capacidade de cada recurso, além da população ocupada e da capacidade populacional. Ao lado dele, uma barra mostra a vida atual e máxima do avatar.
-- Estoque inicial: 100 ouro, 100 madeira, 25 aço e 10 petróleo. Capacidade inicial: 500 de cada recurso.
-- O Gerador produz por segundo: 2 ouro, 1 madeira, 0,25 aço e 0,25 petróleo. O Depósito aumenta em 250 a capacidade de cada recurso.
-- Custos de construção: Centro de Comando grátis; Muro 5 madeira; Casa 20 ouro + 20 madeira; Gerador 30 ouro + 10 madeira; Depósito 25 ouro + 15 madeira; Quartel e Cruzador 50 ouro + 30 madeira + 10 aço.
-- População: capacidade inicial 10, Centro de Comando +5, cada Casa +5. Cada tropa recrutada ocupa 1 população.
-- No MVP sandbox, recrutamento usa os custos abaixo e exige Quartel; cada tropa ocupa 1 população. O recrutamento é instantâneo. Não existe um modo de recrutamento grátis separado.
-- Custos de recrutamento: Soldado 50 ouro; Morcego 40 ouro + 10 madeira; Bode 75 ouro + 5 aço.
+- O inventário é composto por slots; cada slot armazena um item e sua quantidade atual em unidades inteiras (não há frações de item). Cada pilha comporta até 100 unidades. O inventário do jogador tem 32 slots e o de cada construção tem 64.
+- O jogador começa com 500 unidades de ferro, distribuídas em cinco pilhas. Inventários de construções começam vazios. Itens definidos: ferro, carvão e aço.
+- A tecla `I` abre/fecha o inventário do jogador. Ao selecionar uma construção, o painel mostra o inventário do jogador e o da construção lado a lado. Arrastar uma pilha de um painel ao outro transfere o máximo que couber; o restante permanece na origem se não houver espaço. `ESC` ou `X` fecha o painel.
+- Produção usa taxas por segundo, mas itens e consumo são sempre unidades inteiras. O progresso fracionário da taxa fica acumulado internamente até completar uma unidade; produção também respeita os itens disponíveis e a capacidade do inventário de saída:
+  - Mina de Ferro: produz 1 ferro/s sem consumir entradas.
+  - Mina de Carvão: produz 1 carvão/s sem consumir entradas.
+  - Siderurgia: consome 1 ferro/s e 1 carvão/s e produz 0,5 aço/s.
+- Custos de construção e recursos, estoque/capacidade antigos e limite populacional foram removidos. Construções são grátis nesta etapa. O recrutamento continua instantâneo, requer Quartel e não tem custo nem limite populacional.
+- Casa, Gerador e Depósito permanecem como estruturas sem efeitos econômicos nesta etapa. Unidades ainda não recebem inventários.
 
 ## Construção
 - Barra de construção no rodapé da tela: clique (ou teclas `1`-`9`) seleciona a estrutura. Clicar de novo na mesma desmarca.
@@ -63,17 +64,20 @@ Documento vivo com as regras do jogo. Itens marcados como **TBD** ainda não for
 |---|---|---|
 | Centro de Comando | 5x5 | Um por jogador. Precisa ser a primeira construção. Depois de construído, some da seleção. |
 | Muro | 1x1 | Só liberado depois que o jogador tem um Centro de Comando. |
-| Casa | 2x2 | Requer Centro de Comando; aumenta capacidade populacional em 5. |
-| Gerador | 2x2 | Requer Centro de Comando; produz recursos periodicamente. |
-| Depósito | 2x2 | Requer Centro de Comando; aumenta a capacidade de estoque. |
+| Casa | 2x2 | Requer Centro de Comando; sem efeito econômico nesta etapa. |
+| Gerador | 2x2 | Requer Centro de Comando; sem efeito econômico nesta etapa. |
+| Depósito | 2x2 | Requer Centro de Comando; sem efeito econômico nesta etapa. |
 | Quartel | 3x3 | Requer Centro de Comando; libera recrutamento. |
-| Cruzador | 3x3 | Requer Centro de Comando; recebe duas tropas para gerar uma descendente. Custa o mesmo que o Quartel. |
+| Cruzador | 3x3 | Requer Centro de Comando; recebe duas tropas para gerar uma descendente. |
+| Mina de Ferro | 2x2 | Requer Centro de Comando; inventário de 64 slots; produz 1 ferro/s. |
+| Mina de Carvão | 2x2 | Requer Centro de Comando; inventário de 64 slots; produz 1 carvão/s. |
+| Siderurgia | 3x3 | Requer Centro de Comando; inventário de 64 slots; consome 1 ferro/s e 1 carvão/s e produz 0,5 aço/s. |
 
-- Custos definidos na seção Economia / recursos.
+- Todas as construções são grátis por enquanto. Clicar numa construção abre seu inventário para consulta e transferência ao jogador.
 - **TBD**: tempo de construção, demolição/reembolso, terreno válido.
 
 ## Defesa (tower defense)
-- Torre defensiva: construção 2x2, custa 40 ouro, 20 madeira e 5 aço, tem 500 de vida, alcance de 6 tiles e causa 20 de dano a cada segundo.
+- Torre defensiva: construção 2x2, tem 500 de vida, alcance de 6 tiles e causa 20 de dano a cada segundo.
 - A torre ataca automaticamente a unidade ou avatar inimigo mais próximo já dentro do alcance. Torres e unidades podem receber ordens de ataque por comando do Model; alvos aliados, mortos ou sem vida são inválidos. Ataques fora de alcance não causam dano.
 - Ataques reduzem vida; ao chegar a zero, unidades ou construções são removidas do mundo e liberam a área ocupada.
 - Ondas e comportamento/pathfinding de inimigos ainda não fazem parte desta fatia; os alvos inimigos são entidades de jogador distintas criadas pelo jogo ou pelos testes.
@@ -81,7 +85,7 @@ Documento vivo com as regras do jogo. Itens marcados como **TBD** ainda não for
 ## Unidades
 - Tropas móveis controladas pelo jogador (estilo RTS). Cada tropa tem dono.
 - **Recrutamento**: clicar no próprio Centro de Comando (sem construção selecionada) seleciona o Centro e abre o painel de recrutamento no canto superior direito. O painel fecha com o `X`, `ESC` ou ao selecionar outra coisa / clicar no chão vazio.
-  - No MVP sandbox, o recrutamento exige ao menos um Quartel, cobra os custos da seção Economia / recursos e respeita a população disponível. É instantâneo: a tropa aparece no tile livre mais próximo do Centro.
+  - No MVP sandbox, o recrutamento exige ao menos um Quartel e é instantâneo: a tropa aparece no tile livre mais próximo do Centro. Não há custo nem limite populacional nesta etapa.
 - **Seleção**: clique esquerdo numa tropa seleciona só ela. Arrastar com o botão esquerdo desenha uma caixa e seleciona todas as tropas do jogador dentro dela. `Shift` soma à seleção atual. Clique no chão vazio (sem `Shift`) limpa a seleção. Selecionar uma construção tira as tropas da seleção e vice-versa.
 - **Ordens**: botão direito sobre uma unidade inimiga ordena ataque às tropas selecionadas; no chão, manda as tropas para o tile clicado.
   - Formação: cada tropa recebe um tile livre diferente, os mais próximos do destino. A tropa mais próxima de cada tile fica com ele.
@@ -103,8 +107,8 @@ Documento vivo com as regras do jogo. Itens marcados como **TBD** ainda não for
 ### Cruzador e genealogia de tropas
 - O jogador seleciona exatamente duas tropas próprias e clica com o botão direito sobre um Cruzador próprio. As duas caminham até a construção; quando ambas chegam, são consumidas e a descendente aparece no espaço livre mais próximo.
 - Se não houver espaço para a descendente, as tropas aguardam junto ao Cruzador até existir um tile livre. Uma nova ordem de movimento cancela a entrega.
-- As combinações e descendentes são registradas em [`UNIT_GENEALOGY.md`](UNIT_GENEALOGY.md). Combinações ainda não cadastradas usam provisoriamente o resultado legado `Tropa Combinada`, com vida e dano somados, maior alcance, velocidade média ponderada pela população e tamanho calculado pelo poder.
-- O jogador recebe a descendente selecionada. A população representada pelas tropas de origem é mantida.
+- As combinações e descendentes são registradas em [`UNIT_GENEALOGY.md`](UNIT_GENEALOGY.md). Combinações ainda não cadastradas usam provisoriamente o resultado legado `Tropa Combinada`, com vida e dano somados, maior alcance, velocidade média ponderada pela quantidade de unidades representadas e tamanho calculado pelo poder.
+- O jogador recebe a descendente selecionada. A quantidade de unidades representada pelas tropas de origem é mantida.
 - **TBD**: receitas e tipos descendentes, se a ordem dos pais importa, atributos próprios das descendentes e custo/tempo de cruzamento fora do sandbox.
 - Tropas maiores que 1x1 ocupam e reservam o quadrado inteiro: nada é construído em cima e o caminho só passa por onde o quadrado inteiro cabe.
 - **TBD**: custo e tempo de recrutamento fora do sandbox, limite de tropas, colisão entre tropas.
