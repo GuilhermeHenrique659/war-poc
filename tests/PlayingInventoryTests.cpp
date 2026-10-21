@@ -28,7 +28,7 @@ TEST(PlayingInventoryTests, StartsWithIronAndTransfersProductionFromASelectedBui
     bus.publish(events::SelectBuildingRequested{1, mine.entity});
     playing.update(1.0F);
 
-    // Then the player begins with 500 iron, the mine stores one, and transferring moves it to the player.
+    // Then the player has 400 iron after paying for the mine, which stores one more iron on update.
     ASSERT_TRUE(panel.open);
     EXPECT_EQ(panel.buildingSlots.size(), 64U);
     EXPECT_EQ(panel.playerSlots.size(), 32U);
@@ -38,7 +38,7 @@ TEST(PlayingInventoryTests, StartsWithIronAndTransfersProductionFromASelectedBui
             playerIron += slot.currentQuantity;
         }
     }
-    EXPECT_EQ(playerIron, 500);
+    EXPECT_EQ(playerIron, 400);
 
     bus.publish(events::TransferInventoryItemRequested{1, mine.entity, 0, false});
     playerIron = 0.0F;
@@ -47,11 +47,11 @@ TEST(PlayingInventoryTests, StartsWithIronAndTransfersProductionFromASelectedBui
             playerIron += slot.currentQuantity;
         }
     }
-    EXPECT_EQ(playerIron, 501);
+    EXPECT_EQ(playerIron, 401);
     EXPECT_FALSE(panel.buildingSlots[0].occupied);
 
     // When a stack is dragged from the player inventory into the selected building.
-    bus.publish(events::TransferInventoryItemRequested{1, mine.entity, 0, true});
+    bus.publish(events::TransferInventoryItemRequested{1, mine.entity, 1, true});
 
     // Then the player stack moves to the mine, respecting its stack capacity.
     playerIron = 0.0F;
@@ -60,7 +60,7 @@ TEST(PlayingInventoryTests, StartsWithIronAndTransfersProductionFromASelectedBui
             playerIron += slot.currentQuantity;
         }
     }
-    EXPECT_EQ(playerIron, 401);
+    EXPECT_EQ(playerIron, 301);
     EXPECT_TRUE(panel.buildingSlots[0].occupied);
     EXPECT_EQ(panel.buildingSlots[0].currentQuantity, 100);
 

@@ -4,6 +4,9 @@
 #include "model/units/CombatSystem.hpp"
 #include "model/player/PlayerAvatarSystem.hpp"
 #include "model/build/BuildingComponents.hpp"
+#include "model/economy/InventoryComponents.hpp"
+#include "model/economy/InventorySystem.hpp"
+#include "model/economy/Item.hpp"
 #include "model/player/PlayerComponents.hpp"
 #include "model/units/UnitComponents.hpp"
 #include "model/units/UnitSystem.hpp"
@@ -20,6 +23,16 @@ protected:
         , players_(bus_, world_)
         , combat_(bus_, world_, units_, buildings_)
     {
+        const auto playerEntity = players_.create(1, "Tester");
+        auto* inventory = world_.tryGet<model::components::Inventory>(playerEntity);
+        EXPECT_NE(inventory, nullptr);
+        if (inventory == nullptr) {
+            return;
+        }
+        for (const auto item : {model::ItemId::Coal, model::ItemId::Steel, model::ItemId::Copper,
+                 model::ItemId::Electronics, model::ItemId::Tools}) {
+            EXPECT_EQ(model::InventorySystem::add(*inventory, item, 100), 100);
+        }
     }
 
     core::EventBus bus_;

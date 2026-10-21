@@ -82,6 +82,7 @@ PlayingModel::PlayingModel(core::EventBus& bus)
                 *buildingInventory, *playerInventory, slot->item, slot->currentQuantity);
         }
         publishInventoryPanel(e.player);
+        buildings_->refreshPreviews();
     });
     subscribeBuildCommands();
     subscribeUnitCommands();

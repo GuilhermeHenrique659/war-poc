@@ -4,6 +4,10 @@
 #include "model/economy/InventoryComponents.hpp"
 #include "model/economy/ProductionComponents.hpp"
 #include "model/build/BuildingComponents.hpp"
+#include "model/components/Owner.hpp"
+#include "model/economy/InventorySystem.hpp"
+#include "model/economy/Item.hpp"
+#include "model/player/PlayerComponents.hpp"
 #include "model/units/UnitComponents.hpp"
 
 #include <gtest/gtest.h>
@@ -21,12 +25,27 @@ protected:
         bus_.subscribe<events::BuildingPlaced>([this](const events::BuildingPlaced& event) {
             placements_.push_back(event);
         });
+        bus_.subscribe<events::BuildPreviewChanged>([this](const events::BuildPreviewChanged& event) {
+            previews_.push_back(event);
+        });
+        const auto playerEntity = world_.create();
+        world_.emplace<model::components::PlayerProfile>(playerEntity, kPlayer, "Tester");
+        world_.emplace<model::components::Owner>(playerEntity, kPlayer);
+        playerInventory_ = &world_.emplace<model::components::Inventory>(playerEntity, std::size_t{32});
+        (void)model::InventorySystem::add(*playerInventory_, model::ItemId::Iron, 500);
+    }
+
+    void addResource(model::ItemId item, int quantity)
+    {
+        EXPECT_EQ(model::InventorySystem::add(*playerInventory_, item, quantity), quantity);
     }
 
     core::EventBus bus_;
     model::ecs::Registry world_;
     model::BuildingSystem buildings_;
     std::vector<events::BuildingPlaced> placements_;
+    std::vector<events::BuildPreviewChanged> previews_;
+    model::components::Inventory* playerInventory_ = nullptr;
     static constexpr model::PlayerId kPlayer = 1;
 };
 
@@ -54,6 +73,7 @@ TEST_F(BuildingSystemTest, GivesNewBuildingsCombatHealth)
 
     // Then it has a full health pool for combat.
     ASSERT_EQ(placements_.size(), 1U);
+    EXPECT_EQ(model::InventorySystem::amount(*playerInventory_, model::ItemId::Iron), 500);
     const auto* health = world_.tryGet<model::components::Health>(placements_.front().entity);
     ASSERT_NE(health, nullptr);
     EXPECT_EQ(health->current, 500);
@@ -98,6 +118,10 @@ TEST_F(BuildingSystemTest, UnlocksWallsAfterTheCommandCenterIsBuilt)
     // Given a player who has already placed their Command Center.
     buildings_.select(kPlayer, model::BuildingType::CommandCenter);
     buildings_.place(kPlayer, {0, 0});
+    for (const auto item : {model::ItemId::Coal, model::ItemId::Steel,
+             model::ItemId::Copper, model::ItemId::Electronics, model::ItemId::Tools}) {
+        addResource(item, 100);
+    }
 
     // When the player selects and places a wall on a free tile.
     const model::GridPos wallTile{10, 10};
@@ -113,9 +137,9 @@ TEST_F(BuildingSystemTest, UnlocksWallsAfterTheCommandCenterIsBuilt)
     EXPECT_TRUE(buildings_.isOccupied(wallTile));
 }
 
-TEST_F(BuildingSystemTest, BuildingsAreFreeAndHaveInventorySlots)
+TEST_F(BuildingSystemTest, IronMineCostsOneHundredIronAndHasInventorySlots)
 {
-    // Given a player with a completed Command Center and no construction costs.
+    // Given a player with a completed Command Center and enough iron for a mine.
     buildings_.select(kPlayer, model::BuildingType::CommandCenter);
     buildings_.place(kPlayer, {0, 0});
 
@@ -123,8 +147,9 @@ TEST_F(BuildingSystemTest, BuildingsAreFreeAndHaveInventorySlots)
     buildings_.select(kPlayer, model::BuildingType::IronMine);
     buildings_.place(kPlayer, {10, 10});
 
-    // Then it is created for free with a 64-slot inventory and a primary production recipe.
+    // Then the mine is created, its cost is deducted, and it has a 64-slot inventory.
     ASSERT_EQ(placements_.size(), 2U);
+    EXPECT_EQ(model::InventorySystem::amount(*playerInventory_, model::ItemId::Iron), 400);
     const auto entity = placements_.back().entity;
     const auto* inventory = world_.tryGet<model::components::Inventory>(entity);
     const auto* production = world_.tryGet<model::components::Production>(entity);
@@ -147,6 +172,7 @@ TEST_F(BuildingSystemTest, CoalMineProducesOneCoalPerSecond)
     // Given a player with a completed Command Center.
     buildings_.select(kPlayer, model::BuildingType::CommandCenter);
     buildings_.place(kPlayer, {0, 0});
+    EXPECT_EQ(model::InventorySystem::amount(*playerInventory_, model::ItemId::Iron), 500);
 
     // When the player places a Coal Mine.
     buildings_.select(kPlayer, model::BuildingType::CoalMine);
@@ -160,6 +186,7 @@ TEST_F(BuildingSystemTest, CoalMineProducesOneCoalPerSecond)
     EXPECT_TRUE(production->inputs.empty());
     EXPECT_EQ(production->output, model::ItemId::Coal);
     EXPECT_FLOAT_EQ(production->outputPerSecond, 1.0F);
+    EXPECT_EQ(model::InventorySystem::amount(*playerInventory_, model::ItemId::Iron), 400);
 }
 
 TEST_F(BuildingSystemTest, SiderurgiaConsumesIronAndCoalAndProducesSteel)
@@ -186,6 +213,7 @@ TEST_F(BuildingSystemTest, SiderurgiaConsumesIronAndCoalAndProducesSteel)
     EXPECT_FLOAT_EQ(production->inputs[1].quantityPerSecond, 1.0F);
     EXPECT_EQ(production->output, model::ItemId::Steel);
     EXPECT_FLOAT_EQ(production->outputPerSecond, 0.5F);
+    EXPECT_EQ(model::InventorySystem::amount(*playerInventory_, model::ItemId::Iron), 200);
 }
 
 TEST_F(BuildingSystemTest, CopperMineProducesOneCopperPerSecond)
@@ -207,6 +235,7 @@ TEST_F(BuildingSystemTest, CopperMineProducesOneCopperPerSecond)
     EXPECT_TRUE(production->inputs.empty());
     EXPECT_EQ(production->output, model::ItemId::Copper);
     EXPECT_FLOAT_EQ(production->outputPerSecond, 1.0F);
+    EXPECT_EQ(model::InventorySystem::amount(*playerInventory_, model::ItemId::Iron), 400);
 }
 
 TEST_F(BuildingSystemTest, ElectronicsFactoryConsumesIronAndCopperAndProducesElectronics)
@@ -214,6 +243,7 @@ TEST_F(BuildingSystemTest, ElectronicsFactoryConsumesIronAndCopperAndProducesEle
     // Given a player with a completed Command Center.
     buildings_.select(kPlayer, model::BuildingType::CommandCenter);
     buildings_.place(kPlayer, {0, 0});
+    addResource(model::ItemId::Steel, 100);
 
     // When the player places an Electronics Factory.
     buildings_.select(kPlayer, model::BuildingType::ElectronicsFactory);
@@ -232,6 +262,8 @@ TEST_F(BuildingSystemTest, ElectronicsFactoryConsumesIronAndCopperAndProducesEle
     EXPECT_FLOAT_EQ(production->inputs[1].quantityPerSecond, 1.0F);
     EXPECT_EQ(production->output, model::ItemId::Electronics);
     EXPECT_FLOAT_EQ(production->outputPerSecond, 0.5F);
+    EXPECT_EQ(model::InventorySystem::amount(*playerInventory_, model::ItemId::Iron), 300);
+    EXPECT_EQ(model::InventorySystem::amount(*playerInventory_, model::ItemId::Steel), 0);
 }
 
 TEST_F(BuildingSystemTest, ToolFactoryConsumesSteelAndElectronicsAndProducesTools)
@@ -239,6 +271,8 @@ TEST_F(BuildingSystemTest, ToolFactoryConsumesSteelAndElectronicsAndProducesTool
     // Given a player with a completed Command Center.
     buildings_.select(kPlayer, model::BuildingType::CommandCenter);
     buildings_.place(kPlayer, {0, 0});
+    addResource(model::ItemId::Steel, 200);
+    addResource(model::ItemId::Electronics, 100);
 
     // When the player places a Tool Factory.
     buildings_.select(kPlayer, model::BuildingType::ToolFactory);
@@ -257,4 +291,48 @@ TEST_F(BuildingSystemTest, ToolFactoryConsumesSteelAndElectronicsAndProducesTool
     EXPECT_FLOAT_EQ(production->inputs[1].quantityPerSecond, 1.0F);
     EXPECT_EQ(production->output, model::ItemId::Tools);
     EXPECT_FLOAT_EQ(production->outputPerSecond, 0.5F);
+    EXPECT_EQ(model::InventorySystem::amount(*playerInventory_, model::ItemId::Iron), 300);
+    EXPECT_EQ(model::InventorySystem::amount(*playerInventory_, model::ItemId::Steel), 0);
+    EXPECT_EQ(model::InventorySystem::amount(*playerInventory_, model::ItemId::Electronics), 0);
+}
+
+TEST_F(BuildingSystemTest, CannotPlaceOrSpendForABuildingWithoutItsMaterials)
+{
+    // Given a player with a Command Center but no steel or electronics.
+    buildings_.select(kPlayer, model::BuildingType::CommandCenter);
+    buildings_.place(kPlayer, {0, 0});
+    buildings_.select(kPlayer, model::BuildingType::ToolFactory);
+    buildings_.moveCursor(kPlayer, model::GridPos{12, 12});
+
+    // When the player tries to place the unaffordable factory.
+    buildings_.place(kPlayer, {12, 12});
+
+    // Then placement is rejected, the preview is invalid, and no resources are spent.
+    ASSERT_FALSE(previews_.empty());
+    EXPECT_FALSE(previews_.back().valid);
+    EXPECT_EQ(placements_.size(), 1U);
+    EXPECT_EQ(model::InventorySystem::amount(*playerInventory_, model::ItemId::Iron), 500);
+}
+
+TEST_F(BuildingSystemTest, CommonBuildingsCostOneHundredOfEveryItem)
+{
+    // Given a player with a Command Center and 100 units of every resource.
+    buildings_.select(kPlayer, model::BuildingType::CommandCenter);
+    buildings_.place(kPlayer, {0, 0});
+    for (const auto item : {model::ItemId::Coal, model::ItemId::Steel,
+             model::ItemId::Copper, model::ItemId::Electronics, model::ItemId::Tools}) {
+        addResource(item, 100);
+    }
+
+    // When the player builds a wall.
+    buildings_.select(kPlayer, model::BuildingType::Wall);
+    buildings_.place(kPlayer, {10, 10});
+
+    // Then 100 units of each resource are deducted.
+    ASSERT_EQ(placements_.size(), 2U);
+    for (const auto item : {model::ItemId::Iron, model::ItemId::Coal, model::ItemId::Steel,
+             model::ItemId::Copper, model::ItemId::Electronics, model::ItemId::Tools}) {
+        EXPECT_EQ(model::InventorySystem::amount(*playerInventory_, item),
+            item == model::ItemId::Iron ? 400 : 0);
+    }
 }

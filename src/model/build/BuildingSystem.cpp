@@ -3,13 +3,64 @@
 #include "core/Events.hpp"
 #include "model/build/BuildingComponents.hpp"
 #include "model/economy/InventoryComponents.hpp"
+#include "model/economy/InventorySystem.hpp"
 #include "model/economy/ProductionComponents.hpp"
 #include "model/economy/Item.hpp"
+#include "model/player/PlayerComponents.hpp"
 #include "model/units/UnitComponents.hpp"
 
 #include <string>
 
 namespace model {
+namespace {
+
+[[nodiscard]] std::string_view shortItemName(ItemId item)
+{
+    switch (item) {
+    case ItemId::Iron: return "Fe";
+    case ItemId::Coal: return "Carv";
+    case ItemId::Steel: return "Aco";
+    case ItemId::Copper: return "Cob";
+    case ItemId::Electronics: return "Ele";
+    case ItemId::Tools: return "Ferr";
+    case ItemId::Count: break;
+    }
+    return "?";
+}
+
+[[nodiscard]] std::string costLabel(BuildingType type)
+{
+    switch (type) {
+    case BuildingType::CommandCenter:
+        return "Gratis";
+    case BuildingType::Wall:
+    case BuildingType::House:
+    case BuildingType::Generator:
+    case BuildingType::Warehouse:
+    case BuildingType::Barracks:
+    case BuildingType::Cruzador:
+    case BuildingType::Tower:
+        return "100 cada recurso";
+    default:
+        break;
+    }
+
+    std::string label;
+    for (const BuildingCost& cost : buildingCosts(type)) {
+        if (cost.quantity <= 0) {
+            continue;
+        }
+        if (!label.empty()) {
+            label += " ";
+        }
+        label += shortItemName(cost.item);
+        label += " ";
+        label += std::to_string(cost.quantity);
+    }
+    return label;
+}
+
+} // namespace
 
 BuildingSystem::BuildingSystem(core::EventBus& bus, ecs::Registry& world)
     : bus_(bus)
@@ -80,6 +131,9 @@ void BuildingSystem::place(PlayerId player, GridPos anchor)
     const int size = buildingSpec(type).size;
     const GridPos origin = footprintOrigin(anchor, size);
     if (!canPlace(player, type, origin)) {
+        return;
+    }
+    if (!payCost(player, type)) {
         return;
     }
     const ecs::Entity entity = world_.create();
@@ -223,12 +277,55 @@ bool BuildingSystem::isAreaFree(GridPos origin, int size) const
 
 bool BuildingSystem::canPlace(PlayerId player, BuildingType type, GridPos origin) const
 {
-    return isUnlocked(player, type) && isAreaFree(origin, buildingSpec(type).size);
+    return isUnlocked(player, type) && isAreaFree(origin, buildingSpec(type).size) && canAfford(player, type);
 }
 
 bool BuildingSystem::hasCommandCenter(PlayerId player) const
 {
     return commandCenters_.contains(player);
+}
+
+components::Inventory* BuildingSystem::playerInventory(PlayerId player) const
+{
+    components::Inventory* inventory = nullptr;
+    world_.each<components::PlayerProfile>([&](ecs::Entity entity, const components::PlayerProfile& profile) {
+        if (profile.id == player) {
+            inventory = world_.tryGet<components::Inventory>(entity);
+        }
+    });
+    return inventory;
+}
+
+bool BuildingSystem::canAfford(PlayerId player, BuildingType type) const
+{
+    const components::Inventory* inventory = playerInventory(player);
+    for (const BuildingCost& cost : buildingCosts(type)) {
+        if (cost.quantity <= 0) {
+            continue;
+        }
+        if (inventory == nullptr || InventorySystem::amount(*inventory, cost.item) < cost.quantity) {
+            return false;
+        }
+    }
+    return true;
+}
+
+bool BuildingSystem::payCost(PlayerId player, BuildingType type)
+{
+    const BuildingCosts& costs = buildingCosts(type);
+    if (&costs == &kNoBuildingCost) {
+        return true;
+    }
+    components::Inventory* inventory = playerInventory(player);
+    if (inventory == nullptr) {
+        return false;
+    }
+    for (const BuildingCost& cost : costs) {
+        if (cost.quantity > 0 && InventorySystem::remove(*inventory, cost.item, cost.quantity) != cost.quantity) {
+            return false;
+        }
+    }
+    return true;
 }
 
 bool BuildingSystem::hasBuilding(PlayerId player, BuildingType type) const
@@ -253,7 +350,7 @@ void BuildingSystem::publishBar(PlayerId player) const
         const BuildingSpec spec = buildingSpec(type);
         const std::string_view reason = lockedReason(player, type);
         bar.entries.push_back(events::BuildBarEntry{
-            type, std::string(spec.label), spec.size, reason.empty(), std::string(reason)});
+            type, std::string(spec.label), spec.size, reason.empty(), std::string(reason), costLabel(type)});
     }
     bus_.publish(bar);
 }

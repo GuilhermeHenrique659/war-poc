@@ -52,7 +52,7 @@ Documento vivo com as regras do jogo. Itens marcados como **TBD** ainda não for
   - Mina de Cobre: produz 1 cobre/s sem consumir entradas.
   - Fábrica de Eletrônicos: consome 1 ferro/s e 1 cobre/s e produz 0,5 eletrônico/s.
   - Fábrica de Ferramentas: consome 1 aço/s e 1 eletrônico/s e produz 0,5 ferramenta/s.
-- Custos de construção e recursos, estoque/capacidade antigos e limite populacional foram removidos. Construções são grátis nesta etapa. O recrutamento continua instantâneo, requer Quartel e não tem custo nem limite populacional.
+- As construções descontam seu custo do inventário do jogador no momento da colocação; recursos armazenados em construções não contam para pagar o custo. A prévia fica inválida quando faltam recursos. O recrutamento continua instantâneo, requer Quartel e não tem custo nem limite populacional.
 - Casa, Gerador e Depósito permanecem como estruturas sem efeitos econômicos nesta etapa. Unidades ainda não recebem inventários.
 
 ## Construção
@@ -63,23 +63,24 @@ Documento vivo com as regras do jogo. Itens marcados como **TBD** ainda não for
 - Estruturas ocupam uma área quadrada de tiles e não podem se sobrepor.
 - Estruturas atuais:
 
-| Estrutura | Área | Regra |
-|---|---|---|
-| Centro de Comando | 5x5 | Um por jogador. Precisa ser a primeira construção. Depois de construído, some da seleção. |
-| Muro | 1x1 | Só liberado depois que o jogador tem um Centro de Comando. |
-| Casa | 2x2 | Requer Centro de Comando; sem efeito econômico nesta etapa. |
-| Gerador | 2x2 | Requer Centro de Comando; sem efeito econômico nesta etapa. |
-| Depósito | 2x2 | Requer Centro de Comando; sem efeito econômico nesta etapa. |
-| Quartel | 3x3 | Requer Centro de Comando; libera recrutamento. |
-| Cruzador | 3x3 | Requer Centro de Comando; recebe duas tropas para gerar uma descendente. |
-| Mina de Ferro | 2x2 | Requer Centro de Comando; inventário de 64 slots; produz 1 ferro/s. |
-| Mina de Carvão | 2x2 | Requer Centro de Comando; inventário de 64 slots; produz 1 carvão/s. |
-| Siderurgia | 3x3 | Requer Centro de Comando; inventário de 64 slots; consome 1 ferro/s e 1 carvão/s e produz 0,5 aço/s. |
-| Mina de Cobre | 2x2 | Requer Centro de Comando; inventário de 64 slots; produz 1 cobre/s. |
-| Fábrica de Eletrônicos | 3x3 | Requer Centro de Comando; inventário de 64 slots; consome 1 ferro/s e 1 cobre/s e produz 0,5 eletrônico/s. |
-| Fábrica de Ferramentas | 3x3 | Requer Centro de Comando; inventário de 64 slots; consome 1 aço/s e 1 eletrônico/s e produz 0,5 ferramenta/s. |
+| Estrutura | Área | Custo | Regra |
+|---|---|---|---|
+| Centro de Comando | 5x5 | Grátis | Um por jogador. Precisa ser a primeira construção. Depois de construído, some da seleção. |
+| Muro | 1x1 | 100 de cada recurso | Só liberado depois que o jogador tem um Centro de Comando. |
+| Casa | 2x2 | 100 de cada recurso | Requer Centro de Comando; sem efeito econômico nesta etapa. |
+| Gerador | 2x2 | 100 de cada recurso | Requer Centro de Comando; sem efeito econômico nesta etapa. |
+| Depósito | 2x2 | 100 de cada recurso | Requer Centro de Comando; sem efeito econômico nesta etapa. |
+| Quartel | 3x3 | 100 de cada recurso | Requer Centro de Comando; libera recrutamento. |
+| Cruzador | 3x3 | 100 de cada recurso | Requer Centro de Comando; recebe duas tropas para gerar uma descendente. |
+| Torre | 2x2 | 100 de cada recurso | Requer Centro de Comando. |
+| Mina de Ferro | 2x2 | 100 ferro | Requer Centro de Comando; inventário de 64 slots; produz 1 ferro/s. |
+| Mina de Carvão | 2x2 | 100 ferro | Requer Centro de Comando; inventário de 64 slots; produz 1 carvão/s. |
+| Siderurgia | 3x3 | 300 ferro | Requer Centro de Comando; inventário de 64 slots; consome 1 ferro/s e 1 carvão/s e produz 0,5 aço/s. |
+| Mina de Cobre | 2x2 | 100 ferro | Requer Centro de Comando; inventário de 64 slots; produz 1 cobre/s. |
+| Fábrica de Eletrônicos | 3x3 | 200 ferro, 100 aço | Requer Centro de Comando; inventário de 64 slots; consome 1 ferro/s e 1 cobre/s e produz 0,5 eletrônico/s. |
+| Fábrica de Ferramentas | 3x3 | 200 aço, 200 ferro, 100 eletrônicos | Requer Centro de Comando; inventário de 64 slots; consome 1 aço/s e 1 eletrônico/s e produz 0,5 ferramenta/s. |
 
-- Todas as construções são grátis por enquanto. Clicar numa construção abre seu inventário para consulta e transferência ao jogador.
+- Clicar numa construção abre seu inventário para consulta e transferência ao jogador.
 - **TBD**: tempo de construção, demolição/reembolso, terreno válido.
 
 ## Defesa (tower defense)

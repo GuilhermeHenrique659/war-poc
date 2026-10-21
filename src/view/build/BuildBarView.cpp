@@ -83,8 +83,8 @@ void BuildBarView::drawSlot(std::size_t index) const
     DrawRectangleLinesEx(swatch, 1.0f, BLACK);
 
     const int textX = static_cast<int>(swatch.x + swatch.width + margin);
-    const int labelY = static_cast<int>(bounds.y + margin);
-    const int detailY = labelY + kLabelSize + 6;
+    const int labelY = static_cast<int>(bounds.y + 8.0f);
+    const int detailY = labelY + kLabelSize + 2;
     DrawText(entry.label.c_str(), textX, labelY, kLabelSize, entry.enabled ? RAYWHITE : GRAY);
 
     if (entry.enabled) {
@@ -92,6 +92,7 @@ void BuildBarView::drawSlot(std::size_t index) const
     } else {
         DrawText(entry.lockedReason.c_str(), textX, detailY, kDetailSize, Color{200, 120, 100, 255});
     }
+    DrawText(entry.cost.c_str(), textX, detailY + kDetailSize + 2, 10, LIGHTGRAY);
 
     if (index < build_bar_layout::kMaxShortcuts) {
         const char* shortcut = TextFormat("[%d]", static_cast<int>(index) + 1);

@@ -5,6 +5,7 @@
 #include "model/GridPos.hpp"
 #include "model/player/Player.hpp"
 #include "model/ecs/Registry.hpp"
+#include "model/economy/InventoryComponents.hpp"
 
 #include <functional>
 #include <optional>
@@ -49,6 +50,9 @@ private:
     [[nodiscard]] bool isAreaFree(GridPos origin, int size) const;
     [[nodiscard]] bool canPlace(PlayerId player, BuildingType type, GridPos origin) const;
     [[nodiscard]] bool hasCommandCenter(PlayerId player) const;
+    [[nodiscard]] components::Inventory* playerInventory(PlayerId player) const;
+    [[nodiscard]] bool canAfford(PlayerId player, BuildingType type) const;
+    bool payCost(PlayerId player, BuildingType type);
 
     void publishBar(PlayerId player) const;
     void publishPreview(PlayerId player) const;

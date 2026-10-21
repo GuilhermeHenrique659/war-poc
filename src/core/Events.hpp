@@ -247,6 +247,7 @@ struct BuildBarEntry {
     int size;
     bool enabled;
     std::string lockedReason;
+    std::string cost;
 };
 
 struct BuildBarChanged {

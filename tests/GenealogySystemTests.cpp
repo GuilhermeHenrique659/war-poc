@@ -5,6 +5,11 @@
 #include "model/selection/SelectionSystem.hpp"
 #include "model/units/UnitSystem.hpp"
 #include "model/build/BuildingComponents.hpp"
+#include "model/components/Owner.hpp"
+#include "model/economy/InventoryComponents.hpp"
+#include "model/economy/InventorySystem.hpp"
+#include "model/economy/Item.hpp"
+#include "model/player/PlayerComponents.hpp"
 #include "model/units/UnitComponents.hpp"
 
 #include <gtest/gtest.h>
@@ -24,6 +29,14 @@ protected:
         bus_.subscribe<events::UnitSpawned>([this](const events::UnitSpawned& event) {
             spawns_.push_back(event);
         });
+        const auto playerEntity = world_.create();
+        world_.emplace<model::components::PlayerProfile>(playerEntity, kPlayer, "Tester");
+        world_.emplace<model::components::Owner>(playerEntity, kPlayer);
+        auto& inventory = world_.emplace<model::components::Inventory>(playerEntity, std::size_t{32});
+        for (const auto item : {model::ItemId::Iron, model::ItemId::Coal, model::ItemId::Steel,
+                 model::ItemId::Copper, model::ItemId::Electronics, model::ItemId::Tools}) {
+            (void)model::InventorySystem::add(inventory, item, 100);
+        }
     }
 
     model::ecs::Entity buildCruzador()

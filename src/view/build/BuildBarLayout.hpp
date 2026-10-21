@@ -9,7 +9,7 @@
 namespace view::build_bar_layout {
 
 inline constexpr float kSlotWidth = 200.0f;
-inline constexpr float kSlotHeight = 64.0f;
+inline constexpr float kSlotHeight = 78.0f;
 inline constexpr float kSlotSpacing = 10.0f;
 inline constexpr float kPadding = 10.0f;
 inline constexpr std::size_t kMaxShortcuts = 9;

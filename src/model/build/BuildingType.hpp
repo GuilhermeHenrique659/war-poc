@@ -1,6 +1,7 @@
 #pragma once
 
 #include "model/GridPos.hpp"
+#include "model/economy/Item.hpp"
 
 #include <array>
 #include <string_view>
@@ -34,6 +35,56 @@ struct BuildingSpec {
     std::string_view label;
     int size; // Square footprint, in tiles per side.
 };
+
+struct BuildingCost {
+    ItemId item = ItemId::Count;
+    int quantity = 0;
+};
+
+using BuildingCosts = std::array<BuildingCost, 6>;
+
+inline constexpr BuildingCosts kNoBuildingCost{};
+inline constexpr BuildingCosts kCommonBuildingCost{{
+    {ItemId::Iron, 100},
+    {ItemId::Coal, 100},
+    {ItemId::Steel, 100},
+    {ItemId::Copper, 100},
+    {ItemId::Electronics, 100},
+    {ItemId::Tools, 100},
+}};
+inline constexpr BuildingCosts kMineBuildingCost{{{ItemId::Iron, 100}}};
+inline constexpr BuildingCosts kSteelworksBuildingCost{{{ItemId::Iron, 300}}};
+inline constexpr BuildingCosts kElectronicsFactoryBuildingCost{
+    {{ItemId::Steel, 100}, {ItemId::Iron, 200}}};
+inline constexpr BuildingCosts kToolFactoryBuildingCost{
+    {{ItemId::Steel, 200}, {ItemId::Iron, 200}, {ItemId::Electronics, 100}}};
+
+[[nodiscard]] constexpr const BuildingCosts& buildingCosts(BuildingType type)
+{
+    switch (type) {
+    case BuildingType::CommandCenter:
+        return kNoBuildingCost;
+    case BuildingType::Wall:
+    case BuildingType::House:
+    case BuildingType::Generator:
+    case BuildingType::Warehouse:
+    case BuildingType::Barracks:
+    case BuildingType::Cruzador:
+    case BuildingType::Tower:
+        return kCommonBuildingCost;
+    case BuildingType::IronMine:
+    case BuildingType::CoalMine:
+    case BuildingType::CopperMine:
+        return kMineBuildingCost;
+    case BuildingType::Steelworks:
+        return kSteelworksBuildingCost;
+    case BuildingType::ElectronicsFactory:
+        return kElectronicsFactoryBuildingCost;
+    case BuildingType::ToolFactory:
+        return kToolFactoryBuildingCost;
+    }
+    return kNoBuildingCost;
+}
 
 [[nodiscard]] constexpr BuildingSpec buildingSpec(BuildingType type)
 {
