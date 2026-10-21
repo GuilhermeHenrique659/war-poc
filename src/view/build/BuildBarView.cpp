@@ -93,9 +93,11 @@ void BuildBarView::drawSlot(std::size_t index) const
         DrawText(entry.lockedReason.c_str(), textX, detailY, kDetailSize, Color{200, 120, 100, 255});
     }
 
-    const char* shortcut = TextFormat("[%d]", static_cast<int>(index) + 1);
-    const int shortcutX = static_cast<int>(bounds.x + bounds.width) - MeasureText(shortcut, kDetailSize) - 6;
-    DrawText(shortcut, shortcutX, detailY, kDetailSize, GRAY);
+    if (index < build_bar_layout::kMaxShortcuts) {
+        const char* shortcut = TextFormat("[%d]", static_cast<int>(index) + 1);
+        const int shortcutX = static_cast<int>(bounds.x + bounds.width) - MeasureText(shortcut, kDetailSize) - 6;
+        DrawText(shortcut, shortcutX, detailY, kDetailSize, GRAY);
+    }
 }
 
 void BuildBarView::drawHelp() const

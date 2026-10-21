@@ -16,6 +16,7 @@ constexpr Color kCruzadorColor{100, 95, 180, 255};
 constexpr Color kTowerColor{190, 125, 55, 255};
 constexpr Color kMineColor{105, 105, 110, 255};
 constexpr Color kSteelworksColor{125, 135, 145, 255};
+constexpr Color kFactoryColor{135, 115, 155, 255};
 
 void drawCommandCenter(model::GridPos origin, int size, unsigned char alpha)
 {
@@ -88,9 +89,13 @@ Color buildingColor(model::BuildingType type)
         return kTowerColor;
     case model::BuildingType::IronMine:
     case model::BuildingType::CoalMine:
+    case model::BuildingType::CopperMine:
         return kMineColor;
     case model::BuildingType::Steelworks:
         return kSteelworksColor;
+    case model::BuildingType::ElectronicsFactory:
+    case model::BuildingType::ToolFactory:
+        return kFactoryColor;
     }
     return MAGENTA;
 }
@@ -112,6 +117,9 @@ void drawBuilding(model::BuildingType type, model::GridPos origin, int size, uns
     case model::BuildingType::IronMine:
     case model::BuildingType::CoalMine:
     case model::BuildingType::Steelworks:
+    case model::BuildingType::CopperMine:
+    case model::BuildingType::ElectronicsFactory:
+    case model::BuildingType::ToolFactory:
         iso::drawPrism({static_cast<float>(origin.x), static_cast<float>(origin.y), static_cast<float>(size),
                            static_cast<float>(size), 0.0f, 24.0f},
             iso::boxColors(buildingColor(type), alpha));

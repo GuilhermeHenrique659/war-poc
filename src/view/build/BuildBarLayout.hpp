@@ -12,6 +12,7 @@ inline constexpr float kSlotWidth = 200.0f;
 inline constexpr float kSlotHeight = 64.0f;
 inline constexpr float kSlotSpacing = 10.0f;
 inline constexpr float kPadding = 10.0f;
+inline constexpr std::size_t kMaxShortcuts = 9;
 [[nodiscard]] inline int columnsFor(int screenWidth, std::size_t count)
 {
     if (count == 0) {

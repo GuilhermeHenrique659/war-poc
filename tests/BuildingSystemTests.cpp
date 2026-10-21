@@ -187,3 +187,74 @@ TEST_F(BuildingSystemTest, SiderurgiaConsumesIronAndCoalAndProducesSteel)
     EXPECT_EQ(production->output, model::ItemId::Steel);
     EXPECT_FLOAT_EQ(production->outputPerSecond, 0.5F);
 }
+
+TEST_F(BuildingSystemTest, CopperMineProducesOneCopperPerSecond)
+{
+    // Given a player with a completed Command Center.
+    buildings_.select(kPlayer, model::BuildingType::CommandCenter);
+    buildings_.place(kPlayer, {0, 0});
+
+    // When the player places a Copper Mine.
+    buildings_.select(kPlayer, model::BuildingType::CopperMine);
+    buildings_.place(kPlayer, {10, 10});
+
+    // Then it produces one copper per second.
+    ASSERT_EQ(placements_.size(), 2U);
+    EXPECT_EQ(placements_.back().type, model::BuildingType::CopperMine);
+    EXPECT_EQ(placements_.back().size, 2);
+    const auto* production = world_.tryGet<model::components::Production>(placements_.back().entity);
+    ASSERT_NE(production, nullptr);
+    EXPECT_TRUE(production->inputs.empty());
+    EXPECT_EQ(production->output, model::ItemId::Copper);
+    EXPECT_FLOAT_EQ(production->outputPerSecond, 1.0F);
+}
+
+TEST_F(BuildingSystemTest, ElectronicsFactoryConsumesIronAndCopperAndProducesElectronics)
+{
+    // Given a player with a completed Command Center.
+    buildings_.select(kPlayer, model::BuildingType::CommandCenter);
+    buildings_.place(kPlayer, {0, 0});
+
+    // When the player places an Electronics Factory.
+    buildings_.select(kPlayer, model::BuildingType::ElectronicsFactory);
+    buildings_.place(kPlayer, {12, 12});
+
+    // Then it consumes one iron and copper per second and produces half an electronic per second.
+    ASSERT_EQ(placements_.size(), 2U);
+    EXPECT_EQ(placements_.back().type, model::BuildingType::ElectronicsFactory);
+    EXPECT_EQ(placements_.back().size, 3);
+    const auto* production = world_.tryGet<model::components::Production>(placements_.back().entity);
+    ASSERT_NE(production, nullptr);
+    ASSERT_EQ(production->inputs.size(), 2U);
+    EXPECT_EQ(production->inputs[0].item, model::ItemId::Iron);
+    EXPECT_FLOAT_EQ(production->inputs[0].quantityPerSecond, 1.0F);
+    EXPECT_EQ(production->inputs[1].item, model::ItemId::Copper);
+    EXPECT_FLOAT_EQ(production->inputs[1].quantityPerSecond, 1.0F);
+    EXPECT_EQ(production->output, model::ItemId::Electronics);
+    EXPECT_FLOAT_EQ(production->outputPerSecond, 0.5F);
+}
+
+TEST_F(BuildingSystemTest, ToolFactoryConsumesSteelAndElectronicsAndProducesTools)
+{
+    // Given a player with a completed Command Center.
+    buildings_.select(kPlayer, model::BuildingType::CommandCenter);
+    buildings_.place(kPlayer, {0, 0});
+
+    // When the player places a Tool Factory.
+    buildings_.select(kPlayer, model::BuildingType::ToolFactory);
+    buildings_.place(kPlayer, {12, 12});
+
+    // Then it consumes one steel and electronic per second and produces half a tool per second.
+    ASSERT_EQ(placements_.size(), 2U);
+    EXPECT_EQ(placements_.back().type, model::BuildingType::ToolFactory);
+    EXPECT_EQ(placements_.back().size, 3);
+    const auto* production = world_.tryGet<model::components::Production>(placements_.back().entity);
+    ASSERT_NE(production, nullptr);
+    ASSERT_EQ(production->inputs.size(), 2U);
+    EXPECT_EQ(production->inputs[0].item, model::ItemId::Steel);
+    EXPECT_FLOAT_EQ(production->inputs[0].quantityPerSecond, 1.0F);
+    EXPECT_EQ(production->inputs[1].item, model::ItemId::Electronics);
+    EXPECT_FLOAT_EQ(production->inputs[1].quantityPerSecond, 1.0F);
+    EXPECT_EQ(production->output, model::ItemId::Tools);
+    EXPECT_FLOAT_EQ(production->outputPerSecond, 0.5F);
+}

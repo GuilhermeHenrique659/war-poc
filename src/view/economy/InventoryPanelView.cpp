@@ -88,17 +88,18 @@ void InventoryPanelView::draw() const
         const auto usedSlots = static_cast<int>(std::count_if(
             panel_.playerSlots.begin(), panel_.playerSlots.end(), [](const auto& slot) { return slot.occupied; }));
         DrawText(TextFormat("Jogador (%d/32)", usedSlots), paneX, paneY, kTextSize, RAYWHITE);
-        const std::array<model::ItemId, 3> items{
-            model::ItemId::Iron, model::ItemId::Coal, model::ItemId::Steel};
-        const std::array<const char*, 3> names{"Ferro", "Carvao", "Aco"};
-        int summaryX = paneX;
+        constexpr std::array items{
+            model::ItemId::Iron, model::ItemId::Coal, model::ItemId::Steel,
+            model::ItemId::Copper, model::ItemId::Electronics, model::ItemId::Tools};
         for (std::size_t index = 0; index < items.size(); ++index) {
-            const std::string value = std::string(names[index]) + " "
+            const std::string value = std::string(model::itemDefinition(items[index]).name) + " "
                 + formatQuantity(itemAmount(panel_.playerSlots, items[index]));
-            DrawText(value.c_str(), summaryX, paneY + 20, kTextSize, LIGHTGRAY);
-            summaryX += MeasureText(value.c_str(), kTextSize) + 8;
+            const std::size_t column = index % 2;
+            const std::size_t row = index / 2;
+            const int summaryX = paneX + static_cast<int>(column) * 144;
+            DrawText(value.c_str(), summaryX, paneY + 20 + static_cast<int>(row) * 18, kTextSize, LIGHTGRAY);
         }
-        DrawText("Arraste itens para transferir", paneX, paneY + 42, kTextSize, LIGHTGRAY);
+        DrawText("Arraste itens para transferir", paneX, paneY + 76, kTextSize, LIGHTGRAY);
         drawInventory(panel_.playerSlots, true);
     }
 

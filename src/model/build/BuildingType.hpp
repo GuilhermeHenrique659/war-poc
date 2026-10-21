@@ -18,13 +18,17 @@ enum class BuildingType {
     Tower,
     IronMine,
     CoalMine,
-    Steelworks
+    Steelworks,
+    CopperMine,
+    ElectronicsFactory,
+    ToolFactory
 };
 
 // Order in which the build bar lists the buildings.
 inline constexpr std::array kBuildingTypes{BuildingType::CommandCenter, BuildingType::Wall, BuildingType::House,
     BuildingType::Generator, BuildingType::Warehouse, BuildingType::Barracks, BuildingType::Cruzador,
-    BuildingType::Tower, BuildingType::IronMine, BuildingType::CoalMine, BuildingType::Steelworks};
+    BuildingType::Tower, BuildingType::IronMine, BuildingType::CoalMine, BuildingType::Steelworks,
+    BuildingType::CopperMine, BuildingType::ElectronicsFactory, BuildingType::ToolFactory};
 
 struct BuildingSpec {
     std::string_view label;
@@ -56,6 +60,12 @@ struct BuildingSpec {
         return BuildingSpec{"Mina de Carvao", 2};
     case BuildingType::Steelworks:
         return BuildingSpec{"Siderurgia", 3};
+    case BuildingType::CopperMine:
+        return BuildingSpec{"Mina de Cobre", 2};
+    case BuildingType::ElectronicsFactory:
+        return BuildingSpec{"Fabrica de Eletronicos", 3};
+    case BuildingType::ToolFactory:
+        return BuildingSpec{"Fabrica de Ferramentas", 3};
     }
     return BuildingSpec{"?", 1};
 }

@@ -43,12 +43,15 @@ Documento vivo com as regras do jogo. Itens marcados como **TBD** ainda não for
 
 ## Economia / recursos
 - O inventário é composto por slots; cada slot armazena um item e sua quantidade atual em unidades inteiras (não há frações de item). Cada pilha comporta até 100 unidades. O inventário do jogador tem 32 slots e o de cada construção tem 64.
-- O jogador começa com 500 unidades de ferro, distribuídas em cinco pilhas. Inventários de construções começam vazios. Itens definidos: ferro, carvão e aço.
+- O jogador começa com 500 unidades de ferro, distribuídas em cinco pilhas. Inventários de construções começam vazios. Itens definidos: ferro, carvão, aço, cobre, eletrônicos e ferramentas.
 - A tecla `I` abre/fecha o inventário do jogador. Ao selecionar uma construção, o painel mostra o inventário do jogador e o da construção lado a lado. Arrastar uma pilha de um painel ao outro transfere o máximo que couber; o restante permanece na origem se não houver espaço. `ESC` ou `X` fecha o painel.
 - Produção usa taxas por segundo, mas itens e consumo são sempre unidades inteiras. O progresso fracionário da taxa fica acumulado internamente até completar uma unidade; produção também respeita os itens disponíveis e a capacidade do inventário de saída:
   - Mina de Ferro: produz 1 ferro/s sem consumir entradas.
   - Mina de Carvão: produz 1 carvão/s sem consumir entradas.
   - Siderurgia: consome 1 ferro/s e 1 carvão/s e produz 0,5 aço/s.
+  - Mina de Cobre: produz 1 cobre/s sem consumir entradas.
+  - Fábrica de Eletrônicos: consome 1 ferro/s e 1 cobre/s e produz 0,5 eletrônico/s.
+  - Fábrica de Ferramentas: consome 1 aço/s e 1 eletrônico/s e produz 0,5 ferramenta/s.
 - Custos de construção e recursos, estoque/capacidade antigos e limite populacional foram removidos. Construções são grátis nesta etapa. O recrutamento continua instantâneo, requer Quartel e não tem custo nem limite populacional.
 - Casa, Gerador e Depósito permanecem como estruturas sem efeitos econômicos nesta etapa. Unidades ainda não recebem inventários.
 
@@ -72,6 +75,9 @@ Documento vivo com as regras do jogo. Itens marcados como **TBD** ainda não for
 | Mina de Ferro | 2x2 | Requer Centro de Comando; inventário de 64 slots; produz 1 ferro/s. |
 | Mina de Carvão | 2x2 | Requer Centro de Comando; inventário de 64 slots; produz 1 carvão/s. |
 | Siderurgia | 3x3 | Requer Centro de Comando; inventário de 64 slots; consome 1 ferro/s e 1 carvão/s e produz 0,5 aço/s. |
+| Mina de Cobre | 2x2 | Requer Centro de Comando; inventário de 64 slots; produz 1 cobre/s. |
+| Fábrica de Eletrônicos | 3x3 | Requer Centro de Comando; inventário de 64 slots; consome 1 ferro/s e 1 cobre/s e produz 0,5 eletrônico/s. |
+| Fábrica de Ferramentas | 3x3 | Requer Centro de Comando; inventário de 64 slots; consome 1 aço/s e 1 eletrônico/s e produz 0,5 ferramenta/s. |
 
 - Todas as construções são grátis por enquanto. Clicar numa construção abre seu inventário para consulta e transferência ao jogador.
 - **TBD**: tempo de construção, demolição/reembolso, terreno válido.

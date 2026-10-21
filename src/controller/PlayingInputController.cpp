@@ -9,12 +9,6 @@
 
 namespace controller {
 
-namespace {
-
-constexpr std::size_t kMaxShortcuts = 9;
-
-} // namespace
-
 PlayingInputController::PlayingInputController(core::EventBus& bus)
     : bus_(bus)
     , selection_(std::make_unique<SelectionInputController>(bus))
@@ -157,7 +151,7 @@ void PlayingInputController::handlePlayerMovement()
 
 void PlayingInputController::handleShortcuts()
 {
-    for (std::size_t i = 0; i < barTypes_.size() && i < kMaxShortcuts; ++i) {
+    for (std::size_t i = 0; i < barTypes_.size() && i < view::build_bar_layout::kMaxShortcuts; ++i) {
         if (IsKeyPressed(KEY_ONE + static_cast<int>(i))) {
             bus_.publish(events::BuildSelectRequested{localPlayerId_, barTypes_[i]});
             return;

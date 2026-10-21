@@ -1,4 +1,5 @@
 build
+temp
 !src/model/build/
 !src/model/build/**
 !src/view/build/
