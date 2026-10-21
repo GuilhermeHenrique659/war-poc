@@ -1,12 +1,12 @@
 #include "core/EventBus.hpp"
 #include "core/Events.hpp"
-#include "model/BuildingSystem.hpp"
-#include "model/CombatSystem.hpp"
-#include "model/PlayerAvatarSystem.hpp"
-#include "model/components/BuildingComponents.hpp"
-#include "model/components/PlayerComponents.hpp"
-#include "model/components/UnitComponents.hpp"
-#include "model/UnitSystem.hpp"
+#include "model/build/BuildingSystem.hpp"
+#include "model/units/CombatSystem.hpp"
+#include "model/player/PlayerAvatarSystem.hpp"
+#include "model/build/BuildingComponents.hpp"
+#include "model/player/PlayerComponents.hpp"
+#include "model/units/UnitComponents.hpp"
+#include "model/units/UnitSystem.hpp"
 
 #include <gtest/gtest.h>
 

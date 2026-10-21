@@ -1,10 +1,10 @@
 #pragma once
 
-#include "model/BuildingType.hpp"
+#include "model/build/BuildingType.hpp"
 #include "model/GridPos.hpp"
-#include "model/Player.hpp"
+#include "model/player/Player.hpp"
 #include "model/Scene.hpp"
-#include "model/UnitType.hpp"
+#include "model/units/UnitType.hpp"
 #include "model/ecs/Entity.hpp"
 
 #include <cstddef>

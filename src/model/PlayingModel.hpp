@@ -2,15 +2,15 @@
 
 #include "core/EventBus.hpp"
 #include "core/Events.hpp"
-#include "model/BuildingSystem.hpp"
-#include "model/EconomySystem.hpp"
-#include "model/CombatSystem.hpp"
-#include "model/GenealogySystem.hpp"
-#include "model/SelectionSystem.hpp"
-#include "model/Player.hpp"
-#include "model/PlayerAvatarSystem.hpp"
+#include "model/build/BuildingSystem.hpp"
+#include "model/economy/EconomySystem.hpp"
+#include "model/units/CombatSystem.hpp"
+#include "model/units/GenealogySystem.hpp"
+#include "model/selection/SelectionSystem.hpp"
+#include "model/player/Player.hpp"
+#include "model/player/PlayerAvatarSystem.hpp"
 #include "model/Scene.hpp"
-#include "model/UnitSystem.hpp"
+#include "model/units/UnitSystem.hpp"
 #include "model/ecs/Registry.hpp"
 
 #include <memory>

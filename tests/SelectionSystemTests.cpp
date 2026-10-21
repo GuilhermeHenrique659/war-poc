@@ -1,8 +1,8 @@
 #include "core/EventBus.hpp"
 #include "core/Events.hpp"
-#include "model/SelectionSystem.hpp"
-#include "model/UnitSystem.hpp"
-#include "model/BuildingSystem.hpp"
+#include "model/selection/SelectionSystem.hpp"
+#include "model/units/UnitSystem.hpp"
+#include "model/build/BuildingSystem.hpp"
 
 #include <gtest/gtest.h>
 

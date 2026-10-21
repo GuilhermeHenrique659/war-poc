@@ -1,10 +1,10 @@
 #include "core/EventBus.hpp"
 #include "core/Events.hpp"
-#include "model/components/BuildingComponents.hpp"
-#include "model/PlayerAvatarSystem.hpp"
+#include "model/build/BuildingComponents.hpp"
+#include "model/player/PlayerAvatarSystem.hpp"
 #include "model/components/Owner.hpp"
-#include "model/components/PlayerComponents.hpp"
-#include "model/components/UnitComponents.hpp"
+#include "model/player/PlayerComponents.hpp"
+#include "model/units/UnitComponents.hpp"
 #include "model/ecs/Registry.hpp"
 
 #include <gtest/gtest.h>

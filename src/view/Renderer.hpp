@@ -3,9 +3,8 @@
 #include "core/EventBus.hpp"
 #include "model/Scene.hpp"
 #include "view/DebugOverlay.hpp"
-#include "view/MenuView.hpp"
-#include "view/PlayingView.hpp"
-#include "view/SettingsView.hpp"
+#include "view/gameplay/PlayingView.hpp"
+#include "view/menu/MenuModule.hpp"
 
 #include <memory>
 
@@ -20,9 +19,8 @@ public:
 
 private:
     model::Scene scene_ = model::Scene::MainMenu;
-    std::unique_ptr<MenuView> menuView_;
-    std::unique_ptr<SettingsView> settingsView_;
-    std::unique_ptr<PlayingView> playingView_;
+    std::unique_ptr<menu::MenuModule> menuModule_;
+    std::unique_ptr<gameplay::PlayingView> playingView_;
     std::unique_ptr<DebugOverlay> debugOverlay_;
 };
 

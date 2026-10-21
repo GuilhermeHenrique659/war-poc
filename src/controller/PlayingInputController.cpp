@@ -1,10 +1,10 @@
 #include "controller/PlayingInputController.hpp"
 
 #include "core/Events.hpp"
-#include "model/Player.hpp"
-#include "view/BuildBarLayout.hpp"
+#include "model/player/Player.hpp"
+#include "view/build/BuildBarLayout.hpp"
 #include "view/IsoProjection.hpp"
-#include "view/RecruitPanelLayout.hpp"
+#include "view/units/RecruitPanelLayout.hpp"
 
 namespace controller {
 

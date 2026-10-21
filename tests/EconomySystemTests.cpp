@@ -1,6 +1,6 @@
-#include "model/EconomySystem.hpp"
-#include "model/UnitSystem.hpp"
-#include "model/components/UnitComponents.hpp"
+#include "model/economy/EconomySystem.hpp"
+#include "model/units/UnitSystem.hpp"
+#include "model/units/UnitComponents.hpp"
 
 #include <gtest/gtest.h>
 

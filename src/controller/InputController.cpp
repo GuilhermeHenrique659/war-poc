@@ -1,8 +1,8 @@
 #include "controller/InputController.hpp"
 
 #include "core/Events.hpp"
-#include "view/MenuLayout.hpp"
-#include "view/SettingsLayout.hpp"
+#include "view/menu/MenuLayout.hpp"
+#include "view/menu/SettingsLayout.hpp"
 
 #include <raylib.h>
 

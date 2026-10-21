@@ -1,7 +1,7 @@
 #pragma once
 
 #include "model/GridPos.hpp"
-#include "model/Player.hpp"
+#include "model/player/Player.hpp"
 
 #include <string>
 #include <unordered_map>

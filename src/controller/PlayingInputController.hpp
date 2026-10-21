@@ -2,10 +2,10 @@
 
 #include "controller/SelectionInputController.hpp"
 #include "core/EventBus.hpp"
-#include "model/BuildingType.hpp"
+#include "model/build/BuildingType.hpp"
 #include "model/GridPos.hpp"
-#include "model/UnitType.hpp"
-#include "model/Player.hpp"
+#include "model/units/UnitType.hpp"
+#include "model/player/Player.hpp"
 
 #include <raylib.h>
 

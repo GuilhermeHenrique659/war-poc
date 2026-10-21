@@ -2,7 +2,7 @@
 
 #include "core/Events.hpp"
 #include "view/IsoProjection.hpp"
-#include "view/UnitLayout.hpp"
+#include "view/units/UnitLayout.hpp"
 
 #include <algorithm>
 #include <cmath>

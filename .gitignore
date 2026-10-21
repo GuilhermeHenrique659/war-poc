@@ -1,1 +1,5 @@
 build
+!src/model/build/
+!src/model/build/**
+!src/view/build/
+!src/view/build/**

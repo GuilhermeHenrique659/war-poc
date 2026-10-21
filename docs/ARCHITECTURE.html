@@ -62,7 +62,9 @@ num frame e mostra, passo a passo, uma funcionalidade real (colocar um prédio) 
 <ul>
   <li><span class="tag c">Controller</span> <code>src/controller/</code>: lê teclado e mouse da raylib e publica <b>comandos</b> (<code>...Requested</code>).</li>
   <li><span class="tag m">Model</span> <code>src/model/</code>: dono do estado do jogo, organizado em <b>ECS</b>. Reage a comandos, aplica as regras e publica <b>notificações</b> (<code>...Changed</code>, <code>...Placed</code>, <code>...Spawned</code>). Não chama raylib e não conhece pixels.</li>
+  <li><span class="tag m">Módulos</span> Model e View agrupam arquivos por domínio: <code>menu/</code>, <code>build/</code>, <code>player/</code> e <code>units/</code>. Economia, seleção e mundo também têm seus módulos próprios.</li>
   <li><span class="tag v">View</span> <code>src/view/</code>: guarda uma <b>cópia local</b> do estado recebido por evento e desenha com raylib. É dona da câmera e da projeção isométrica.</li>
+  <li><span class="tag v">UI</span> <code>src/view/ui/</code>: componentes visuais reutilizáveis (<code>Button</code>, <code>Card</code> e <code>Table</code>), sem regras de jogo nem acesso ao Model.</li>
   <li><span class="tag b">Core</span> <code>src/core/</code>: o <code>EventBus</code>, a lista de eventos (<code>Events.hpp</code>) e a raiz de composição (<code>Game</code>).</li>
 </ul>
 
@@ -86,9 +88,9 @@ num frame e mostra, passo a passo, uma funcionalidade real (colocar um prédio) 
   <!-- View -->
   <rect x="20" y="240" width="270" height="140" rx="10" fill="#33270f" stroke="#f0a640" stroke-width="2"/>
   <text x="155" y="266" text-anchor="middle" font-size="17" font-weight="700" fill="#f0a640">View</text>
-  <text x="155" y="290" text-anchor="middle" font-size="12">Renderer → MenuView | PlayingView</text>
-  <text x="155" y="308" text-anchor="middle" font-size="12">PlayingView → WorldView, BuildBarView,</text>
-  <text x="155" y="326" text-anchor="middle" font-size="12">RecruitPanelView</text>
+  <text x="155" y="290" text-anchor="middle" font-size="12">Renderer → MenuModule | PlayingView</text>
+  <text x="155" y="308" text-anchor="middle" font-size="12">menu / build / player / units</text>
+  <text x="155" y="326" text-anchor="middle" font-size="12">world / economy / ui</text>
   <text x="155" y="344" text-anchor="middle" font-size="12">+ DebugOverlay, IsoProjection</text>
   <text x="155" y="368" text-anchor="middle" font-size="11" fill="#9a9ab0">BeginDrawing / BeginMode2D / Draw*</text>
   <!-- Bus -->
@@ -266,6 +268,7 @@ Cada tipo de componente tem seu <code>ComponentPool&lt;C&gt;</code>, criado na p
 </div>
 
 <h2 id="iso">6. View e projeção isométrica</h2>
+<p>O código é agrupado por domínio, em pastas paralelas no <code>Model</code> e na <code>View</code>: <code>menu/</code>, <code>build/</code>, <code>player/</code> e <code>units/</code>. Sistemas e dados ECS ficam em <code>src/model/</code>; as pastas correspondentes da View mantêm apresentação e geometria de interface. Economia, seleção e mundo também ficam separados em seus próprios módulos. O <code>Renderer</code> escolhe a tela com base na cena anunciada pelo Model; essa decisão de navegação não define a organização dos módulos. A View compõe os widgets de <code>src/view/ui/</code> (botões, cartões e tabelas), que recebem somente dados de apresentação e não acessam regras de gameplay.</p>
 <p>O Model só conhece <code>GridPos{x, y}</code> inteiros (tiles) ou posições contínuas em tiles (<code>Position</code> das unidades).
 A conversão para pixels fica em <code>src/view/IsoProjection.hpp</code>, que a View usa para desenhar e o Controller usa para o picking do mouse.</p>
 <div class="cols">
@@ -385,7 +388,7 @@ A geometria de UI usada nos dois lados (hit-test) fica nos headers <code>*Layout
 });</code></pre>
 
 <h3>Passo 3: o sistema aplica a regra, escreve no ECS e notifica</h3>
-<div class="file">src/model/BuildingSystem.cpp</div>
+<div class="file">src/model/build/BuildingSystem.cpp</div>
 <pre><code><span class="kw">void</span> BuildingSystem::place(PlayerId player, GridPos anchor) {
     <span class="kw">auto</span>&amp; builder = builders_[player];
     <span class="kw">if</span> (!builder.selected) { <span class="kw">return</span>; }
@@ -408,7 +411,7 @@ A geometria de UI usada nos dois lados (hit-test) fica nos headers <code>*Layout
 }</code></pre>
 
 <h3>Passo 4: a View guarda a cópia e desenha no render</h3>
-<div class="file">src/view/WorldView.cpp</div>
+<div class="file">src/view/world/WorldView.cpp</div>
 <pre><code>bus_.subscribe&lt;events::BuildingPlaced&gt;([<span class="kw">this</span>](<span class="kw">const auto</span>&amp; e) { onBuildingPlaced(e); });
 
 <span class="kw">void</span> WorldView::onBuildingPlaced(<span class="kw">const</span> events::BuildingPlaced&amp; event) {

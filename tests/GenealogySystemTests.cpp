@@ -1,12 +1,12 @@
 #include "core/EventBus.hpp"
 #include "core/Events.hpp"
-#include "model/BuildingSystem.hpp"
-#include "model/EconomySystem.hpp"
-#include "model/GenealogySystem.hpp"
-#include "model/SelectionSystem.hpp"
-#include "model/UnitSystem.hpp"
-#include "model/components/BuildingComponents.hpp"
-#include "model/components/UnitComponents.hpp"
+#include "model/build/BuildingSystem.hpp"
+#include "model/economy/EconomySystem.hpp"
+#include "model/units/GenealogySystem.hpp"
+#include "model/selection/SelectionSystem.hpp"
+#include "model/units/UnitSystem.hpp"
+#include "model/build/BuildingComponents.hpp"
+#include "model/units/UnitComponents.hpp"
 
 #include <gtest/gtest.h>
 

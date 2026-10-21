@@ -1,9 +1,9 @@
 #pragma once
 
 #include "core/EventBus.hpp"
-#include "model/BuildingType.hpp"
+#include "model/build/BuildingType.hpp"
 #include "model/GridPos.hpp"
-#include "model/Player.hpp"
+#include "model/player/Player.hpp"
 #include "model/ecs/Entity.hpp"
 
 #include <raylib.h>
