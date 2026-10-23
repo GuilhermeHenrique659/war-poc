@@ -9,6 +9,7 @@
 #include "model/units/UnitType.hpp"
 #include "view/build/CommandCenterViewModel.hpp"
 #include "view/build/MineResourceViewModel.hpp"
+#include "view/build/WarehouseViewModel.hpp"
 #include "view/world/WorldEntityViewModels.hpp"
 
 #include <raylib.h>
@@ -67,6 +68,7 @@ private:
     core::EventBus& bus_;
     MineResourceViewModel mineResourceViewModel_;
     CommandCenterViewModel commandCenterViewModel_;
+    WarehouseViewModel warehouseViewModel_;
     std::vector<BuildingVisual> buildings_;
     std::unordered_map<model::ecs::Entity, UnitVisual> units_;
     std::unordered_map<model::ecs::Entity, DroneVisual> drones_;

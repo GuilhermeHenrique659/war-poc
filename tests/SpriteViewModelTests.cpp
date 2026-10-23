@@ -4,6 +4,7 @@
 #include "view/TextureManager.hpp"
 #include "view/build/CommandCenterViewModel.hpp"
 #include "view/build/MineResourceViewModel.hpp"
+#include "view/build/WarehouseViewModel.hpp"
 #include "view/units/DroneViewModel.hpp"
 #include "model/build/BuildingType.hpp"
 
@@ -171,6 +172,25 @@ TEST_F(SpriteViewModelTests, CommandCenterViewModelDrawsTextureAtFootprintSouthE
     EXPECT_EQ(drawnDestination.y, 192.0F);
     EXPECT_EQ(drawnDestination.width, 640.0F);
     EXPECT_EQ(drawnDestination.height, 320.0F);
+    EXPECT_EQ(drawnTint.a, tint.a);
+}
+
+TEST_F(SpriteViewModelTests, WarehouseViewModelDrawsTextureAtFootprintSouthEdge)
+{
+    const SpriteSheet sheet{
+        "buildings/warehouse_test", texturePath_.filename().string(), 1, Vector2{1774.0F, 887.0F}, 1.0};
+    const gameplay::WarehouseViewModel warehouse{sheet};
+    constexpr Color tint{255, 255, 255, 150};
+
+    warehouse.drawAt(2.0F, 4.0F, 2, tint.a);
+
+    EXPECT_NE(drawnTextureId, 0U);
+    EXPECT_EQ(drawnSource.width, 1774.0F);
+    EXPECT_EQ(drawnSource.height, 887.0F);
+    EXPECT_EQ(drawnDestination.x, -256.0F);
+    EXPECT_EQ(drawnDestination.y, 192.0F);
+    EXPECT_EQ(drawnDestination.width, 256.0F);
+    EXPECT_EQ(drawnDestination.height, 128.0F);
     EXPECT_EQ(drawnTint.a, tint.a);
 }
 

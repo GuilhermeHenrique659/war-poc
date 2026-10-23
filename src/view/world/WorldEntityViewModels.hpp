@@ -9,11 +9,12 @@
 namespace view::gameplay {
 
 class MineResourceViewModel;
+class WarehouseViewModel;
 
 class BuildingViewModel final : public WorldObjectViewModel {
 public:
     BuildingViewModel(model::BuildingType type, int size, const MineResourceViewModel& mineResourceViewModel,
-        const CommandCenterViewModel& commandCenterViewModel);
+        const CommandCenterViewModel& commandCenterViewModel, const WarehouseViewModel& warehouseViewModel);
 
     void drawAt(float gridX, float gridY) const override;
 
@@ -22,6 +23,7 @@ private:
     int size_;
     const MineResourceViewModel& mineResourceViewModel_;
     const CommandCenterViewModel& commandCenterViewModel_;
+    const WarehouseViewModel& warehouseViewModel_;
 };
 
 class UnitViewModel final : public WorldObjectViewModel {

@@ -37,7 +37,7 @@ WorldObjectsViewModel::WorldObjectsViewModel(core::EventBus& bus)
         buildings_.push_back(BuildingVisual{
             event.entity, event.origin, event.size,
             std::make_unique<BuildingViewModel>(
-                event.type, event.size, mineResourceViewModel_, commandCenterViewModel_)
+                event.type, event.size, mineResourceViewModel_, commandCenterViewModel_, warehouseViewModel_)
         });
     });
     bus_.subscribe<events::BuildingRemoved>([this](const events::BuildingRemoved& event) {
@@ -67,6 +67,11 @@ void WorldObjectsViewModel::drawBuildingPreview(
     }
     if (MineResourceViewModel::handles(type)) {
         mineResourceViewModel_.drawAt(type, static_cast<float>(origin.x), static_cast<float>(origin.y), size, alpha);
+        return;
+    }
+    if (type == model::BuildingType::Warehouse) {
+        warehouseViewModel_.drawAt(
+            static_cast<float>(origin.x), static_cast<float>(origin.y), size, alpha);
         return;
     }
     drawBuilding(type, origin, size, alpha);
