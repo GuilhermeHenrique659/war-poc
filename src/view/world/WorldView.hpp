@@ -5,6 +5,7 @@
 #include "model/GridPos.hpp"
 #include "model/player/Player.hpp"
 #include "view/world/EnvironmentViewModel.hpp"
+#include "view/world/ResourceDepositViewModel.hpp"
 #include "view/world/WorldObjectsViewModel.hpp"
 
 #include <raylib.h>
@@ -35,6 +36,7 @@ private:
 
     core::EventBus& bus_;
     EnvironmentViewModel environment_;
+    ResourceDepositViewModel resourceDeposits_;
     WorldObjectsViewModel objects_;
     Vector2 cameraTarget_{0.0f, 0.0f};
     float cameraZoom_ = 1.0f;

@@ -156,6 +156,10 @@ void WorldView::drawDeposits(const Camera2D& cam) const
         return;
     }
     for (const model::ResourceDeposit& deposit : worldMap_->deposits) {
+        if (ResourceDepositViewModel::textureKey(deposit.resource) != nullptr) {
+            resourceDeposits_.draw(deposit);
+            continue;
+        }
         const Vector2 center = GetWorldToScreen2D(
             iso::gridToWorld(static_cast<float>(deposit.origin.x) + static_cast<float>(deposit.size) / 2.0F,
                 static_cast<float>(deposit.origin.y) + static_cast<float>(deposit.size) / 2.0F),
@@ -168,9 +172,9 @@ void WorldView::drawDeposits(const Camera2D& cam) const
         }
         Color color{};
         switch (deposit.resource) {
-        case model::ItemId::Iron: color = Color{170, 180, 190, 190}; break;
-        case model::ItemId::Copper: color = Color{202, 119, 65, 190}; break;
-        case model::ItemId::Coal: color = Color{55, 60, 68, 210}; break;
+        case model::ItemId::Copper:
+        case model::ItemId::Iron:
+        case model::ItemId::Coal:
         case model::ItemId::Steel:
         case model::ItemId::Electronics:
         case model::ItemId::Tools:
