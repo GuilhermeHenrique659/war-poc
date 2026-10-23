@@ -26,7 +26,7 @@ Documento vivo com as regras do jogo. Itens marcados como **TBD** ainda não for
 - No sandbox atual há somente o jogador local. O `PlayerId` é propagado aos Controllers e Views pelo event bus, permitindo que novos jogadores sejam adicionados depois.
 
 ## Modo debug
-- `F3` liga e desliga o modo debug em qualquer cena. Ele só muda o que aparece na tela e não afeta as regras do jogo.
+- `F3` liga e desliga o modo debug em qualquer cena. Quando ativo, o custo em recursos de todas as construções e unidades é zero. A prévia de construção não exige materiais, a colocação não desconta recursos e a interface mostra `Gratis`; o recrutamento de drones também não exige nem desconta recursos.
 - Painel no canto superior esquerdo com FPS e tempo do frame (verde ≥ 55, amarelo ≥ 30, vermelho abaixo disso) e a cena atual. Durante a partida mostra também a quantidade de construções e tropas, a posição e o zoom da câmera, e o tile sob o mouse.
 - Em cada entidade da partida aparecem:
   - o contorno da área ocupada no chão (ciano);

@@ -182,7 +182,7 @@ struct CameraPanRequested {
     float dy;
 };
 
-// Controller -> View (debug overlay is presentation state)
+// Controller -> View / Model (debug mode toggle)
 struct DebugToggleRequested {};
 
 // Any -> Game loop

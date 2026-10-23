@@ -22,6 +22,9 @@ LogisticsSystem::LogisticsSystem(core::EventBus& bus, ecs::Registry& world, Unit
 {
     bus_.subscribe<events::BuildingPlaced>([this](const auto& event) { onBuildingPlaced(event); });
     bus_.subscribe<events::BuildingRemoved>([this](const auto& event) { onBuildingRemoved(event); });
+    bus_.subscribe<events::DebugToggleRequested>([this](const events::DebugToggleRequested&) {
+        debugMode_ = !debugMode_;
+    });
 }
 
 void LogisticsSystem::reset()
@@ -185,25 +188,29 @@ std::optional<ecs::Entity> LogisticsSystem::recruitDrone(PlayerId player, ecs::E
         return std::nullopt;
     }
     components::Inventory* inventory = playerInventory(player);
-    if (inventory == nullptr
-        || InventorySystem::amount(*inventory, ItemId::Iron) < components::kTransportDroneIronCost
-        || InventorySystem::amount(*inventory, ItemId::Electronics) < components::kTransportDroneElectronicsCost) {
-        return std::nullopt;
-    }
+    int removedIron = 0;
+    int removedElectronics = 0;
+    if (!debugMode_) {
+        if (inventory == nullptr
+            || InventorySystem::amount(*inventory, ItemId::Iron) < components::kTransportDroneIronCost
+            || InventorySystem::amount(*inventory, ItemId::Electronics) < components::kTransportDroneElectronicsCost) {
+            return std::nullopt;
+        }
 
-    const int removedIron = InventorySystem::remove(*inventory, ItemId::Iron, components::kTransportDroneIronCost);
-    const int removedElectronics =
-        InventorySystem::remove(*inventory, ItemId::Electronics, components::kTransportDroneElectronicsCost);
-    if (removedIron != components::kTransportDroneIronCost
-        || removedElectronics != components::kTransportDroneElectronicsCost) {
-        (void)InventorySystem::add(*inventory, ItemId::Iron, removedIron);
-        (void)InventorySystem::add(*inventory, ItemId::Electronics, removedElectronics);
-        return std::nullopt;
+        removedIron = InventorySystem::remove(*inventory, ItemId::Iron, components::kTransportDroneIronCost);
+        removedElectronics =
+            InventorySystem::remove(*inventory, ItemId::Electronics, components::kTransportDroneElectronicsCost);
+        if (removedIron != components::kTransportDroneIronCost
+            || removedElectronics != components::kTransportDroneElectronicsCost) {
+            (void)InventorySystem::add(*inventory, ItemId::Iron, removedIron);
+            (void)InventorySystem::add(*inventory, ItemId::Electronics, removedElectronics);
+            return std::nullopt;
+        }
     }
 
     const GridPos center{footprint->origin.x + footprint->size / 2, footprint->origin.y + footprint->size / 2};
     const auto drone = units_.spawnTransportDrone(player, center);
-    if (!drone) {
+    if (!drone && !debugMode_) {
         (void)InventorySystem::add(*inventory, ItemId::Iron, removedIron);
         (void)InventorySystem::add(*inventory, ItemId::Electronics, removedElectronics);
     }

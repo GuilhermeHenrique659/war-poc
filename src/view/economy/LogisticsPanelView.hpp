@@ -14,6 +14,7 @@ public:
 private:
     events::LogisticsPanelChanged panel_;
     model::PlayerId localPlayerId_ = model::kNoPlayer;
+    bool debugMode_ = false;
 };
 
 } // namespace view::gameplay

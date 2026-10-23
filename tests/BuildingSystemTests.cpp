@@ -28,6 +28,9 @@ protected:
         bus_.subscribe<events::BuildPreviewChanged>([this](const events::BuildPreviewChanged& event) {
             previews_.push_back(event);
         });
+        bus_.subscribe<events::BuildBarChanged>([this](const events::BuildBarChanged& event) {
+            buildBars_.push_back(event);
+        });
         const auto playerEntity = world_.create();
         world_.emplace<model::components::PlayerProfile>(playerEntity, kPlayer, "Tester");
         world_.emplace<model::components::Owner>(playerEntity, kPlayer);
@@ -45,6 +48,7 @@ protected:
     model::BuildingSystem buildings_;
     std::vector<events::BuildingPlaced> placements_;
     std::vector<events::BuildPreviewChanged> previews_;
+    std::vector<events::BuildBarChanged> buildBars_;
     model::components::Inventory* playerInventory_ = nullptr;
     static constexpr model::PlayerId kPlayer = 1;
 };
@@ -359,5 +363,38 @@ TEST_F(BuildingSystemTest, CommonBuildingsCostOneHundredOfEveryItem)
              model::ItemId::Copper, model::ItemId::Electronics, model::ItemId::Tools}) {
         EXPECT_EQ(model::InventorySystem::amount(*playerInventory_, item),
             item == model::ItemId::Iron ? 400 : 0);
+    }
+}
+
+TEST_F(BuildingSystemTest, DebugModeMakesConstructionFree)
+{
+    // Given a player with no resources and an initialized build bar.
+    for (const auto item : {model::ItemId::Iron, model::ItemId::Coal, model::ItemId::Steel,
+             model::ItemId::Copper, model::ItemId::Electronics, model::ItemId::Tools}) {
+        const int amount = model::InventorySystem::amount(*playerInventory_, item);
+        EXPECT_EQ(model::InventorySystem::remove(*playerInventory_, item, amount), amount);
+    }
+    buildings_.initializePlayer(kPlayer);
+
+    // When debug mode is activated.
+    bus_.publish(events::DebugToggleRequested{});
+
+    const auto wallEntry = std::find_if(buildBars_.back().entries.begin(), buildBars_.back().entries.end(),
+        [](const events::BuildBarEntry& entry) { return entry.type == model::BuildingType::Wall; });
+    ASSERT_NE(wallEntry, buildBars_.back().entries.end());
+    EXPECT_EQ(wallEntry->cost, "Gratis");
+
+    // Then the player can build without materials and the inventory remains unchanged.
+    buildings_.select(kPlayer, model::BuildingType::CommandCenter);
+    buildings_.place(kPlayer, {0, 0});
+    buildings_.select(kPlayer, model::BuildingType::Wall);
+    buildings_.moveCursor(kPlayer, model::GridPos{10, 10});
+    ASSERT_FALSE(previews_.empty());
+    EXPECT_TRUE(previews_.back().valid);
+    buildings_.place(kPlayer, {10, 10});
+    ASSERT_EQ(placements_.size(), 2U);
+    for (const auto item : {model::ItemId::Iron, model::ItemId::Coal, model::ItemId::Steel,
+             model::ItemId::Copper, model::ItemId::Electronics, model::ItemId::Tools}) {
+        EXPECT_EQ(model::InventorySystem::amount(*playerInventory_, item), 0);
     }
 }

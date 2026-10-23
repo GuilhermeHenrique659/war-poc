@@ -65,6 +65,7 @@ private:
     std::unordered_map<PlayerId, ecs::Entity> commandCenters_;
     std::function<bool(GridPos)> tileBlocker_;
     std::function<bool(BuildingType, GridPos, int)> placementRule_;
+    bool debugMode_ = false;
 };
 
 } // namespace model

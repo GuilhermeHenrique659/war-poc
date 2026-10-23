@@ -153,6 +153,24 @@ TEST_F(LogisticsSystemTest, DoesNotRecruitDroneWhenPlayerCannotAffordIt)
     EXPECT_EQ(droneCount, 0);
 }
 
+TEST_F(LogisticsSystemTest, DebugModeMakesDroneRecruitmentFree)
+{
+    // Given an owned warehouse and a player with no iron or electronics.
+    const auto warehouse = makeBuilding(model::BuildingType::Warehouse, kPlayer, {10, 10}, model::ItemId::Count);
+    auto& inventory = playerInventory();
+    EXPECT_EQ(model::InventorySystem::remove(inventory, model::ItemId::Iron, 500), 500);
+    EXPECT_EQ(model::InventorySystem::remove(inventory, model::ItemId::Electronics, 500), 500);
+
+    // When debug mode is enabled and the player recruits a drone.
+    bus_.publish(events::DebugToggleRequested{});
+    const auto drone = logistics_.recruitDrone(kPlayer, warehouse);
+
+    // Then the drone is created without spending resources.
+    ASSERT_TRUE(drone.has_value());
+    EXPECT_EQ(model::InventorySystem::amount(inventory, model::ItemId::Iron), 0);
+    EXPECT_EQ(model::InventorySystem::amount(inventory, model::ItemId::Electronics), 0);
+}
+
 TEST_F(LogisticsSystemTest, UnassignsDroneAndReturnsItsCargoToTheRouteSource)
 {
     // Given an assigned drone carrying iron from its route.

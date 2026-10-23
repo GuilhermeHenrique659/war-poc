@@ -45,6 +45,7 @@ private:
     ecs::Registry& world_;
     UnitSystem& units_;
     components::LogisticsRouteId nextRouteId_ = 1;
+    bool debugMode_ = false;
 };
 
 } // namespace model

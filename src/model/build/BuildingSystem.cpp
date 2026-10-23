@@ -65,6 +65,14 @@ BuildingSystem::BuildingSystem(core::EventBus& bus, ecs::Registry& world)
     : bus_(bus)
     , world_(world)
 {
+    bus_.subscribe<events::DebugToggleRequested>([this](const events::DebugToggleRequested&) {
+        debugMode_ = !debugMode_;
+        for (const auto& [player, builder] : builders_) {
+            (void)builder;
+            publishBar(player);
+        }
+        refreshPreviews();
+    });
 }
 
 void BuildingSystem::reset()
@@ -76,6 +84,7 @@ void BuildingSystem::reset()
 
 void BuildingSystem::initializePlayer(PlayerId player)
 {
+    builders_.try_emplace(player);
     publishBar(player);
     publishPreview(player);
 }
@@ -299,6 +308,10 @@ components::Inventory* BuildingSystem::playerInventory(PlayerId player) const
 
 bool BuildingSystem::canAfford(PlayerId player, BuildingType type) const
 {
+    if (debugMode_) {
+        return true;
+    }
+
     const components::Inventory* inventory = playerInventory(player);
     for (const BuildingCost& cost : buildingCosts(type)) {
         if (cost.quantity <= 0) {
@@ -313,6 +326,10 @@ bool BuildingSystem::canAfford(PlayerId player, BuildingType type) const
 
 bool BuildingSystem::payCost(PlayerId player, BuildingType type)
 {
+    if (debugMode_) {
+        return true;
+    }
+
     const BuildingCosts& costs = buildingCosts(type);
     if (&costs == &kNoBuildingCost) {
         return true;
@@ -351,7 +368,8 @@ void BuildingSystem::publishBar(PlayerId player) const
         const BuildingSpec spec = buildingSpec(type);
         const std::string_view reason = lockedReason(player, type);
         bar.entries.push_back(events::BuildBarEntry{
-            type, std::string(spec.label), spec.size, reason.empty(), std::string(reason), costLabel(type)});
+            type, std::string(spec.label), spec.size, reason.empty(), std::string(reason),
+            debugMode_ ? "Gratis" : costLabel(type)});
     }
     bus_.publish(bar);
 }

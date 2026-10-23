@@ -43,6 +43,9 @@ LogisticsPanelView::LogisticsPanelView(core::EventBus& bus)
             panel_ = event;
         }
     });
+    bus.subscribe<events::DebugToggleRequested>([this](const events::DebugToggleRequested&) {
+        debugMode_ = !debugMode_;
+    });
     bus.subscribe<events::WorldReset>([this](const events::WorldReset&) { panel_ = {}; });
 }
 
@@ -73,9 +76,11 @@ void LogisticsPanelView::draw() const
             kButtonColor, Color{72, 130, 92, 255}, Color{38, 76, 54, 255},
             GRAY, GRAY, RAYWHITE, 1};
         ui::Button{recruitStyle}.draw(recruit,
-            TextFormat("Drone: %d ferro + %d eletr. (ociosos: %d)",
-                model::components::kTransportDroneIronCost, model::components::kTransportDroneElectronicsCost,
-                panel_.idleDrones),
+            debugMode_
+                ? TextFormat("Drone: Gratis (ociosos: %d)", panel_.idleDrones)
+                : TextFormat("Drone: %d ferro + %d eletr. (ociosos: %d)",
+                    model::components::kTransportDroneIronCost, model::components::kTransportDroneElectronicsCost,
+                    panel_.idleDrones),
             CheckCollisionPointRec(GetMousePosition(), recruit) ? ui::ButtonState::Selected : ui::ButtonState::Normal, 12);
         nextY += logistics_panel_layout::kRecruitHeight;
     }
