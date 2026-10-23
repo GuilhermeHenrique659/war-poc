@@ -8,16 +8,9 @@ namespace view::gameplay {
 
 namespace {
 
-<<<<<<< Updated upstream
-constexpr int kFrameCount = 21;
-constexpr Vector2 kFrameSize{306.0F, 238.0F};
-constexpr double kFrameDurationSeconds = 0.125;
-constexpr double kFramesPerSecond = 1.0 / kFrameDurationSeconds;
-=======
 constexpr int kFrameCount = 8;
 constexpr Vector2 kFrameSize{443.5F, 443.5F};
 constexpr double kFramesPerSecond = 8.0;
->>>>>>> Stashed changes
 
 [[nodiscard]] SpriteSheet loadSteelworksSpriteSheet()
 {

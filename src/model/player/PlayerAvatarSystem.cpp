@@ -49,6 +49,8 @@ ecs::Entity PlayerAvatarSystem::create(PlayerId player, const std::string& name)
     world_.emplace<components::Owner>(entity, player);
     auto& inventory = world_.emplace<components::Inventory>(entity, std::size_t{32});
     (void)InventorySystem::add(inventory, ItemId::Iron, 500);
+    (void)InventorySystem::add(inventory, ItemId::Weapon, 10);
+    (void)InventorySystem::add(inventory, ItemId::Ammo, 1000);
     entities_[player] = entity;
     return entity;
 }

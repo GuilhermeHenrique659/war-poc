@@ -27,6 +27,8 @@ constexpr Rectangle kCopperTextureSource{0.0f, 112.0f, 1491.0f, 833.0f};
     case model::ItemId::Steel:
     case model::ItemId::Electronics:
     case model::ItemId::Tools:
+    case model::ItemId::Weapon:
+    case model::ItemId::Ammo:
     case model::ItemId::Count: return 0;
     }
     return 0;

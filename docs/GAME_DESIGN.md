@@ -45,8 +45,8 @@ Documento vivo com as regras do jogo. Itens marcados como **TBD** ainda não for
 - Renderização de construções, tropas e avatar usa o algoritmo do pintor: objetos mais distantes no eixo de profundidade do grid são desenhados primeiro.
 
 ## Economia / recursos
-- O inventário é composto por slots; cada slot armazena um item e sua quantidade atual em unidades inteiras (não há frações de item). Cada pilha comporta até 100 unidades. O inventário do jogador tem 32 slots e o de cada construção tem 64.
-- O jogador começa com 500 unidades de ferro, distribuídas em cinco pilhas. Inventários de construções começam vazios. Itens definidos: ferro, carvão, aço, cobre, eletrônicos e ferramentas.
+- O inventário é composto por slots; cada slot armazena um item e sua quantidade atual em unidades inteiras (não há frações de item). Cada pilha comporta até 100 unidades, exceto arma (1 por pilha). O inventário do jogador tem 32 slots, o de cada construção tem 64, o de cada tropa tem 2 e o de cada drone tem 10.
+- O jogador começa com 500 unidades de ferro, 10 armas e 1000 munições. Inventários de construções começam vazios. Itens definidos: ferro, carvão, aço, cobre, eletrônicos, ferramentas, arma e munição.
 - A tecla `I` abre/fecha o inventário do jogador. Ao selecionar uma construção, o painel mostra o inventário do jogador e o da construção lado a lado. Arrastar uma pilha de um painel ao outro transfere o máximo que couber; o restante permanece na origem se não houver espaço. `ESC` ou `X` fecha o painel.
 - Produção usa taxas por segundo, mas itens e consumo são sempre unidades inteiras. O progresso fracionário da taxa fica acumulado internamente até completar uma unidade; produção também respeita os itens disponíveis e a capacidade do inventário de saída:
   - Mina de Ferro: produz 1 ferro/s sem consumir entradas.
@@ -56,7 +56,7 @@ Documento vivo com as regras do jogo. Itens marcados como **TBD** ainda não for
   - Fábrica de Eletrônicos: consome 1 ferro/s e 1 cobre/s e produz 0,5 eletrônico/s.
   - Fábrica de Ferramentas: consome 1 aço/s e 1 eletrônico/s e produz 0,5 ferramenta/s.
 - As construções descontam seu custo do inventário do jogador no momento da colocação; recursos armazenados em construções não contam para pagar o custo. A prévia fica inválida quando faltam recursos. O recrutamento continua instantâneo, requer Quartel e não tem custo nem limite populacional.
-- Casa e Gerador permanecem como estruturas sem efeitos econômicos nesta etapa. Unidades de combate ainda não recebem inventários.
+- Casa e Gerador permanecem como estruturas sem efeitos econômicos nesta etapa. Tropas de combate recebem um inventário de 2 slots para arma e munição.
 - O Depósito existente passa a ser chamado **Armazém**, mantém sua área 2x2 e inventário de 64 slots, custa 100 de ferro e permite recrutar drones de transporte. Cada drone é recrutado instantaneamente e custa 50 de ferro e 50 eletrônicos, sem limite.
 - Cada construção produtora cria rotas de saída para todos os Armazéns do mesmo jogador e para as construções do mesmo jogador que consomem seu produto. Ao criar um Armazém ou uma construção consumidora, também são criadas rotas de produtores existentes para ela. Cada rota tem ID único, origem, destino, item e quantidade de drones atribuídos; sua lista pertence à construção de origem.
 - Um drone de transporte é uma unidade logística com dono, sem combate nem ordens de tropa. É recrutado no Armazém e pode ser atribuído ou desatribuído de uma rota pela interface da construção de origem. Ao desatribuir um drone que carrega itens, ele retorna à origem e devolve a carga antes de ficar ocioso. O drone percorre continuamente origem → destino → origem a 2 tiles/s, usando os caminhos do mapa.
@@ -119,6 +119,12 @@ Documento vivo com as regras do jogo. Itens marcados como **TBD** ainda não for
 | Bode | 140 | 14 | 1 | 3.5 |
 
 - Unidades mantêm vida, dano e alcance. Uma ordem de ataque dispara após um segundo de cooldown e repete a cada segundo enquanto o alvo permanecer dentro do alcance.
+- **Suprimentos**: cada tropa tem inventário de 2 slots (arma e munição) e carrega no máximo 1 arma e 100 munições. A arma é obrigatória para atacar e cada disparo consome 1 munição.
+- **Máquina de estados**: a tropa fica `Idle` quando está com arma e munição; entra em `SeekingSupplies` ao nascer ou quando a munição chega a zero; e fica em `WaitingForSupplies` quando não há suprimentos disponíveis ou o depósito encontrado está vazio.
+  - Ao nascer, busca 1 arma e 100 munições. Com munição zerada, volta a buscar uma recarga completa automaticamente.
+  - Procura primeiro o Armazém mais próximo que tenha o item necessário; se nenhum Armazém tiver estoque, usa o Centro de Comando mais próximo que tenha estoque. Armazém tem preferência sobre o Centro quando ambos podem suprir.
+  - Se nenhum Armazém ou Centro de Comando tiver arma ou munição, a tropa para onde está e permanece parada, sem atacar, até aparecer estoque.
+  - Ao chegar ao depósito, transfere 1 arma (se faltar) e completa a munição até 100 usando o inventário do prédio.
 
 ### Cruzador e genealogia de tropas
 - O jogador seleciona exatamente duas tropas próprias e clica com o botão direito sobre um Cruzador próprio. As duas caminham até a construção; quando ambas chegam, são consumidas e a descendente aparece no espaço livre mais próximo.

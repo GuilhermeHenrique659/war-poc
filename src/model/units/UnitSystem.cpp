@@ -147,6 +147,8 @@ ecs::Entity UnitSystem::spawn(PlayerId player, const UnitStats& stats, GridPos o
     world_.emplace<components::Combat>(entity, stats.damage, stats.range);
     world_.emplace<components::Position>(entity, position);
     world_.emplace<components::Mover>(entity, std::move(mover));
+    world_.emplace<components::Inventory>(entity, kUnitInventorySlots);
+    world_.emplace<components::UnitSupplyState>(entity);
     reserve(entity, origin, stats.size);
 
     bus_.publish(events::UnitSpawned{entity, player, stats.type, position.x, position.y, stats.health,
@@ -213,6 +215,18 @@ void UnitSystem::orderMove(PlayerId player, const std::vector<ecs::Entity>& unit
     for (const Walker& walker : stranded) {
         settle(walker);
     }
+}
+
+void UnitSystem::stop(ecs::Entity entity)
+{
+    auto* mover = world_.tryGet<components::Mover>(entity);
+    auto* position = world_.tryGet<components::Position>(entity);
+    if (mover == nullptr || position == nullptr) {
+        return;
+    }
+    const Walker walker{entity, mover, position, sizeOf(entity)};
+    release(walker);
+    settle(walker);
 }
 
 bool UnitSystem::update(float deltaSeconds)

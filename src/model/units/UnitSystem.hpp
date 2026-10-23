@@ -33,6 +33,8 @@ public:
     [[nodiscard]] std::optional<ecs::Entity> spawnTransportDrone(PlayerId player, GridPos center);
     [[nodiscard]] bool moveToAdjacent(ecs::Entity entity, GridPos center);
     void orderMove(PlayerId player, const std::vector<ecs::Entity>& units, GridPos target);
+    // Clears the current path and settles the unit on the nearest free square.
+    void stop(ecs::Entity entity);
 
     // Returns true when any unit moved.
     bool update(float deltaSeconds);

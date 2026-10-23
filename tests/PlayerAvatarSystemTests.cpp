@@ -3,6 +3,9 @@
 #include "model/build/BuildingComponents.hpp"
 #include "model/player/PlayerAvatarSystem.hpp"
 #include "model/components/Owner.hpp"
+#include "model/economy/InventoryComponents.hpp"
+#include "model/economy/InventorySystem.hpp"
+#include "model/economy/Item.hpp"
 #include "model/player/PlayerComponents.hpp"
 #include "model/units/UnitComponents.hpp"
 #include "model/ecs/Registry.hpp"
@@ -49,6 +52,21 @@ TEST_F(PlayerAvatarSystemTest, CreatesOnlyThePlayerIdentityUntilTheCommandCenter
     EXPECT_EQ(position, nullptr);
     EXPECT_EQ(health, nullptr);
     EXPECT_EQ(combat, nullptr);
+}
+
+TEST_F(PlayerAvatarSystemTest, StartsWithWeaponsAndAmmoToSupplyItsUnits)
+{
+    // Given an empty world.
+    constexpr model::PlayerId playerId = 7;
+
+    // When the player identity is created.
+    const model::ecs::Entity entity = players_.create(playerId, "Jogador");
+
+    // Then the sandbox inventory has weapons and ammo to transfer to storage later.
+    const auto* inventory = world_.tryGet<model::components::Inventory>(entity);
+    ASSERT_NE(inventory, nullptr);
+    EXPECT_EQ(model::InventorySystem::amount(*inventory, model::ItemId::Weapon), 10);
+    EXPECT_EQ(model::InventorySystem::amount(*inventory, model::ItemId::Ammo), 1000);
 }
 
 TEST_F(PlayerAvatarSystemTest, SpawnsAtTheCommandCenterWhenItIsPlaced)

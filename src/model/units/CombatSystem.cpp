@@ -3,6 +3,9 @@
 #include "core/Events.hpp"
 #include "model/components/Owner.hpp"
 #include "model/build/BuildingComponents.hpp"
+#include "model/economy/InventoryComponents.hpp"
+#include "model/economy/InventorySystem.hpp"
+#include "model/economy/Item.hpp"
 #include "model/player/PlayerComponents.hpp"
 #include "model/units/UnitComponents.hpp"
 
@@ -41,6 +44,29 @@ bool CombatSystem::validTarget(PlayerId player, ecs::Entity target) const
     }
     const auto* owner = world_.tryGet<components::Owner>(target);
     return owner != nullptr && owner->player != player;
+}
+
+bool CombatSystem::canFire(ecs::Entity entity) const
+{
+    if (world_.tryGet<components::Unit>(entity) == nullptr) {
+        return true;
+    }
+    const auto* inventory = world_.tryGet<components::Inventory>(entity);
+    if (inventory == nullptr) {
+        return false;
+    }
+    return InventorySystem::amount(*inventory, ItemId::Weapon) >= kUnitWeaponCount
+        && InventorySystem::amount(*inventory, ItemId::Ammo) > 0;
+}
+
+void CombatSystem::consumeAmmo(ecs::Entity entity) const
+{
+    if (world_.tryGet<components::Unit>(entity) == nullptr) {
+        return;
+    }
+    if (auto* inventory = world_.tryGet<components::Inventory>(entity); inventory != nullptr) {
+        (void)InventorySystem::remove(*inventory, ItemId::Ammo, 1);
+    }
 }
 
 void CombatSystem::orderAttack(PlayerId player, const std::vector<ecs::Entity>& attackers, ecs::Entity target)
@@ -127,6 +153,10 @@ void CombatSystem::update(float deltaSeconds)
         if (order.cooldownRemaining > 0.0F) {
             return;
         }
+        if (!canFire(entity)) {
+            return;
+        }
+        consumeAmmo(entity);
         health->current -= attacker->damage;
         bus_.publish(events::HealthChanged{order.target, health->current, health->max});
         order.cooldownRemaining += kAttackCooldown;

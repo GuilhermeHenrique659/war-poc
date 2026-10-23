@@ -90,7 +90,8 @@ void InventoryPanelView::draw() const
         DrawText(TextFormat("Jogador (%d/32)", usedSlots), paneX, paneY, kTextSize, RAYWHITE);
         constexpr std::array items{
             model::ItemId::Iron, model::ItemId::Coal, model::ItemId::Steel,
-            model::ItemId::Copper, model::ItemId::Electronics, model::ItemId::Tools};
+            model::ItemId::Copper, model::ItemId::Electronics, model::ItemId::Tools,
+            model::ItemId::Weapon, model::ItemId::Ammo};
         for (std::size_t index = 0; index < items.size(); ++index) {
             const std::string value = std::string(model::itemDefinition(items[index]).name) + " "
                 + formatQuantity(itemAmount(panel_.playerSlots, items[index]));
@@ -99,7 +100,7 @@ void InventoryPanelView::draw() const
             const int summaryX = paneX + static_cast<int>(column) * 144;
             DrawText(value.c_str(), summaryX, paneY + 20 + static_cast<int>(row) * 18, kTextSize, LIGHTGRAY);
         }
-        DrawText("Arraste itens para transferir", paneX, paneY + 76, kTextSize, LIGHTGRAY);
+        DrawText("Arraste itens para transferir", paneX, paneY + 96, kTextSize, LIGHTGRAY);
         drawInventory(panel_.playerSlots, true);
     }
 

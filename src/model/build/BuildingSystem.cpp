@@ -23,6 +23,8 @@ namespace {
     case ItemId::Copper: return "Cob";
     case ItemId::Electronics: return "Ele";
     case ItemId::Tools: return "Ferr";
+    case ItemId::Weapon: return "Arma";
+    case ItemId::Ammo: return "Mun";
     case ItemId::Count: break;
     }
     return "?";

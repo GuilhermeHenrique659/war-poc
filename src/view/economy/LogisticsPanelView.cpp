@@ -27,6 +27,8 @@ constexpr Color kDisabledColor{55, 55, 62, 255};
     case model::ItemId::Copper: return "Cobre";
     case model::ItemId::Electronics: return "Eletronicos";
     case model::ItemId::Tools: return "Ferramentas";
+    case model::ItemId::Weapon: return "Arma";
+    case model::ItemId::Ammo: return "Municao";
     case model::ItemId::Count: return "?";
     }
     return "?";

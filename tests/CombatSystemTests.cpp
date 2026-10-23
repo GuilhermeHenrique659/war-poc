@@ -35,6 +35,17 @@ protected:
         }
     }
 
+    void equip(model::ecs::Entity unit, int ammo = model::kUnitAmmoCapacity)
+    {
+        auto* inventory = world_.tryGet<model::components::Inventory>(unit);
+        ASSERT_NE(inventory, nullptr);
+        EXPECT_EQ(model::InventorySystem::add(*inventory, model::ItemId::Weapon, model::kUnitWeaponCount),
+            model::kUnitWeaponCount);
+        if (ammo > 0) {
+            EXPECT_EQ(model::InventorySystem::add(*inventory, model::ItemId::Ammo, ammo), ammo);
+        }
+    }
+
     core::EventBus bus_;
     model::ecs::Registry world_;
     model::BuildingSystem buildings_;
@@ -50,6 +61,7 @@ TEST_F(CombatSystemTest, AttackOrderDamagesEnemyInRangeAfterCooldown)
     // Given opposing Soldier units one tile apart.
     const auto attacker = units_.spawn(1, model::recruitStats(model::UnitType::Soldier), {0, 0});
     const auto target = units_.spawn(2, model::recruitStats(model::UnitType::Soldier), {1, 0});
+    equip(attacker);
 
     // When the attacker receives an order and its attack cooldown elapses.
     combat_.orderAttack(1, {attacker}, target);
@@ -66,6 +78,7 @@ TEST_F(CombatSystemTest, RejectsFriendlyTargetsAndRetainsHealthOutsideRange)
     // Given an attacker and a distant enemy.
     const auto attacker = units_.spawn(1, model::recruitStats(model::UnitType::Soldier), {0, 0});
     const auto distant = units_.spawn(2, model::recruitStats(model::UnitType::Soldier), {8, 0});
+    equip(attacker);
 
     // When the attacker orders an invalid friendly target, then a distant target.
     combat_.orderAttack(1, {attacker}, attacker);
@@ -149,6 +162,7 @@ TEST_F(CombatSystemTest, PublishesHealthChangeAfterDamage)
     // Given an attacker and an enemy, with health notifications observed.
     const auto attacker = units_.spawn(1, model::recruitStats(model::UnitType::Soldier), {0, 0});
     const auto target = units_.spawn(2, model::recruitStats(model::UnitType::Soldier), {1, 0});
+    equip(attacker);
     std::vector<events::HealthChanged> changes;
     bus_.subscribe<events::HealthChanged>([&](const auto& event) { changes.push_back(event); });
 
@@ -167,6 +181,7 @@ TEST_F(CombatSystemTest, RespawnsAPlayerAvatarWhenCombatReducesItsHealthToZero)
 {
     // Given an attacker beside a player avatar with a Command Center respawn point.
     const auto attacker = units_.spawn(1, model::recruitStats(model::UnitType::Soldier), {0, 0});
+    equip(attacker);
     const auto avatar = players_.create(2, "Jogador");
     bus_.publish(events::BuildingPlaced{99, 2, model::BuildingType::CommandCenter, {3, 4}, 5});
     world_.tryGet<model::components::Position>(avatar)->x = 1.5F;
@@ -186,4 +201,46 @@ TEST_F(CombatSystemTest, RespawnsAPlayerAvatarWhenCombatReducesItsHealthToZero)
     ASSERT_EQ(changes.size(), 2U);
     EXPECT_EQ(changes.front().health, 0);
     EXPECT_EQ(changes.back().health, 10);
+}
+
+TEST_F(CombatSystemTest, EachAttackConsumesOneAmmoAndStopsFiringWhenAmmoRunsOut)
+{
+    // Given an attacker with a weapon and only two rounds of ammo.
+    const auto attacker = units_.spawn(1, model::recruitStats(model::UnitType::Soldier), {0, 0});
+    const auto target = units_.spawn(2, model::recruitStats(model::UnitType::Soldier), {1, 0});
+    equip(attacker, 2);
+
+    // When it attacks for three firing intervals.
+    combat_.orderAttack(1, {attacker}, target);
+    combat_.update(1.0F);
+    auto* inventory = world_.tryGet<model::components::Inventory>(attacker);
+    ASSERT_NE(inventory, nullptr);
+    EXPECT_EQ(model::InventorySystem::amount(*inventory, model::ItemId::Ammo), 1);
+    EXPECT_EQ(world_.tryGet<model::components::Health>(target)->current, 90);
+    combat_.update(1.0F);
+    EXPECT_EQ(model::InventorySystem::amount(*inventory, model::ItemId::Ammo), 0);
+    EXPECT_EQ(world_.tryGet<model::components::Health>(target)->current, 80);
+    combat_.update(1.0F);
+
+    // Then the third interval fires nothing because the unit has no ammo left.
+    EXPECT_EQ(model::InventorySystem::amount(*inventory, model::ItemId::Ammo), 0);
+    EXPECT_EQ(world_.tryGet<model::components::Health>(target)->current, 80);
+}
+
+TEST_F(CombatSystemTest, DoesNotAttackWithoutAWeapon)
+{
+    // Given an attacker with ammo but no weapon.
+    const auto attacker = units_.spawn(1, model::recruitStats(model::UnitType::Soldier), {0, 0});
+    const auto target = units_.spawn(2, model::recruitStats(model::UnitType::Soldier), {1, 0});
+    auto* inventory = world_.tryGet<model::components::Inventory>(attacker);
+    ASSERT_NE(inventory, nullptr);
+    EXPECT_EQ(model::InventorySystem::add(*inventory, model::ItemId::Ammo, 100), 100);
+
+    // When it receives an attack order and the cooldown elapses.
+    combat_.orderAttack(1, {attacker}, target);
+    combat_.update(1.0F);
+
+    // Then it cannot deal damage and does not spend ammo.
+    EXPECT_EQ(world_.tryGet<model::components::Health>(target)->current, 100);
+    EXPECT_EQ(model::InventorySystem::amount(*inventory, model::ItemId::Ammo), 100);
 }

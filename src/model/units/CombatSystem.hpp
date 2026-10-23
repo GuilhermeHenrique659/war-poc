@@ -18,6 +18,9 @@ public:
 
 private:
     [[nodiscard]] bool validTarget(PlayerId player, ecs::Entity target) const;
+    // Units need a weapon and at least one round of ammo; other combat entities do not.
+    [[nodiscard]] bool canFire(ecs::Entity entity) const;
+    void consumeAmmo(ecs::Entity entity) const;
 
     core::EventBus& bus_;
     ecs::Registry& world_;

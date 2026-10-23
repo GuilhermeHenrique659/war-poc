@@ -178,6 +178,8 @@ void WorldView::drawDeposits(const Camera2D& cam) const
         case model::ItemId::Steel:
         case model::ItemId::Electronics:
         case model::ItemId::Tools:
+        case model::ItemId::Weapon:
+        case model::ItemId::Ammo:
         case model::ItemId::Count: continue;
         }
         Color outline = color;

@@ -12,6 +12,7 @@
 #include "model/player/PlayerAvatarSystem.hpp"
 #include "model/Scene.hpp"
 #include "model/WorldMap.hpp"
+#include "model/units/UnitSupplySystem.hpp"
 #include "model/units/UnitSystem.hpp"
 #include "model/ecs/Registry.hpp"
 
@@ -50,6 +51,7 @@ private:
     // Systems hold references to world_ (and units_ to buildings_); preserve declaration order.
     std::unique_ptr<BuildingSystem> buildings_;
     std::unique_ptr<UnitSystem> units_;
+    std::unique_ptr<UnitSupplySystem> unitSupplies_;
     std::unique_ptr<LogisticsSystem> logistics_;
     std::unique_ptr<PlayerAvatarSystem> playerAvatars_;
     std::unique_ptr<CombatSystem> combat_;

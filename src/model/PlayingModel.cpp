@@ -16,6 +16,7 @@ PlayingModel::PlayingModel(core::EventBus& bus)
     , world_(std::make_unique<ecs::Registry>())
     , buildings_(std::make_unique<BuildingSystem>(bus_, *world_))
     , units_(std::make_unique<UnitSystem>(bus_, *world_, *buildings_))
+    , unitSupplies_(std::make_unique<UnitSupplySystem>(*world_, *units_))
     , logistics_(std::make_unique<LogisticsSystem>(bus_, *world_, *units_))
     , playerAvatars_(std::make_unique<PlayerAvatarSystem>(bus_, *world_))
     , combat_(std::make_unique<CombatSystem>(bus_, *world_, *units_, *buildings_))
@@ -196,6 +197,8 @@ void PlayingModel::update(float deltaSeconds)
         (void)building;
         publishInventoryPanel(player);
     }
+    // Resupply decisions happen before movement, so a unit can start walking in the same frame.
+    unitSupplies_->update();
     // Moving units can make a placement preview (in)valid.
     if (units_->update(deltaSeconds)) {
         buildings_->refreshPreviews();
