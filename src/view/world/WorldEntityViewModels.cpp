@@ -2,31 +2,27 @@
 
 #include "view/build/BuildingRenderer.hpp"
 #include "view/build/MineResourceViewModel.hpp"
-#include "view/IsoProjection.hpp"
-#include "view/IsoShapes.hpp"
 #include "view/player/PlayerRenderer.hpp"
 #include "view/units/UnitRenderer.hpp"
 
-#include <raylib.h>
-
 namespace view::gameplay {
 
-namespace {
-
-constexpr Color kDroneColor{70, 220, 230, 255};
-
-} // namespace
-
 BuildingViewModel::BuildingViewModel(
-    model::BuildingType type, int size, const MineResourceViewModel& mineResourceViewModel)
+    model::BuildingType type, int size, const MineResourceViewModel& mineResourceViewModel,
+    const CommandCenterViewModel& commandCenterViewModel)
     : type_(type)
     , size_(size)
     , mineResourceViewModel_(mineResourceViewModel)
+    , commandCenterViewModel_(commandCenterViewModel)
 {
 }
 
 void BuildingViewModel::drawAt(float gridX, float gridY) const
 {
+    if (type_ == model::BuildingType::CommandCenter) {
+        commandCenterViewModel_.drawAt(gridX, gridY, size_);
+        return;
+    }
     if (MineResourceViewModel::handles(type_)) {
         mineResourceViewModel_.drawAt(type_, gridX, gridY, size_);
         return;
@@ -59,16 +55,6 @@ void UnitViewModel::setHealth(int health, int maxHealth) noexcept
 int UnitViewModel::size() const noexcept
 {
     return size_;
-}
-
-void DroneViewModel::drawAt(float gridX, float gridY) const
-{
-    const Vector2 ground = iso::gridToWorld(gridX, gridY);
-    DrawEllipse(static_cast<int>(ground.x), static_cast<int>(ground.y), 9.0F, 5.0F, Color{0, 0, 0, 70});
-    iso::drawPrism(iso::Prism{gridX - 0.18F, gridY - 0.18F, 0.36F, 0.36F, 7.0F, 7.0F},
-        iso::boxColors(kDroneColor, 255));
-    DrawLineEx(Vector2{ground.x - 7.0F, ground.y - 2.0F},
-        Vector2{ground.x + 7.0F, ground.y - 2.0F}, 2.0F, RAYWHITE);
 }
 
 void PlayerAvatarViewModel::drawAt(float gridX, float gridY) const

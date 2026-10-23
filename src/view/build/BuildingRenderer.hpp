@@ -7,7 +7,7 @@
 
 namespace view {
 
-// Placeholder art (no assets yet): buildings are drawn from isometric boxes.
+// Fallback colors and primitive rendering for buildings without sprite assets.
 [[nodiscard]] Color buildingColor(model::BuildingType type);
 
 // Draws in world space; call inside BeginMode2D.

@@ -2,7 +2,9 @@
 #include "view/AnimatedSpriteViewModel.hpp"
 #include "view/StaticSpriteViewModel.hpp"
 #include "view/TextureManager.hpp"
+#include "view/build/CommandCenterViewModel.hpp"
 #include "view/build/MineResourceViewModel.hpp"
+#include "view/units/DroneViewModel.hpp"
 #include "model/build/BuildingType.hpp"
 
 #include <gtest/gtest.h>
@@ -149,6 +151,47 @@ TEST_F(SpriteViewModelTests, MineResourceViewModelDrawsIronCoalAndCopperAnimatio
     EXPECT_NE(mineTextureIds[1], mineTextureIds[2]);
     EXPECT_NE(mineTextureIds[0], mineTextureIds[2]);
     EXPECT_FALSE(gameplay::MineResourceViewModel::handles(model::BuildingType::Steelworks));
+}
+
+TEST_F(SpriteViewModelTests, CommandCenterViewModelDrawsTextureAtFootprintSouthEdge)
+{
+    const SpriteSheet sheet{
+        "buildings/command_center_test", texturePath_.filename().string(), 1, Vector2{1774.0F, 887.0F}, 1.0};
+    const gameplay::CommandCenterViewModel commandCenter{sheet};
+    constexpr Color tint{255, 255, 255, 150};
+
+    commandCenter.drawAt(2.0F, 4.0F, 5, tint.a);
+
+    EXPECT_NE(drawnTextureId, 0U);
+    EXPECT_EQ(drawnSource.x, 0.0F);
+    EXPECT_EQ(drawnSource.y, 0.0F);
+    EXPECT_EQ(drawnSource.width, 1774.0F);
+    EXPECT_EQ(drawnSource.height, 887.0F);
+    EXPECT_EQ(drawnDestination.x, -448.0F);
+    EXPECT_EQ(drawnDestination.y, 192.0F);
+    EXPECT_EQ(drawnDestination.width, 640.0F);
+    EXPECT_EQ(drawnDestination.height, 320.0F);
+    EXPECT_EQ(drawnTint.a, tint.a);
+}
+
+TEST_F(SpriteViewModelTests, DroneViewModelDrawsAnimatedSpriteAboveItsGridPosition)
+{
+    const SpriteSheet sheet{
+        "units/drone_test", texturePath_.filename().string(), 8, Vector2{443.5F, 443.5F}, 8.0};
+    const gameplay::DroneViewModel drone{sheet};
+    currentTime = 0.375;
+
+    drone.drawAt(2.0F, 4.0F);
+
+    EXPECT_NE(drawnTextureId, 0U);
+    EXPECT_EQ(drawnSource.x, 1330.5F);
+    EXPECT_EQ(drawnSource.y, 0.0F);
+    EXPECT_EQ(drawnSource.width, 443.5F);
+    EXPECT_EQ(drawnSource.height, 443.5F);
+    EXPECT_EQ(drawnDestination.x, -192.0F);
+    EXPECT_EQ(drawnDestination.y, 64.0F);
+    EXPECT_EQ(drawnDestination.width, 128.0F);
+    EXPECT_EQ(drawnDestination.height, 128.0F);
 }
 
 } // namespace
