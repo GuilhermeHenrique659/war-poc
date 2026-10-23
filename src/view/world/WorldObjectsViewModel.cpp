@@ -1,5 +1,6 @@
 #include "view/world/WorldObjectsViewModel.hpp"
 
+#include "view/build/BuildingRenderer.hpp"
 #include "view/IsoProjection.hpp"
 #include "view/IsoShapes.hpp"
 #include "view/units/UnitRenderer.hpp"
@@ -34,7 +35,8 @@ WorldObjectsViewModel::WorldObjectsViewModel(core::EventBus& bus)
     });
     bus_.subscribe<events::BuildingPlaced>([this](const events::BuildingPlaced& event) {
         buildings_.push_back(BuildingVisual{
-            event.entity, event.origin, event.size, std::make_unique<BuildingViewModel>(event.type, event.size)
+            event.entity, event.origin, event.size,
+            std::make_unique<BuildingViewModel>(event.type, event.size, mineResourceViewModel_)
         });
     });
     bus_.subscribe<events::BuildingRemoved>([this](const events::BuildingRemoved& event) {
@@ -52,6 +54,16 @@ WorldObjectsViewModel::WorldObjectsViewModel(core::EventBus& bus)
         [this](const events::SelectionChanged& event) { onSelectionChanged(event); });
     subscribeUnits();
     subscribePlayers();
+}
+
+void WorldObjectsViewModel::drawBuildingPreview(
+    model::BuildingType type, model::GridPos origin, int size, unsigned char alpha) const
+{
+    if (MineResourceViewModel::handles(type)) {
+        mineResourceViewModel_.drawAt(type, static_cast<float>(origin.x), static_cast<float>(origin.y), size, alpha);
+        return;
+    }
+    drawBuilding(type, origin, size, alpha);
 }
 
 void WorldObjectsViewModel::subscribeUnits()

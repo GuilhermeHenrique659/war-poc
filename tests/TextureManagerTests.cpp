@@ -19,6 +19,7 @@ int resizedWidth = 0;
 int resizedHeight = 0;
 int uploadedWidth = 0;
 int uploadedHeight = 0;
+unsigned int nextTextureId = 1;
 
 std::filesystem::path executableDirectory()
 {
@@ -40,7 +41,7 @@ Texture2D LoadTextureFromImage(Image image)
 {
     uploadedWidth = image.width;
     uploadedHeight = image.height;
-    return Texture2D{1, image.width, image.height, 1, PIXELFORMAT_UNCOMPRESSED_R8G8B8A8};
+    return Texture2D{nextTextureId++, image.width, image.height, 1, PIXELFORMAT_UNCOMPRESSED_R8G8B8A8};
 }
 
 void UnloadImage(Image)
@@ -67,6 +68,10 @@ void UnloadTexture(Texture2D texture)
     unloadedTextures.push_back(texture.id);
 }
 
+void SetTextureFilter(Texture2D, int)
+{
+}
+
 namespace view {
 namespace {
 
@@ -83,6 +88,7 @@ protected:
         resizedHeight = 0;
         uploadedWidth = 0;
         uploadedHeight = 0;
+        nextTextureId = 1;
     }
 
     void TearDown() override

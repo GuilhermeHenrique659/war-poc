@@ -1,6 +1,7 @@
 #include "view/world/WorldEntityViewModels.hpp"
 
 #include "view/build/BuildingRenderer.hpp"
+#include "view/build/MineResourceViewModel.hpp"
 #include "view/IsoProjection.hpp"
 #include "view/IsoShapes.hpp"
 #include "view/player/PlayerRenderer.hpp"
@@ -16,14 +17,20 @@ constexpr Color kDroneColor{70, 220, 230, 255};
 
 } // namespace
 
-BuildingViewModel::BuildingViewModel(model::BuildingType type, int size)
+BuildingViewModel::BuildingViewModel(
+    model::BuildingType type, int size, const MineResourceViewModel& mineResourceViewModel)
     : type_(type)
     , size_(size)
+    , mineResourceViewModel_(mineResourceViewModel)
 {
 }
 
 void BuildingViewModel::drawAt(float gridX, float gridY) const
 {
+    if (MineResourceViewModel::handles(type_)) {
+        mineResourceViewModel_.drawAt(type_, gridX, gridY, size_);
+        return;
+    }
     drawBuilding(type_, model::GridPos{static_cast<int>(gridX), static_cast<int>(gridY)}, size_);
 }
 

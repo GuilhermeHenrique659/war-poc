@@ -2,8 +2,11 @@
 
 #include "model/WorldMap.hpp"
 #include "view/IsoProjection.hpp"
+#include "view/StaticSpriteViewModel.hpp"
 
 #include <raylib.h>
+
+#include <array>
 
 namespace view::gameplay {
 
@@ -15,8 +18,8 @@ public:
 
     [[nodiscard]] static Rectangle tileDestination(model::GridPos tile)
     {
-        const Vector2 top = iso::gridToWorld(tile);
-        return Rectangle{top.x - iso::kHalfWidth, top.y, iso::kTileWidth, iso::kTileHeight};
+        return iso::spriteDestinationFromNorth(
+            static_cast<float>(tile.x), static_cast<float>(tile.y), Vector2{iso::kTileWidth, iso::kTileHeight});
     }
 
     [[nodiscard]] static constexpr const char* textureKey(model::ItemId resource) noexcept
@@ -32,6 +35,9 @@ public:
         }
         return nullptr;
     }
+
+private:
+    std::array<StaticSpriteViewModel, 3> sprites_;
 };
 
 } // namespace view::gameplay

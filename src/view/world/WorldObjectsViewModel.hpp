@@ -7,6 +7,7 @@
 #include "model/GridPos.hpp"
 #include "model/player/Player.hpp"
 #include "model/units/UnitType.hpp"
+#include "view/build/MineResourceViewModel.hpp"
 #include "view/world/WorldEntityViewModels.hpp"
 
 #include <raylib.h>
@@ -24,6 +25,7 @@ public:
     explicit WorldObjectsViewModel(core::EventBus& bus);
 
     void draw() const;
+    void drawBuildingPreview(model::BuildingType type, model::GridPos origin, int size, unsigned char alpha) const;
     [[nodiscard]] std::optional<Vector2> playerGridPosition(model::PlayerId player) const;
 
 private:
@@ -62,6 +64,7 @@ private:
     void onSelectionChanged(const events::SelectionChanged& event);
 
     core::EventBus& bus_;
+    MineResourceViewModel mineResourceViewModel_;
     std::vector<BuildingVisual> buildings_;
     std::unordered_map<model::ecs::Entity, UnitVisual> units_;
     std::unordered_map<model::ecs::Entity, DroneVisual> drones_;

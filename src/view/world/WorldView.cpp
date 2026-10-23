@@ -212,7 +212,7 @@ void WorldView::drawPreview() const
     outline.a = 255;
 
     iso::drawFootprint(x, y, size, size, fill, outline);
-    drawBuilding(preview_.type, preview_.origin, preview_.size, kGhostAlpha);
+    objects_.drawBuildingPreview(preview_.type, preview_.origin, preview_.size, kGhostAlpha);
 }
 
 } // namespace view::gameplay

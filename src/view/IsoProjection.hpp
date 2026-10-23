@@ -25,6 +25,23 @@ inline constexpr float kHalfHeight = kTileHeight / 2.0f;
     return gridToWorld(static_cast<float>(tile.x), static_cast<float>(tile.y));
 }
 
+[[nodiscard]] inline Rectangle spriteDestinationFromNorth(
+    float gridX, float gridY, Vector2 spriteSize, float overlapX = 0.0F, float overlapY = 0.0F)
+{
+    const Vector2 north = gridToWorld(gridX, gridY);
+    return Rectangle{north.x - spriteSize.x / 2.0F - overlapX, north.y - overlapY,
+        spriteSize.x + 2.0F * overlapX, spriteSize.y + 2.0F * overlapY};
+}
+
+[[nodiscard]] inline Rectangle spriteDestinationFromSouth(
+    float gridX, float gridY, Vector2 footprintSize, Vector2 spriteFrameSize)
+{
+    const float width = footprintSize.x * kTileWidth;
+    const float height = width * spriteFrameSize.y / spriteFrameSize.x;
+    const Vector2 south = gridToWorld(gridX + footprintSize.x, gridY + footprintSize.y);
+    return Rectangle{south.x - width / 2.0F, south.y - height, width, height};
+}
+
 [[nodiscard]] inline model::GridPos worldToGrid(Vector2 world)
 {
     const float u = world.x / kHalfWidth;

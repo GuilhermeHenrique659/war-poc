@@ -1,5 +1,6 @@
 #pragma once
 
+#include "view/StaticSpriteViewModel.hpp"
 #include "view/world/WorldObjectViewModel.hpp"
 
 #include <raylib.h>
@@ -13,7 +14,7 @@ public:
     void drawAt(float gridX, float gridY) const override;
 
 private:
-    Texture2D texture_;
+    StaticSpriteViewModel sprite_;
     Vector2 gameSize_;
 };
 

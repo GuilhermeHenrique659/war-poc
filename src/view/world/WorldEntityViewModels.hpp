@@ -6,15 +6,18 @@
 
 namespace view::gameplay {
 
+class MineResourceViewModel;
+
 class BuildingViewModel final : public WorldObjectViewModel {
 public:
-    BuildingViewModel(model::BuildingType type, int size);
+    BuildingViewModel(model::BuildingType type, int size, const MineResourceViewModel& mineResourceViewModel);
 
     void drawAt(float gridX, float gridY) const override;
 
 private:
     model::BuildingType type_;
     int size_;
+    const MineResourceViewModel& mineResourceViewModel_;
 };
 
 class UnitViewModel final : public WorldObjectViewModel {

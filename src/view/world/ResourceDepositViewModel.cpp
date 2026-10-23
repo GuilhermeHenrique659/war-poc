@@ -1,7 +1,8 @@
 #include "view/world/ResourceDepositViewModel.hpp"
 
 #include "view/IsoProjection.hpp"
-#include "view/TextureManager.hpp"
+
+#include <cstddef>
 
 namespace view::gameplay {
 
@@ -17,20 +18,30 @@ constexpr const char* kCopperTextureKey = "deposit/copper";
 constexpr const char* kCopperTexturePath = "resource/textures/enviroment/copper.png";
 constexpr Rectangle kCopperTextureSource{0.0f, 112.0f, 1491.0f, 833.0f};
 
-void loadTileTexture(const char* key, const char* path, Rectangle source)
+[[nodiscard]] std::size_t spriteIndex(model::ItemId resource)
 {
-    TextureManager::instance().loadResized(
-        key, path, source, static_cast<int>(iso::kTileWidth), static_cast<int>(iso::kTileHeight));
-    SetTextureFilter(TextureManager::instance().get(key), TEXTURE_FILTER_POINT);
+    switch (resource) {
+    case model::ItemId::Iron: return 0;
+    case model::ItemId::Coal: return 1;
+    case model::ItemId::Copper: return 2;
+    case model::ItemId::Steel:
+    case model::ItemId::Electronics:
+    case model::ItemId::Tools:
+    case model::ItemId::Count: return 0;
+    }
+    return 0;
 }
 
 } // namespace
 
 ResourceDepositViewModel::ResourceDepositViewModel()
+    : sprites_{StaticSpriteViewModel{kIronTextureKey, kIronTexturePath, kIronTextureSource,
+                   static_cast<int>(iso::kTileWidth), static_cast<int>(iso::kTileHeight)},
+          StaticSpriteViewModel{kCoalTextureKey, kCoalTexturePath, kCoalTextureSource,
+              static_cast<int>(iso::kTileWidth), static_cast<int>(iso::kTileHeight)},
+          StaticSpriteViewModel{kCopperTextureKey, kCopperTexturePath, kCopperTextureSource,
+              static_cast<int>(iso::kTileWidth), static_cast<int>(iso::kTileHeight)}}
 {
-    loadTileTexture(kIronTextureKey, kIronTexturePath, kIronTextureSource);
-    loadTileTexture(kCoalTextureKey, kCoalTexturePath, kCoalTextureSource);
-    loadTileTexture(kCopperTextureKey, kCopperTexturePath, kCopperTextureSource);
 }
 
 void ResourceDepositViewModel::draw(const model::ResourceDeposit& deposit) const
@@ -39,14 +50,12 @@ void ResourceDepositViewModel::draw(const model::ResourceDeposit& deposit) const
     if (key == nullptr) {
         return;
     }
-    const Texture2D& texture = TextureManager::instance().get(key);
+    const StaticSpriteViewModel& sprite = sprites_[spriteIndex(deposit.resource)];
 
     for (int y = 0; y < deposit.size; ++y) {
         for (int x = 0; x < deposit.size; ++x) {
             const model::GridPos tile{deposit.origin.x + x, deposit.origin.y + y};
-            DrawTexturePro(texture,
-                Rectangle{0.0f, 0.0f, static_cast<float>(texture.width), static_cast<float>(texture.height)},
-                tileDestination(tile), Vector2{0.0f, 0.0f}, 0.0f, WHITE);
+            sprite.drawAt(tileDestination(tile));
         }
     }
 }
