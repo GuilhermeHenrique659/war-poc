@@ -14,6 +14,7 @@ namespace core {
 class Game {
 public:
     Game();
+    ~Game();
 
     void run();
 

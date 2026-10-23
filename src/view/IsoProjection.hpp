@@ -9,8 +9,8 @@
 // Grid <-> world-pixel isometric projection. The view draws with it, the controller picks with it.
 namespace view::iso {
 
-inline constexpr float kTileWidth = 64.0f;
-inline constexpr float kTileHeight = 32.0f;
+inline constexpr float kTileWidth = 128.0f;
+inline constexpr float kTileHeight = 64.0f;
 inline constexpr float kHalfWidth = kTileWidth / 2.0f;
 inline constexpr float kHalfHeight = kTileHeight / 2.0f;
 
