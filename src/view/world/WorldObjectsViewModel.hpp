@@ -7,12 +7,9 @@
 #include "model/GridPos.hpp"
 #include "model/player/Player.hpp"
 #include "model/units/UnitType.hpp"
-#include "view/build/BarracksViewModel.hpp"
-#include "view/build/CommandCenterViewModel.hpp"
+#include "view/build/BuildingSpriteViewModel.hpp"
 #include "view/build/FactoryViewModel.hpp"
 #include "view/build/MineResourceViewModel.hpp"
-#include "view/build/SteelworksViewModel.hpp"
-#include "view/build/WarehouseViewModel.hpp"
 #include "view/world/WorldEntityViewModels.hpp"
 
 #include <raylib.h>
@@ -73,11 +70,11 @@ private:
 
     core::EventBus& bus_;
     MineResourceViewModel mineResourceViewModel_;
-    CommandCenterViewModel commandCenterViewModel_;
-    WarehouseViewModel warehouseViewModel_;
-    SteelworksViewModel steelworksViewModel_;
+    BuildingSpriteViewModel commandCenterViewModel_;
+    BuildingSpriteViewModel warehouseViewModel_;
+    BuildingSpriteViewModel steelworksViewModel_;
     FactoryViewModel factoryViewModel_;
-    BarracksViewModel barracksViewModel_;
+    BuildingSpriteViewModel barracksViewModel_;
     std::vector<BuildingVisual> buildings_;
     std::unordered_map<model::ecs::Entity, UnitVisual> units_;
     std::unordered_map<model::ecs::Entity, DroneVisual> drones_;

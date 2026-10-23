@@ -5,6 +5,7 @@
 #include "model/economy/InventoryComponents.hpp"
 #include "model/economy/InventoryPanes.hpp"
 #include "model/economy/InventorySystem.hpp"
+#include "model/player/PlayerInventory.hpp"
 #include "model/selection/SelectedUnitInventory.hpp"
 
 namespace model {
@@ -68,7 +69,7 @@ bool InventoryPanelSystem::transfer(
     }
     const auto* owner = world_.tryGet<components::Owner>(building);
     auto* buildingInventory = world_.tryGet<components::Inventory>(building);
-    auto* playerInventory = world_.tryGet<components::Inventory>(*playerEntity);
+    auto* playerInventory = model::playerInventory(world_, player);
     if (owner == nullptr || owner->player != player || buildingInventory == nullptr
         || playerInventory == nullptr) {
         return false;
@@ -111,8 +112,7 @@ void InventoryPanelSystem::onSelectionChanged(const events::SelectionChanged& ev
 void InventoryPanelSystem::publish(PlayerId player) const
 {
     const auto playerEntity = players_.entity(player);
-    const auto* playerInventory
-        = playerEntity ? world_.tryGet<components::Inventory>(*playerEntity) : nullptr;
+    const auto* playerInventory = model::playerInventory(world_, player);
     const auto buildingPanel = buildingPanels_.find(player);
     const auto* building = buildingPanel == buildingPanels_.end()
         ? nullptr

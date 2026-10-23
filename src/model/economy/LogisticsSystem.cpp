@@ -1,12 +1,14 @@
 #include "model/economy/LogisticsSystem.hpp"
 
 #include "core/Events.hpp"
+#include "model/FootprintGeometry.hpp"
 #include "model/build/BuildingComponents.hpp"
 #include "model/components/Owner.hpp"
 #include "model/economy/InventoryComponents.hpp"
 #include "model/economy/InventorySystem.hpp"
 #include "model/economy/ProductionComponents.hpp"
 #include "model/player/PlayerComponents.hpp"
+#include "model/player/PlayerInventory.hpp"
 #include "model/units/UnitComponents.hpp"
 
 #include <algorithm>
@@ -181,13 +183,7 @@ bool LogisticsSystem::ownedBy(ecs::Entity entity, PlayerId player) const
 
 components::Inventory* LogisticsSystem::playerInventory(PlayerId player) const
 {
-    components::Inventory* inventory = nullptr;
-    world_.each<components::PlayerProfile>([&](ecs::Entity entity, const components::PlayerProfile& profile) {
-        if (profile.id == player) {
-            inventory = world_.tryGet<components::Inventory>(entity);
-        }
-    });
-    return inventory;
+    return model::playerInventory(world_, player);
 }
 
 std::optional<ecs::Entity> LogisticsSystem::recruitDrone(PlayerId player, ecs::Entity warehouse)
@@ -219,8 +215,7 @@ std::optional<ecs::Entity> LogisticsSystem::recruitDrone(PlayerId player, ecs::E
         }
     }
 
-    const GridPos center{footprint->origin.x + footprint->size / 2, footprint->origin.y + footprint->size / 2};
-    const auto drone = units_.spawnTransportDrone(player, center);
+    const auto drone = units_.spawnTransportDrone(player, footprintCenter(*footprint));
     if (!drone && !debugMode_) {
         (void)InventorySystem::add(*inventory, ItemId::Iron, removedIron);
         (void)InventorySystem::add(*inventory, ItemId::Electronics, removedElectronics);
@@ -325,8 +320,7 @@ bool LogisticsSystem::sendToBuilding(ecs::Entity drone, ecs::Entity building)
     if (footprint == nullptr) {
         return false;
     }
-    return units_.moveToAdjacent(drone,
-        GridPos{footprint->origin.x + footprint->size / 2, footprint->origin.y + footprint->size / 2});
+    return units_.moveToAdjacent(drone, footprintCenter(*footprint));
 }
 
 void LogisticsSystem::publishLoadStateIfChanged(ecs::Entity drone, bool wasLoaded, bool isLoaded) const

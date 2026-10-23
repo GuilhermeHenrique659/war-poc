@@ -1,16 +1,15 @@
 #include "model/units/GenealogySystem.hpp"
 
+#include "model/FootprintGeometry.hpp"
 #include "model/build/BuildingComponents.hpp"
 #include "model/units/UnitComponents.hpp"
 
 #include <algorithm>
-#include <cmath>
 
 namespace model {
 
 namespace {
 
-constexpr float kArrivalRadius = 2.5F;
 constexpr int kSpawnRadius = 3;
 
 [[nodiscard]] UnitStats legacyChildStats(
@@ -120,10 +119,7 @@ bool GenealogySystem::arrived(const PendingPair& pair) const
     if (footprint == nullptr) {
         return false;
     }
-    const float left = static_cast<float>(footprint->origin.x);
-    const float top = static_cast<float>(footprint->origin.y);
-    const float right = left + static_cast<float>(footprint->size);
-    const float bottom = top + static_cast<float>(footprint->size);
+    const FootprintBounds bounds = footprintBounds(*footprint);
     for (std::size_t index = 0; index < pair.units.size(); ++index) {
         const ecs::Entity entity = pair.units[index];
         const auto* mover = world_.tryGet<components::Mover>(entity);
@@ -132,9 +128,7 @@ bool GenealogySystem::arrived(const PendingPair& pair) const
             || !mover->path.empty()) {
             return false;
         }
-        const float nearestX = std::clamp(position->x, left, right);
-        const float nearestY = std::clamp(position->y, top, bottom);
-        if (std::hypot(position->x - nearestX, position->y - nearestY) > kArrivalRadius) {
+        if (distanceToFootprint(position->x, position->y, bounds) > kUnitArrivalRadius) {
             return false;
         }
     }
@@ -151,14 +145,14 @@ bool GenealogySystem::createChild(const PendingPair& pair)
     if (stats.baseCount <= 0) {
         return false;
     }
-    const GridPos center{footprint->origin.x + footprint->size / 2, footprint->origin.y + footprint->size / 2};
+    const GridPos center = footprintCenter(*footprint);
     const auto origin = units_.findSpawnSquare(center, stats.size, pair.units, kSpawnRadius);
     if (!origin) {
         return false;
     }
 
     for (const ecs::Entity entity : pair.units) {
-        units_.removeForCombination(entity);
+        units_.remove(entity);
     }
     const ecs::Entity child = units_.spawn(pair.player, stats, *origin);
     selection_.selectUnits(pair.player, {child}, false);

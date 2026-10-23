@@ -18,22 +18,6 @@ constexpr Color kRowHover{67, 75, 88, 255};
 constexpr Color kButtonColor{52, 100, 72, 255};
 constexpr Color kDisabledColor{55, 55, 62, 255};
 
-[[nodiscard]] const char* itemLabel(model::ItemId item)
-{
-    switch (item) {
-    case model::ItemId::Iron: return "Ferro";
-    case model::ItemId::Coal: return "Carvao";
-    case model::ItemId::Steel: return "Aco";
-    case model::ItemId::Copper: return "Cobre";
-    case model::ItemId::Electronics: return "Eletronicos";
-    case model::ItemId::Tools: return "Ferramentas";
-    case model::ItemId::Weapon: return "Arma";
-    case model::ItemId::Ammo: return "Municao";
-    case model::ItemId::Count: return "?";
-    }
-    return "?";
-}
-
 } // namespace
 
 LogisticsPanelView::LogisticsPanelView(core::EventBus& bus)
@@ -101,7 +85,8 @@ void LogisticsPanelView::draw() const
 
         const std::string label = "Rota #" + std::to_string(route.id) + " -> " + route.destinationName;
         DrawText(label.c_str(), static_cast<int>(row.x + 7.0F), static_cast<int>(row.y + 5.0F), 14, RAYWHITE);
-        DrawText(TextFormat("%s  |  Drones: %d", itemLabel(route.item), route.assignedDrones),
+        const std::string itemName{model::itemDefinition(route.item).name};
+        DrawText(TextFormat("%s  |  Drones: %d", itemName.c_str(), route.assignedDrones),
             static_cast<int>(row.x + 7.0F), static_cast<int>(row.y + 27.0F), 13, LIGHTGRAY);
 
         const Rectangle assign = logistics_panel_layout::assignBounds(index, panel_.routes.size(), screenWidth);

@@ -2,7 +2,6 @@
 
 #include "view/build/BuildingRenderer.hpp"
 #include "view/build/MineResourceViewModel.hpp"
-#include "view/build/WarehouseViewModel.hpp"
 #include "view/player/PlayerRenderer.hpp"
 #include "view/units/UnitRenderer.hpp"
 
@@ -10,9 +9,9 @@ namespace view::gameplay {
 
 BuildingViewModel::BuildingViewModel(
     model::BuildingType type, int size, const MineResourceViewModel& mineResourceViewModel,
-    const CommandCenterViewModel& commandCenterViewModel, const WarehouseViewModel& warehouseViewModel,
-    const SteelworksViewModel& steelworksViewModel, const FactoryViewModel& factoryViewModel,
-    const BarracksViewModel& barracksViewModel)
+    const BuildingSpriteViewModel& commandCenterViewModel, const BuildingSpriteViewModel& warehouseViewModel,
+    const BuildingSpriteViewModel& steelworksViewModel, const FactoryViewModel& factoryViewModel,
+    const BuildingSpriteViewModel& barracksViewModel)
     : type_(type)
     , size_(size)
     , mineResourceViewModel_(mineResourceViewModel)
@@ -26,31 +25,36 @@ BuildingViewModel::BuildingViewModel(
 
 void BuildingViewModel::drawAt(float gridX, float gridY) const
 {
+    drawAt(gridX, gridY, 255);
+}
+
+void BuildingViewModel::drawAt(float gridX, float gridY, unsigned char alpha) const
+{
     if (type_ == model::BuildingType::CommandCenter) {
-        commandCenterViewModel_.drawAt(gridX, gridY, size_);
+        commandCenterViewModel_.drawAt(gridX, gridY, size_, alpha);
         return;
     }
     if (MineResourceViewModel::handles(type_)) {
-        mineResourceViewModel_.drawAt(type_, gridX, gridY, size_);
+        mineResourceViewModel_.drawAt(type_, gridX, gridY, size_, alpha);
         return;
     }
     if (type_ == model::BuildingType::Warehouse) {
-        warehouseViewModel_.drawAt(gridX, gridY, size_);
+        warehouseViewModel_.drawAt(gridX, gridY, size_, alpha);
         return;
     }
-    if (SteelworksViewModel::handles(type_)) {
-        steelworksViewModel_.drawAt(gridX, gridY, size_);
+    if (type_ == model::BuildingType::Steelworks) {
+        steelworksViewModel_.drawAt(gridX, gridY, size_, alpha);
         return;
     }
     if (FactoryViewModel::handles(type_)) {
-        factoryViewModel_.drawAt(type_, gridX, gridY, size_);
+        factoryViewModel_.drawAt(type_, gridX, gridY, size_, alpha);
         return;
     }
-    if (BarracksViewModel::handles(type_)) {
-        barracksViewModel_.drawAt(gridX, gridY, size_);
+    if (type_ == model::BuildingType::Barracks) {
+        barracksViewModel_.drawAt(gridX, gridY, size_, alpha);
         return;
     }
-    drawBuilding(type_, model::GridPos{static_cast<int>(gridX), static_cast<int>(gridY)}, size_);
+    drawBuilding(type_, model::GridPos{static_cast<int>(gridX), static_cast<int>(gridY)}, size_, alpha);
 }
 
 UnitViewModel::UnitViewModel(model::UnitType type, int size, int health, int maxHealth)
@@ -73,11 +77,6 @@ void UnitViewModel::setHealth(int health, int maxHealth) noexcept
 {
     health_ = health;
     maxHealth_ = maxHealth;
-}
-
-int UnitViewModel::size() const noexcept
-{
-    return size_;
 }
 
 void PlayerAvatarViewModel::drawAt(float gridX, float gridY) const

@@ -1,14 +1,17 @@
 #include "model/build/BuildingSystem.hpp"
 
 #include "core/Events.hpp"
+#include "model/FootprintGeometry.hpp"
 #include "model/build/BuildingComponents.hpp"
 #include "model/economy/InventoryComponents.hpp"
 #include "model/economy/InventorySystem.hpp"
 #include "model/economy/ProductionComponents.hpp"
 #include "model/economy/Item.hpp"
 #include "model/player/PlayerComponents.hpp"
+#include "model/player/PlayerInventory.hpp"
 #include "model/units/UnitComponents.hpp"
 
+#include <algorithm>
 #include <string>
 
 namespace model {
@@ -32,23 +35,17 @@ namespace {
 
 [[nodiscard]] std::string costLabel(BuildingType type)
 {
-    switch (type) {
-    case BuildingType::CommandCenter:
-    case BuildingType::TrainingDummy:
+    const BuildingCosts& costs = buildingCosts(type);
+    const bool free = std::ranges::all_of(costs, [](const BuildingCost& cost) { return cost.quantity <= 0; });
+    if (free) {
         return "Gratis";
-    case BuildingType::Wall:
-    case BuildingType::House:
-    case BuildingType::Generator:
-    case BuildingType::Barracks:
-    case BuildingType::Cruzador:
-    case BuildingType::Tower:
+    }
+    if (&costs == &kCommonBuildingCost) {
         return "100 cada recurso";
-    default:
-        break;
     }
 
     std::string label;
-    for (const BuildingCost& cost : buildingCosts(type)) {
+    for (const BuildingCost& cost : costs) {
         if (cost.quantity <= 0) {
             continue;
         }
@@ -154,8 +151,8 @@ void BuildingSystem::place(PlayerId player, GridPos anchor)
     world_.emplace<components::Footprint>(entity, origin, size);
     const int health = buildingMaxHealth(type);
     world_.emplace<components::Health>(entity, health, health);
-    world_.emplace<components::Position>(entity, static_cast<float>(origin.x) + static_cast<float>(size) / 2.0F,
-        static_cast<float>(origin.y) + static_cast<float>(size) / 2.0F);
+    const FootprintBounds bounds = footprintBounds(components::Footprint{origin, size});
+    world_.emplace<components::Position>(entity, bounds.centerX(), bounds.centerY());
     if (type == BuildingType::Tower) {
         world_.emplace<components::Combat>(entity, 20, 6.0F);
     }
@@ -256,31 +253,10 @@ void BuildingSystem::refreshPreviews() const
 
 std::string_view BuildingSystem::lockedReason(PlayerId player, BuildingType type) const
 {
-    switch (type) {
-    case BuildingType::CommandCenter:
+    if (type == BuildingType::CommandCenter) {
         return hasCommandCenter(player) ? "Ja construido" : "";
-    case BuildingType::Wall:
-        return hasCommandCenter(player) ? "" : "Requer Centro";
-    case BuildingType::House:
-    case BuildingType::Generator:
-    case BuildingType::Warehouse:
-    case BuildingType::IronMine:
-    case BuildingType::CoalMine:
-    case BuildingType::Steelworks:
-    case BuildingType::CopperMine:
-    case BuildingType::ElectronicsFactory:
-    case BuildingType::ToolFactory:
-    case BuildingType::WeaponFactory:
-    case BuildingType::AmmoFactory:
-        return hasCommandCenter(player) ? "" : "Requer Centro";
-    case BuildingType::Barracks:
-    case BuildingType::Cruzador:
-        return hasCommandCenter(player) ? "" : "Requer Centro";
-    case BuildingType::Tower:
-    case BuildingType::TrainingDummy:
-        return hasCommandCenter(player) ? "" : "Requer Centro";
     }
-    return "";
+    return hasCommandCenter(player) ? "" : "Requer Centro";
 }
 
 bool BuildingSystem::isUnlocked(PlayerId player, BuildingType type) const
@@ -315,13 +291,7 @@ bool BuildingSystem::hasCommandCenter(PlayerId player) const
 
 components::Inventory* BuildingSystem::playerInventory(PlayerId player) const
 {
-    components::Inventory* inventory = nullptr;
-    world_.each<components::PlayerProfile>([&](ecs::Entity entity, const components::PlayerProfile& profile) {
-        if (profile.id == player) {
-            inventory = world_.tryGet<components::Inventory>(entity);
-        }
-    });
-    return inventory;
+    return model::playerInventory(world_, player);
 }
 
 bool BuildingSystem::canAfford(PlayerId player, BuildingType type) const

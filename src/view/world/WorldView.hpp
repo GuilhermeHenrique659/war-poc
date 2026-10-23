@@ -23,14 +23,13 @@ public:
 
 private:
     void onPlayerMoved(const events::PlayerMoved& event);
-    void onPan(const events::CameraPanRequested& event);
     void focusCameraOn(float x, float y);
     void resetCamera();
     void publishCamera() const;
     [[nodiscard]] Camera2D camera() const;
 
     void drawGrid(const Camera2D& camera) const;
-    void drawDeposits(const Camera2D& camera) const;
+    void drawDeposits() const;
     void drawPreview() const;
     void drawSelectionBox() const;
 

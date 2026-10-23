@@ -176,12 +176,6 @@ struct SelectionBoxChanged {
     float y1;
 };
 
-// Controller -> View (camera is presentation state)
-struct CameraPanRequested {
-    float dx; // Screen pixels.
-    float dy;
-};
-
 // Controller -> View / Model (debug mode toggle)
 struct DebugToggleRequested {};
 

@@ -47,7 +47,6 @@ public:
 
     ecs::Entity spawn(PlayerId player, const UnitStats& stats, GridPos origin);
     void remove(ecs::Entity entity);
-    void removeForCombination(ecs::Entity entity);
 
     // Origin of the free square of `size` nearest to `center`, at most `radius` rings away.
     // Tiles covered or reserved by the `ignored` units count as free.

@@ -24,6 +24,36 @@ namespace {
 
 } // namespace
 
+TEST(WorldMapTests, RejectsCoordinatesOutsideConfiguredBounds)
+{
+    // Given a 4 by 3 map with default passable terrain.
+    model::BoundedMap map(4, 3);
+
+    // When querying its edges and an outside tile.
+    // Then only coordinates inside the logical rectangle are valid.
+    EXPECT_TRUE(map.contains({0, 0}));
+    EXPECT_TRUE(map.contains({3, 2}));
+    EXPECT_FALSE(map.contains({4, 2}));
+    EXPECT_FALSE(map.contains({-1, 0}));
+}
+
+TEST(WorldMapTests, StoresTerrainOnlyInsideTheMap)
+{
+    // Given a bounded map with plain terrain by default.
+    model::BoundedMap map(2, 2, {-1, 4});
+
+    // When terrain is blocked on a contained coordinate and outside the map.
+    const bool insideChanged = map.setTerrain({0, 5}, model::Terrain::Blocked);
+    const bool outsideChanged = map.setTerrain({1, 5}, model::Terrain::Blocked);
+
+    // Then in-bounds terrain changes are retained and out-of-bounds tiles stay blocked.
+    EXPECT_TRUE(insideChanged);
+    EXPECT_FALSE(outsideChanged);
+    EXPECT_EQ(map.terrainAt({0, 5}), model::Terrain::Blocked);
+    EXPECT_EQ(map.terrainAt({-1, 4}), model::Terrain::Plain);
+    EXPECT_EQ(map.terrainAt({1, 5}), model::Terrain::Blocked);
+}
+
 TEST(WorldMapTests, GeneratesTheSameTerrainAndDepositsForTheSameSeed)
 {
     // Given a fixed seed.

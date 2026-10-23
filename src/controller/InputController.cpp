@@ -15,10 +15,8 @@ InputController::InputController(core::EventBus& bus)
     bus_.subscribe<events::SceneChanged>([this](const events::SceneChanged& e) { scene_ = e.scene; });
     bus_.subscribe<events::MenuStateChanged>(
         [this](const events::MenuStateChanged& e) { menuItemCount_ = e.labels.size(); });
-    bus_.subscribe<events::SettingsStateChanged>([this](const events::SettingsStateChanged& e) {
-        selectedSettingsRow_ = e.selectedIndex;
-        settingsRowCount_ = view::settings_layout::kRowCount;
-    });
+    bus_.subscribe<events::SettingsStateChanged>(
+        [this](const events::SettingsStateChanged& e) { selectedSettingsRow_ = e.selectedIndex; });
 }
 
 void InputController::update()
@@ -170,7 +168,7 @@ std::optional<std::size_t> InputController::menuItemUnderMouse() const
 std::optional<std::size_t> InputController::settingsRowUnderMouse() const
 {
     const Vector2 mouse = GetMousePosition();
-    for (std::size_t i = 0; i < settingsRowCount_; ++i) {
+    for (std::size_t i = 0; i < view::settings_layout::kRowCount; ++i) {
         const Rectangle bounds = view::settings_layout::rowBounds(i, GetScreenWidth(), GetScreenHeight());
         if (CheckCollisionPointRec(mouse, bounds)) {
             return i;

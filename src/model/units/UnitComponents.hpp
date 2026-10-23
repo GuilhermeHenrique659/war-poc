@@ -14,6 +14,8 @@ namespace model {
 inline constexpr std::size_t kUnitInventorySlots = 2;
 inline constexpr int kUnitWeaponCount = 1;
 inline constexpr int kUnitAmmoCapacity = 100;
+// A unit counts as arrived when it is this close (in tiles) to the target footprint.
+inline constexpr float kUnitArrivalRadius = 2.5F;
 
 // What the unit is doing on its own. Player orders still move it while it is Idle.
 enum class UnitActivity {

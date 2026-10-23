@@ -1,6 +1,7 @@
 #include "model/units/UnitSystem.hpp"
 
 #include "core/Events.hpp"
+#include "model/FootprintGeometry.hpp"
 #include "model/Pathfinding.hpp"
 #include "model/build/BuildingComponents.hpp"
 #include "model/economy/InventoryComponents.hpp"
@@ -87,7 +88,7 @@ void UnitSystem::recruit(PlayerId player, UnitType type, ecs::Entity commandCent
     }
 
     const UnitStats stats = recruitStats(type);
-    const GridPos center{footprint->origin.x + footprint->size / 2, footprint->origin.y + footprint->size / 2};
+    const GridPos center = footprintCenter(*footprint);
     const auto origin = findSpawnSquare(center, stats.size, {}, pathfinding::kUnlimitedRadius);
     if (!origin) {
         return;
@@ -206,11 +207,6 @@ void UnitSystem::remove(ecs::Entity entity)
     }
     world_.destroy(entity);
     bus_.publish(events::UnitRemoved{entity});
-}
-
-void UnitSystem::removeForCombination(ecs::Entity entity)
-{
-    remove(entity);
 }
 
 void UnitSystem::orderMove(PlayerId player, const std::vector<ecs::Entity>& units, GridPos target)

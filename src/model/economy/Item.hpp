@@ -1,5 +1,7 @@
 #pragma once
 
+#include <array>
+#include <cstddef>
 #include <string_view>
 
 namespace model {
@@ -15,6 +17,17 @@ enum class ItemId : unsigned char {
     Ammo,
     Count
 };
+
+// Every concrete item, in stable enum order, so callers do not repeat the enumeration.
+inline constexpr std::array<ItemId, static_cast<std::size_t>(ItemId::Count)> kAllItems = {
+    ItemId::Iron,
+    ItemId::Coal,
+    ItemId::Steel,
+    ItemId::Copper,
+    ItemId::Electronics,
+    ItemId::Tools,
+    ItemId::Weapon,
+    ItemId::Ammo};
 
 struct ItemDefinition {
     ItemId id;

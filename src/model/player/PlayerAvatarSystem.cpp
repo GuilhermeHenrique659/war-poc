@@ -1,5 +1,6 @@
 #include "model/player/PlayerAvatarSystem.hpp"
 
+#include "model/FootprintGeometry.hpp"
 #include "model/build/BuildingType.hpp"
 #include "model/units/UnitType.hpp"
 #include "model/build/BuildingComponents.hpp"
@@ -116,6 +117,7 @@ void PlayerAvatarSystem::onBuildingPlaced(const events::BuildingPlaced& event)
 
 components::Position PlayerAvatarSystem::findSpawnPosition(GridPos origin, int size) const
 {
+    const FootprintBounds target = footprintBounds(components::Footprint{origin, size});
     for (int ring = 0;; ++ring) {
         const int minX = origin.x - ring - 1;
         const int minY = origin.y - ring - 1;
@@ -136,8 +138,8 @@ components::Position PlayerAvatarSystem::findSpawnPosition(GridPos origin, int s
                     continue;
                 }
 
-                const float centerX = static_cast<float>(origin.x) + static_cast<float>(size) / 2.0F;
-                const float centerY = static_cast<float>(origin.y) + static_cast<float>(size) / 2.0F;
+                const float centerX = target.centerX();
+                const float centerY = target.centerY();
                 const float dx = candidate.x - centerX;
                 const float dy = candidate.y - centerY;
                 const float distance = dx * dx + dy * dy;
@@ -159,13 +161,11 @@ bool PlayerAvatarSystem::collidesWithBuilding(components::Position position) con
 {
     bool collides = false;
     world_.each<components::Footprint>([&](ecs::Entity, const components::Footprint& footprint) {
-        const float left = static_cast<float>(footprint.origin.x);
-        const float top = static_cast<float>(footprint.origin.y);
-        const float right = left + static_cast<float>(footprint.size);
-        const float bottom = top + static_cast<float>(footprint.size);
+        const FootprintBounds bounds = footprintBounds(footprint);
         collides = collides
-            || (position.x + kPlayerCollisionRadius > left && position.x - kPlayerCollisionRadius < right
-                && position.y + kPlayerCollisionRadius > top && position.y - kPlayerCollisionRadius < bottom);
+            || (position.x + kPlayerCollisionRadius > bounds.left && position.x - kPlayerCollisionRadius < bounds.right
+                && position.y + kPlayerCollisionRadius > bounds.top
+                && position.y - kPlayerCollisionRadius < bounds.bottom);
     });
     return collides;
 }
@@ -197,20 +197,19 @@ float PlayerAvatarSystem::moveAlongAxis(components::Position position, float dis
 
     float destination = (xAxis ? position.x : position.y) + distance;
     world_.each<components::Footprint>([&](ecs::Entity, const components::Footprint& footprint) {
-        const float left = static_cast<float>(footprint.origin.x);
-        const float top = static_cast<float>(footprint.origin.y);
-        const float right = left + static_cast<float>(footprint.size);
-        const float bottom = top + static_cast<float>(footprint.size);
+        const FootprintBounds bounds = footprintBounds(footprint);
         const bool overlapsOtherAxis = xAxis
-            ? position.y + kPlayerCollisionRadius > top && position.y - kPlayerCollisionRadius < bottom
-            : position.x + kPlayerCollisionRadius > left && position.x - kPlayerCollisionRadius < right;
+            ? position.y + kPlayerCollisionRadius > bounds.top
+                && position.y - kPlayerCollisionRadius < bounds.bottom
+            : position.x + kPlayerCollisionRadius > bounds.left
+                && position.x - kPlayerCollisionRadius < bounds.right;
         if (!overlapsOtherAxis) {
             return;
         }
 
         const float current = xAxis ? position.x : position.y;
-        const float obstacleStart = xAxis ? left : top;
-        const float obstacleEnd = xAxis ? right : bottom;
+        const float obstacleStart = xAxis ? bounds.left : bounds.top;
+        const float obstacleEnd = xAxis ? bounds.right : bounds.bottom;
         if (distance > 0.0F && current + kPlayerCollisionRadius <= obstacleStart
             && destination + kPlayerCollisionRadius > obstacleStart) {
             destination = std::min(destination, obstacleStart - kPlayerCollisionRadius);

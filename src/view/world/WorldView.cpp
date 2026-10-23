@@ -52,7 +52,6 @@ WorldView::WorldView(core::EventBus& bus)
             preview_ = e;
         }
     });
-    bus_.subscribe<events::CameraPanRequested>([this](const events::CameraPanRequested& e) { onPan(e); });
     bus_.subscribe<events::SelectionBoxChanged>([this](const events::SelectionBoxChanged& e) { selectionBox_ = e; });
 }
 
@@ -63,7 +62,7 @@ void WorldView::draw() const
     const Camera2D cam = camera();
     BeginMode2D(cam);
     drawGrid(cam);
-    drawDeposits(cam);
+    drawDeposits();
     objects_.draw();
     drawPreview();
     EndMode2D();
@@ -75,13 +74,6 @@ void WorldView::onPlayerMoved(const events::PlayerMoved& event)
     if (event.player == localPlayerId_) {
         focusCameraOn(event.x, event.y);
     }
-}
-
-void WorldView::onPan(const events::CameraPanRequested& event)
-{
-    cameraTarget_.x += event.dx / cameraZoom_;
-    cameraTarget_.y += event.dy / cameraZoom_;
-    publishCamera();
 }
 
 void WorldView::focusCameraOn(float x, float y)
@@ -150,42 +142,13 @@ void WorldView::drawGrid(const Camera2D& cam) const
 
 }
 
-void WorldView::drawDeposits(const Camera2D& cam) const
+void WorldView::drawDeposits() const
 {
     if (!worldMap_) {
         return;
     }
     for (const model::ResourceDeposit& deposit : worldMap_->deposits) {
-        if (ResourceDepositViewModel::textureKey(deposit.resource) != nullptr) {
-            resourceDeposits_.draw(deposit);
-            continue;
-        }
-        const Vector2 center = GetWorldToScreen2D(
-            iso::gridToWorld(static_cast<float>(deposit.origin.x) + static_cast<float>(deposit.size) / 2.0F,
-                static_cast<float>(deposit.origin.y) + static_cast<float>(deposit.size) / 2.0F),
-            cam);
-        constexpr float kHorizontalMargin = 64.0F;
-        constexpr float kVerticalMargin = 32.0F;
-        if (center.x < -kHorizontalMargin || center.x > static_cast<float>(GetScreenWidth()) + kHorizontalMargin
-            || center.y < -kVerticalMargin || center.y > static_cast<float>(GetScreenHeight()) + kVerticalMargin) {
-            continue;
-        }
-        Color color{};
-        switch (deposit.resource) {
-        case model::ItemId::Copper:
-        case model::ItemId::Iron:
-        case model::ItemId::Coal:
-        case model::ItemId::Steel:
-        case model::ItemId::Electronics:
-        case model::ItemId::Tools:
-        case model::ItemId::Weapon:
-        case model::ItemId::Ammo:
-        case model::ItemId::Count: continue;
-        }
-        Color outline = color;
-        outline.a = 255;
-        iso::drawFootprint(static_cast<float>(deposit.origin.x), static_cast<float>(deposit.origin.y),
-            static_cast<float>(deposit.size), static_cast<float>(deposit.size), color, outline);
+        resourceDeposits_.draw(deposit);
     }
 }
 

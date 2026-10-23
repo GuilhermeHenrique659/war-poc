@@ -1,19 +1,16 @@
 #include "model/units/UnitSupplySystem.hpp"
 
+#include "model/FootprintGeometry.hpp"
 #include "model/build/BuildingComponents.hpp"
 #include "model/components/Owner.hpp"
 #include "model/economy/InventorySystem.hpp"
 #include "model/economy/Item.hpp"
 
-#include <algorithm>
-#include <cmath>
 #include <vector>
 
 namespace model {
 
 namespace {
-
-constexpr float kArrivalRadius = 2.5F;
 
 [[nodiscard]] bool hasAny(const components::Inventory& inventory, ItemId item)
 {
@@ -29,10 +26,9 @@ constexpr float kArrivalRadius = 2.5F;
 [[nodiscard]] float distanceSquared(
     const components::Position& position, const components::Footprint& footprint)
 {
-    const float centerX = static_cast<float>(footprint.origin.x) + static_cast<float>(footprint.size) / 2.0F;
-    const float centerY = static_cast<float>(footprint.origin.y) + static_cast<float>(footprint.size) / 2.0F;
-    const float dx = position.x - centerX;
-    const float dy = position.y - centerY;
+    const FootprintBounds bounds = footprintBounds(footprint);
+    const float dx = position.x - bounds.centerX();
+    const float dy = position.y - bounds.centerY();
     return dx * dx + dy * dy;
 }
 
@@ -106,8 +102,7 @@ void UnitSupplySystem::updateUnit(ecs::Entity entity)
     }
 
     const auto* footprint = world_.tryGet<components::Footprint>(*target);
-    if (footprint != nullptr && units_.moveToAdjacent(entity,
-            GridPos{footprint->origin.x + footprint->size / 2, footprint->origin.y + footprint->size / 2})) {
+    if (footprint != nullptr && units_.moveToAdjacent(entity, footprintCenter(*footprint))) {
         state->activity = UnitActivity::SeekingSupplies;
         return;
     }
@@ -163,13 +158,7 @@ bool UnitSupplySystem::isNearSupply(ecs::Entity unit, ecs::Entity supply) const
     if (position == nullptr || footprint == nullptr) {
         return false;
     }
-    const float left = static_cast<float>(footprint->origin.x);
-    const float top = static_cast<float>(footprint->origin.y);
-    const float right = left + static_cast<float>(footprint->size);
-    const float bottom = top + static_cast<float>(footprint->size);
-    const float nearestX = std::clamp(position->x, left, right);
-    const float nearestY = std::clamp(position->y, top, bottom);
-    return std::hypot(position->x - nearestX, position->y - nearestY) <= kArrivalRadius;
+    return distanceToFootprint(position->x, position->y, footprintBounds(*footprint)) <= kUnitArrivalRadius;
 }
 
 void UnitSupplySystem::refill(components::Inventory& inventory, ecs::Entity supply) const

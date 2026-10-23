@@ -24,6 +24,10 @@ constexpr Color kSelectedOutline{90, 255, 120, 255};
 
 WorldObjectsViewModel::WorldObjectsViewModel(core::EventBus& bus)
     : bus_(bus)
+    , commandCenterViewModel_{loadCommandCenterViewModel()}
+    , warehouseViewModel_{loadWarehouseViewModel()}
+    , steelworksViewModel_{loadSteelworksViewModel()}
+    , barracksViewModel_{loadBarracksViewModel()}
 {
     bus_.subscribe<events::WorldReset>([this](const events::WorldReset&) {
         buildings_.clear();
@@ -62,34 +66,9 @@ WorldObjectsViewModel::WorldObjectsViewModel(core::EventBus& bus)
 void WorldObjectsViewModel::drawBuildingPreview(
     model::BuildingType type, model::GridPos origin, int size, unsigned char alpha) const
 {
-    if (type == model::BuildingType::CommandCenter) {
-        commandCenterViewModel_.drawAt(
-            static_cast<float>(origin.x), static_cast<float>(origin.y), size, alpha);
-        return;
-    }
-    if (MineResourceViewModel::handles(type)) {
-        mineResourceViewModel_.drawAt(type, static_cast<float>(origin.x), static_cast<float>(origin.y), size, alpha);
-        return;
-    }
-    if (type == model::BuildingType::Warehouse) {
-        warehouseViewModel_.drawAt(
-            static_cast<float>(origin.x), static_cast<float>(origin.y), size, alpha);
-        return;
-    }
-    if (SteelworksViewModel::handles(type)) {
-        steelworksViewModel_.drawAt(
-            static_cast<float>(origin.x), static_cast<float>(origin.y), size, alpha);
-        return;
-    }
-    if (FactoryViewModel::handles(type)) {
-        factoryViewModel_.drawAt(type, static_cast<float>(origin.x), static_cast<float>(origin.y), size, alpha);
-        return;
-    }
-    if (BarracksViewModel::handles(type)) {
-        barracksViewModel_.drawAt(static_cast<float>(origin.x), static_cast<float>(origin.y), size, alpha);
-        return;
-    }
-    drawBuilding(type, origin, size, alpha);
+    const BuildingViewModel preview{type, size, mineResourceViewModel_, commandCenterViewModel_,
+        warehouseViewModel_, steelworksViewModel_, factoryViewModel_, barracksViewModel_};
+    preview.drawAt(static_cast<float>(origin.x), static_cast<float>(origin.y), alpha);
 }
 
 void WorldObjectsViewModel::subscribeUnits()

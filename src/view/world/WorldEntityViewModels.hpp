@@ -2,36 +2,34 @@
 
 #include "model/build/BuildingType.hpp"
 #include "model/units/UnitType.hpp"
-#include "view/build/BarracksViewModel.hpp"
-#include "view/build/CommandCenterViewModel.hpp"
+#include "view/build/BuildingSpriteViewModel.hpp"
 #include "view/build/FactoryViewModel.hpp"
-#include "view/build/SteelworksViewModel.hpp"
 #include "view/units/DroneViewModel.hpp"
 #include "view/world/WorldObjectViewModel.hpp"
 
 namespace view::gameplay {
 
 class MineResourceViewModel;
-class WarehouseViewModel;
 
 class BuildingViewModel final : public WorldObjectViewModel {
 public:
     BuildingViewModel(model::BuildingType type, int size, const MineResourceViewModel& mineResourceViewModel,
-        const CommandCenterViewModel& commandCenterViewModel, const WarehouseViewModel& warehouseViewModel,
-        const SteelworksViewModel& steelworksViewModel, const FactoryViewModel& factoryViewModel,
-        const BarracksViewModel& barracksViewModel);
+        const BuildingSpriteViewModel& commandCenterViewModel, const BuildingSpriteViewModel& warehouseViewModel,
+        const BuildingSpriteViewModel& steelworksViewModel, const FactoryViewModel& factoryViewModel,
+        const BuildingSpriteViewModel& barracksViewModel);
 
     void drawAt(float gridX, float gridY) const override;
+    void drawAt(float gridX, float gridY, unsigned char alpha) const;
 
 private:
     model::BuildingType type_;
     int size_;
     const MineResourceViewModel& mineResourceViewModel_;
-    const CommandCenterViewModel& commandCenterViewModel_;
-    const WarehouseViewModel& warehouseViewModel_;
-    const SteelworksViewModel& steelworksViewModel_;
+    const BuildingSpriteViewModel& commandCenterViewModel_;
+    const BuildingSpriteViewModel& warehouseViewModel_;
+    const BuildingSpriteViewModel& steelworksViewModel_;
     const FactoryViewModel& factoryViewModel_;
-    const BarracksViewModel& barracksViewModel_;
+    const BuildingSpriteViewModel& barracksViewModel_;
 };
 
 class UnitViewModel final : public WorldObjectViewModel {
@@ -40,7 +38,6 @@ public:
 
     void drawAt(float gridX, float gridY) const override;
     void setHealth(int health, int maxHealth) noexcept;
-    [[nodiscard]] int size() const noexcept;
 
 private:
     model::UnitType type_;

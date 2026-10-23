@@ -8,7 +8,6 @@
 #include <raylib.h>
 
 #include <algorithm>
-#include <array>
 #include <cmath>
 #include <string>
 
@@ -135,13 +134,10 @@ void InventoryPanelView::drawSlotsPane(
         paneX, paneY, kTextSize, RAYWHITE);
 
     if (pane.showSummary) {
-        constexpr std::array items{
-            model::ItemId::Iron, model::ItemId::Coal, model::ItemId::Steel,
-            model::ItemId::Copper, model::ItemId::Electronics, model::ItemId::Tools,
-            model::ItemId::Weapon, model::ItemId::Ammo};
-        for (std::size_t index = 0; index < items.size(); ++index) {
-            const std::string value = std::string(model::itemDefinition(items[index]).name) + " "
-                + formatQuantity(itemAmount(pane.slots, items[index]));
+        for (std::size_t index = 0; index < model::kAllItems.size(); ++index) {
+            const model::ItemId item = model::kAllItems[index];
+            const std::string value = std::string(model::itemDefinition(item).name) + " "
+                + formatQuantity(itemAmount(pane.slots, item));
             const std::size_t column = index % 2;
             const std::size_t row = index / 2;
             const int summaryX = paneX + static_cast<int>(column) * 144;

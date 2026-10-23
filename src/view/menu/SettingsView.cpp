@@ -6,7 +6,6 @@
 
 #include <raylib.h>
 
-#include <array>
 #include <string>
 
 namespace view::menu {
@@ -15,7 +14,6 @@ namespace {
 
 constexpr int kTitleSize = 42;
 constexpr int kRowTextSize = 24;
-constexpr std::array<const char*, 5> kRowLabels = {"Resolução", "Modo de tela", "Nome do jogador", "Aplicar", "Voltar"};
 constexpr ui::ButtonStyle kSettingsButtonStyle{
     Color{45, 48, 58, 255},
     Color{70, 75, 90, 255},
@@ -49,7 +47,7 @@ void SettingsView::draw() const
         const Rectangle bounds = settings_layout::rowBounds(i, GetScreenWidth(), GetScreenHeight());
         const bool selected = i == selectedIndex_;
 
-        std::string label = kRowLabels[i];
+        std::string label = settings_layout::kRowLabels[i];
         if (i == 0) {
             label += "  <  " + std::to_string(width_) + " x " + std::to_string(height_) + "  >";
         } else if (i == 1) {

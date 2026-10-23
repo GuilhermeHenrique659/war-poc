@@ -35,7 +35,7 @@ Documento vivo com as regras do jogo. Itens marcados como **TBD** ainda não for
 
 ## Mapa
 - Grid isométrico. Toda posição de jogo é uma coordenada de tile (lógica), independente da projeção na tela.
-- Tile de 64x32 px na tela (zoom 1).
+- Tile de 128x64 px na tela (zoom 1).
 - Cada partida gera um mapa finito de 1024x1024 tiles a partir de uma seed aleatória, mantida no Model para reproduzir a geração. A origem lógica do mapa é (-512, -512), com o ponto inicial em (0, 0).
 - O mapa tem terra transitável e água em regiões conectadas, com alvo aproximado de 30% de tiles de água. Movimento de jogadores e unidades, assim como construção, só é permitido em terra; tiles fora dos limites também são bloqueados.
 - O Centro de Comando também precisa ter pelo menos um tile de terra adjacente para permitir o surgimento do avatar.
@@ -144,13 +144,6 @@ Documento vivo com as regras do jogo. Itens marcados como **TBD** ainda não for
 
 ## Vitória / derrota
 - Sandbox: sem condição de vitória ou derrota.
-- Missões têm um objetivo configurável por progresso inteiro; ao atingir o alvo, ficam em estado `Won`. Falha explícita enquanto ativas leva a `Lost`. Estados terminais não mudam mais e somente missões vencidas pagam recompensa.
-- Recompensas MVP são XP, creditados uma única vez ao jogador associado ao resgate.
-
-## Progressão e tecnologia
-- Cada jogador de progressão começa no nível 1 com 0 XP. O custo para passar do nível N para N+1 é `100 × N` XP (acumulado: nível 2 em 100 XP, nível 3 em 300 XP).
-- Tecnologias são definidas por ID, nível mínimo e IDs de pré-requisitos. Só podem ser desbloqueadas quando o jogador existe, atende ao nível mínimo e já desbloqueou todos os pré-requisitos. O desbloqueio é permanente durante a vida do estado de progressão.
-- A integração de tecnologias com construções/unidades e persistência entre partidas é **TBD**.
 
 ## Multiplayer (planejado)
 - Rede via ENet.
