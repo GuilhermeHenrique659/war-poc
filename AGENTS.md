@@ -42,6 +42,7 @@ Jogo de estratégia com construção de base e elementos de tower defense. C++ +
 - A geometria compartilhada entre View e Controller (hit-test do mouse) fica em `src/view/MenuLayout.hpp`.
 - ESC está desligado como tecla de saída da raylib (`SetExitKey(KEY_NULL)`). Para sair, publique `events::QuitRequested`.
 - Todo o código do projeto fica em `src/`. Não edite `include/` nem `lib/`, porque são de terceiros.
+- Ao implementar ou alterar a camada de apresentação, siga também as regras de [`docs/VIEW_RULES.md`](docs/VIEW_RULES.md).
 
 ## Regras de código
 - Sempre use smart pointers (`std::unique_ptr` por padrão, `std::shared_ptr` só quando a posse for de fato compartilhada). Nada de `new`/`delete` direto nem ponteiro cru com posse.
