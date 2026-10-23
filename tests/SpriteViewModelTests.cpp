@@ -4,6 +4,7 @@
 #include "view/TextureManager.hpp"
 #include "view/build/CommandCenterViewModel.hpp"
 #include "view/build/MineResourceViewModel.hpp"
+#include "view/build/SteelworksViewModel.hpp"
 #include "view/build/WarehouseViewModel.hpp"
 #include "view/units/DroneViewModel.hpp"
 #include "model/build/BuildingType.hpp"
@@ -85,10 +86,10 @@ TEST_F(SpriteViewModelTests, AnimatedSpriteUsesConfiguredFrameSizeAndFramesPerSe
 
     sprite.drawAt(destination, tint);
 
-    EXPECT_EQ(drawnSource.x, 443.5F);
-    EXPECT_EQ(drawnSource.y, 443.5F);
-    EXPECT_EQ(drawnSource.width, 443.5F);
-    EXPECT_EQ(drawnSource.height, 443.5F);
+    EXPECT_EQ(drawnSource.x, 444.0F);
+    EXPECT_EQ(drawnSource.y, 444.0F);
+    EXPECT_EQ(drawnSource.width, 443.0F);
+    EXPECT_EQ(drawnSource.height, 443.0F);
     EXPECT_EQ(drawnDestination.x, destination.x);
     EXPECT_EQ(drawnDestination.y, destination.y);
     EXPECT_EQ(drawnDestination.width, destination.width);
@@ -138,10 +139,10 @@ TEST_F(SpriteViewModelTests, MineResourceViewModelDrawsIronCoalAndCopperAnimatio
         mines.drawAt(type, 2.0F, 4.0F, 2, 150);
         mineTextureIds[index] = drawnTextureId;
 
-        EXPECT_EQ(drawnSource.x, 1330.5F);
+        EXPECT_EQ(drawnSource.x, 1331.0F);
         EXPECT_EQ(drawnSource.y, 0.0F);
-        EXPECT_EQ(drawnSource.width, 443.5F);
-        EXPECT_EQ(drawnSource.height, 443.5F);
+        EXPECT_EQ(drawnSource.width, 443.0F);
+        EXPECT_EQ(drawnSource.height, 444.0F);
         EXPECT_EQ(drawnDestination.x, -256.0F);
         EXPECT_EQ(drawnDestination.y, 64.0F);
         EXPECT_EQ(drawnDestination.width, 256.0F);
@@ -152,6 +153,37 @@ TEST_F(SpriteViewModelTests, MineResourceViewModelDrawsIronCoalAndCopperAnimatio
     EXPECT_NE(mineTextureIds[1], mineTextureIds[2]);
     EXPECT_NE(mineTextureIds[0], mineTextureIds[2]);
     EXPECT_FALSE(gameplay::MineResourceViewModel::handles(model::BuildingType::Steelworks));
+}
+
+TEST_F(SpriteViewModelTests, SteelworksViewModelDrawsSevenByThreeAnimationAtFrameDuration)
+{
+    constexpr Vector2 frameSize{1774.0F / 7.0F, 887.0F / 3.0F};
+    const SpriteSheet sheet{
+        "buildings/steelworks_test", texturePath_.filename().string(), 21, frameSize, 8.0};
+    const gameplay::SteelworksViewModel steelworks{sheet};
+    currentTime = 0.125;
+
+    steelworks.drawAt(2.0F, 4.0F, 3, 150);
+
+    EXPECT_TRUE(gameplay::SteelworksViewModel::handles(model::BuildingType::Steelworks));
+    EXPECT_FALSE(gameplay::SteelworksViewModel::handles(model::BuildingType::IronMine));
+    EXPECT_EQ(drawnSource.x, 253.0F);
+    EXPECT_EQ(drawnSource.y, 0.0F);
+    EXPECT_EQ(drawnSource.width, 254.0F);
+    EXPECT_EQ(drawnSource.height, 296.0F);
+    EXPECT_EQ(drawnDestination.x, -320.0F);
+    EXPECT_EQ(drawnDestination.y, 384.0F - 384.0F * frameSize.y / frameSize.x);
+    EXPECT_EQ(drawnDestination.width, 384.0F);
+    EXPECT_EQ(drawnDestination.height, 384.0F * frameSize.y / frameSize.x);
+    EXPECT_EQ(drawnTint.a, 150);
+
+    currentTime = 1.75;
+    steelworks.drawAt(2.0F, 4.0F, 3, 150);
+
+    EXPECT_EQ(drawnSource.x, 0.0F);
+    EXPECT_EQ(drawnSource.y, 591.0F);
+    EXPECT_EQ(drawnSource.width, 253.0F);
+    EXPECT_EQ(drawnSource.height, 296.0F);
 }
 
 TEST_F(SpriteViewModelTests, CommandCenterViewModelDrawsTextureAtFootprintSouthEdge)
@@ -206,10 +238,10 @@ TEST_F(SpriteViewModelTests, DroneViewModelDrawsAnimatedSpriteAboveItsGridPositi
     drone.drawAt(2.0F, 4.0F);
 
     EXPECT_EQ(drawnTextureId, unloadedSheet.texture().id);
-    EXPECT_EQ(drawnSource.x, 1330.5F);
+    EXPECT_EQ(drawnSource.x, 1331.0F);
     EXPECT_EQ(drawnSource.y, 0.0F);
-    EXPECT_EQ(drawnSource.width, 443.5F);
-    EXPECT_EQ(drawnSource.height, 443.5F);
+    EXPECT_EQ(drawnSource.width, 443.0F);
+    EXPECT_EQ(drawnSource.height, 444.0F);
     EXPECT_EQ(drawnDestination.x, -192.0F);
     EXPECT_EQ(drawnDestination.y, 64.0F);
     EXPECT_EQ(drawnDestination.width, 128.0F);

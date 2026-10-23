@@ -28,10 +28,16 @@ void AnimatedSpriteViewModel::drawAt(Rectangle destination, Color tint) const
     const int frameIndex = static_cast<int>(frame);
     const int column = frameIndex % spriteSheet_.columns();
     const int row = frameIndex / spriteSheet_.columns();
-    const Vector2 frameSize = spriteSheet_.frameSize();
-    const Rectangle source{static_cast<float>(column) * frameSize.x,
-        static_cast<float>(row) * frameSize.y, frameSize.x, frameSize.y};
-    DrawTexturePro(spriteSheet_.texture(), source, destination, Vector2{0.0F, 0.0F}, 0.0F, tint);
+    const Texture2D texture = spriteSheet_.texture();
+    const double columnWidth = static_cast<double>(texture.width) / spriteSheet_.columns();
+    const double rowHeight = static_cast<double>(texture.height) / spriteSheet_.rows();
+    const int left = static_cast<int>(std::lround(static_cast<double>(column) * columnWidth));
+    const int right = static_cast<int>(std::lround(static_cast<double>(column + 1) * columnWidth));
+    const int top = static_cast<int>(std::lround(static_cast<double>(row) * rowHeight));
+    const int bottom = static_cast<int>(std::lround(static_cast<double>(row + 1) * rowHeight));
+    const Rectangle source{static_cast<float>(left), static_cast<float>(top),
+        static_cast<float>(right - left), static_cast<float>(bottom - top)};
+    DrawTexturePro(texture, source, destination, Vector2{0.0F, 0.0F}, 0.0F, tint);
 }
 
 } // namespace view
