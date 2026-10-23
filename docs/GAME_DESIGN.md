@@ -55,6 +55,8 @@ Documento vivo com as regras do jogo. Itens marcados como **TBD** ainda não for
   - Mina de Cobre: produz 1 cobre/s sem consumir entradas.
   - Fábrica de Eletrônicos: consome 1 ferro/s e 1 cobre/s e produz 0,5 eletrônico/s.
   - Fábrica de Ferramentas: consome 1 aço/s e 1 eletrônico/s e produz 0,5 ferramenta/s.
+  - Fábrica de Armas: consome 1 aço/s, 1 eletrônico/s e 1 ferramenta/s e produz 0,5 arma/s.
+  - Fábrica de Munição: consome 1 aço/s e 1 cobre/s e produz 0,5 munição/s.
 - As construções descontam seu custo do inventário do jogador no momento da colocação; recursos armazenados em construções não contam para pagar o custo. A prévia fica inválida quando faltam recursos. O recrutamento continua instantâneo, requer Quartel e não tem custo nem limite populacional.
 - Casa e Gerador permanecem como estruturas sem efeitos econômicos nesta etapa. Tropas de combate recebem um inventário de 2 slots para arma e munição.
 - O Depósito existente passa a ser chamado **Armazém**, mantém sua área 2x2 e inventário de 64 slots, custa 100 de ferro e permite recrutar drones de transporte. Cada drone é recrutado instantaneamente e custa 50 de ferro e 50 eletrônicos, sem limite.
@@ -87,6 +89,8 @@ Documento vivo com as regras do jogo. Itens marcados como **TBD** ainda não for
 | Mina de Cobre | 2x2 | 100 ferro | Requer Centro de Comando; inventário de 64 slots; produz 1 cobre/s. |
 | Fábrica de Eletrônicos | 3x3 | 200 ferro, 100 aço | Requer Centro de Comando; inventário de 64 slots; consome 1 ferro/s e 1 cobre/s e produz 0,5 eletrônico/s. |
 | Fábrica de Ferramentas | 3x3 | 200 aço, 200 ferro, 100 eletrônicos | Requer Centro de Comando; inventário de 64 slots; consome 1 aço/s e 1 eletrônico/s e produz 0,5 ferramenta/s. |
+| Fábrica de Armas | 3x3 | 200 aço, 200 ferro, 100 eletrônicos | Requer Centro de Comando; inventário de 64 slots; consome 1 aço/s, 1 eletrônico/s e 1 ferramenta/s e produz 0,5 arma/s. |
+| Fábrica de Munição | 3x3 | 200 aço, 200 ferro, 100 cobre | Requer Centro de Comando; inventário de 64 slots; consome 1 aço/s e 1 cobre/s e produz 0,5 munição/s. |
 
 - Clicar numa construção abre seu inventário para consulta e transferência ao jogador.
 - O Armazém (antigo Depósito) também abre o painel de logística, onde drones podem ser recrutados. Selecionar uma construção produtora mostra as rotas de saída e permite atribuir drones ociosos.

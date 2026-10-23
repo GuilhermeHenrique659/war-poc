@@ -179,6 +179,16 @@ void BuildingSystem::place(PlayerId player, GridPos anchor)
         world_.emplace<components::Production>(entity,
             std::vector<ProductionInput>{{ItemId::Steel, 1.0F}, {ItemId::Electronics, 1.0F}}, ItemId::Tools, 0.5F);
         break;
+    case BuildingType::WeaponFactory:
+        world_.emplace<components::Production>(entity,
+            std::vector<ProductionInput>{
+                {ItemId::Steel, 1.0F}, {ItemId::Electronics, 1.0F}, {ItemId::Tools, 1.0F}},
+            ItemId::Weapon, 0.5F);
+        break;
+    case BuildingType::AmmoFactory:
+        world_.emplace<components::Production>(entity,
+            std::vector<ProductionInput>{{ItemId::Steel, 1.0F}, {ItemId::Copper, 1.0F}}, ItemId::Ammo, 0.5F);
+        break;
     case BuildingType::CommandCenter:
     case BuildingType::Wall:
     case BuildingType::House:
@@ -257,6 +267,8 @@ std::string_view BuildingSystem::lockedReason(PlayerId player, BuildingType type
     case BuildingType::CopperMine:
     case BuildingType::ElectronicsFactory:
     case BuildingType::ToolFactory:
+    case BuildingType::WeaponFactory:
+    case BuildingType::AmmoFactory:
         return hasCommandCenter(player) ? "" : "Requer Centro";
     case BuildingType::Barracks:
     case BuildingType::Cruzador:

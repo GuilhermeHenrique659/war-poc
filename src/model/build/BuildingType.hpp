@@ -22,14 +22,17 @@ enum class BuildingType {
     Steelworks,
     CopperMine,
     ElectronicsFactory,
-    ToolFactory
+    ToolFactory,
+    WeaponFactory,
+    AmmoFactory
 };
 
 // Order in which the build bar lists the buildings.
 inline constexpr std::array kBuildingTypes{BuildingType::CommandCenter, BuildingType::Wall, BuildingType::House,
     BuildingType::Generator, BuildingType::Warehouse, BuildingType::Barracks, BuildingType::Cruzador,
     BuildingType::Tower, BuildingType::IronMine, BuildingType::CoalMine, BuildingType::Steelworks,
-    BuildingType::CopperMine, BuildingType::ElectronicsFactory, BuildingType::ToolFactory};
+    BuildingType::CopperMine, BuildingType::ElectronicsFactory, BuildingType::ToolFactory,
+    BuildingType::WeaponFactory, BuildingType::AmmoFactory};
 
 struct BuildingSpec {
     std::string_view label;
@@ -59,6 +62,10 @@ inline constexpr BuildingCosts kElectronicsFactoryBuildingCost{
     {{ItemId::Steel, 100}, {ItemId::Iron, 200}}};
 inline constexpr BuildingCosts kToolFactoryBuildingCost{
     {{ItemId::Steel, 200}, {ItemId::Iron, 200}, {ItemId::Electronics, 100}}};
+inline constexpr BuildingCosts kWeaponFactoryBuildingCost{
+    {{ItemId::Steel, 200}, {ItemId::Iron, 200}, {ItemId::Electronics, 100}}};
+inline constexpr BuildingCosts kAmmoFactoryBuildingCost{
+    {{ItemId::Steel, 200}, {ItemId::Iron, 200}, {ItemId::Copper, 100}}};
 
 [[nodiscard]] constexpr const BuildingCosts& buildingCosts(BuildingType type)
 {
@@ -84,6 +91,10 @@ inline constexpr BuildingCosts kToolFactoryBuildingCost{
         return kElectronicsFactoryBuildingCost;
     case BuildingType::ToolFactory:
         return kToolFactoryBuildingCost;
+    case BuildingType::WeaponFactory:
+        return kWeaponFactoryBuildingCost;
+    case BuildingType::AmmoFactory:
+        return kAmmoFactoryBuildingCost;
     }
     return kNoBuildingCost;
 }
@@ -119,6 +130,10 @@ inline constexpr BuildingCosts kToolFactoryBuildingCost{
         return BuildingSpec{"Fabrica de Eletronicos", 3};
     case BuildingType::ToolFactory:
         return BuildingSpec{"Fabrica de Ferramentas", 3};
+    case BuildingType::WeaponFactory:
+        return BuildingSpec{"Fabrica de Armas", 3};
+    case BuildingType::AmmoFactory:
+        return BuildingSpec{"Fabrica de Municao", 3};
     }
     return BuildingSpec{"?", 1};
 }
