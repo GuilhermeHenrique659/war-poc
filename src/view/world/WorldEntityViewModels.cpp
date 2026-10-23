@@ -11,13 +11,16 @@ namespace view::gameplay {
 BuildingViewModel::BuildingViewModel(
     model::BuildingType type, int size, const MineResourceViewModel& mineResourceViewModel,
     const CommandCenterViewModel& commandCenterViewModel, const WarehouseViewModel& warehouseViewModel,
-    const SteelworksViewModel& steelworksViewModel)
+    const SteelworksViewModel& steelworksViewModel, const FactoryViewModel& factoryViewModel,
+    const BarracksViewModel& barracksViewModel)
     : type_(type)
     , size_(size)
     , mineResourceViewModel_(mineResourceViewModel)
     , commandCenterViewModel_(commandCenterViewModel)
     , warehouseViewModel_(warehouseViewModel)
     , steelworksViewModel_(steelworksViewModel)
+    , factoryViewModel_(factoryViewModel)
+    , barracksViewModel_(barracksViewModel)
 {
 }
 
@@ -37,6 +40,14 @@ void BuildingViewModel::drawAt(float gridX, float gridY) const
     }
     if (SteelworksViewModel::handles(type_)) {
         steelworksViewModel_.drawAt(gridX, gridY, size_);
+        return;
+    }
+    if (FactoryViewModel::handles(type_)) {
+        factoryViewModel_.drawAt(type_, gridX, gridY, size_);
+        return;
+    }
+    if (BarracksViewModel::handles(type_)) {
+        barracksViewModel_.drawAt(gridX, gridY, size_);
         return;
     }
     drawBuilding(type_, model::GridPos{static_cast<int>(gridX), static_cast<int>(gridY)}, size_);

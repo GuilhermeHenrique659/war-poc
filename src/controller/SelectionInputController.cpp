@@ -1,6 +1,7 @@
 #include "controller/SelectionInputController.hpp"
 
 #include "core/Events.hpp"
+#include "view/build/BuildingLayout.hpp"
 #include "view/IsoProjection.hpp"
 #include "view/units/UnitLayout.hpp"
 
@@ -139,7 +140,7 @@ void SelectionInputController::selectAt(Vector2 mouse, const Camera2D& camera, b
         bus_.publish(events::SelectUnitsRequested{localPlayerId_, {*unit}, additive});
         return;
     }
-    if (const auto building = buildingAt(view::iso::worldToGrid(world))) {
+    if (const auto building = buildingAt(world)) {
         bus_.publish(events::SelectBuildingRequested{localPlayerId_, *building});
         return;
     }
@@ -171,22 +172,21 @@ void SelectionInputController::issueOrder(Vector2 mouse, const Camera2D& camera)
         bus_.publish(events::AttackOrderRequested{localPlayerId_, selectedUnits_, target->first});
         return;
     }
-    const model::GridPos tile = view::iso::worldToGrid(world);
-    const auto cruzador = std::find_if(buildings_.begin(), buildings_.end(), [this, tile](const BuildingInfo& building) {
-        return building.owner == localPlayerId_ && building.type == model::BuildingType::Cruzador
-            && tile.x >= building.origin.x && tile.x < building.origin.x + building.size
-            && tile.y >= building.origin.y && tile.y < building.origin.y + building.size;
-    });
+    const auto cruzador = std::find_if(buildings_.begin(), buildings_.end(),
+        [this, world](const BuildingInfo& building) {
+            return building.owner == localPlayerId_ && building.type == model::BuildingType::Cruzador
+                && view::build_layout::contains(building.type, building.origin, building.size, world);
+        });
     if (cruzador != buildings_.end()) {
         bus_.publish(events::CruzadorOrderRequested{localPlayerId_, cruzador->entity, selectedUnits_});
         return;
     }
     const auto attackableBuilding = std::find_if(buildings_.begin(), buildings_.end(),
-        [this, tile](const auto& building) {
+        [this, world](const auto& building) {
             const bool attackable = building.owner != localPlayerId_
                 || building.type == model::BuildingType::TrainingDummy;
-            return attackable && tile.x >= building.origin.x && tile.x < building.origin.x + building.size
-                && tile.y >= building.origin.y && tile.y < building.origin.y + building.size;
+            return attackable
+                && view::build_layout::contains(building.type, building.origin, building.size, world);
         });
     if (attackableBuilding != buildings_.end()) {
         bus_.publish(events::AttackOrderRequested{localPlayerId_, selectedUnits_, attackableBuilding->entity});
@@ -221,19 +221,26 @@ std::optional<model::ecs::Entity> SelectionInputController::unitAt(Vector2 world
     return best;
 }
 
-std::optional<model::ecs::Entity> SelectionInputController::buildingAt(model::GridPos tile) const
+std::optional<model::ecs::Entity> SelectionInputController::buildingAt(Vector2 world) const
 {
+    // Several sprites may overlap: pick the one drawn in front (largest depth).
+    std::optional<model::ecs::Entity> best;
+    float bestDepth = 0.0f;
     for (const BuildingInfo& building : buildings_) {
         if (building.owner != localPlayerId_) {
             continue;
         }
-        const bool insideX = tile.x >= building.origin.x && tile.x < building.origin.x + building.size;
-        const bool insideY = tile.y >= building.origin.y && tile.y < building.origin.y + building.size;
-        if (insideX && insideY) {
-            return building.entity;
+        if (!view::build_layout::contains(building.type, building.origin, building.size, world)) {
+            continue;
+        }
+        const float depth
+            = static_cast<float>(building.origin.x + building.origin.y + building.size);
+        if (!best || depth > bestDepth) {
+            best = building.entity;
+            bestDepth = depth;
         }
     }
-    return std::nullopt;
+    return best;
 }
 
 } // namespace controller

@@ -182,6 +182,23 @@ TEST_F(BuildingSystemTest, TrainingDummyRequiresACommandCenter)
     EXPECT_TRUE(placements_.empty());
 }
 
+TEST_F(BuildingSystemTest, PlacingATrainingDummyLeavesBuildMode)
+{
+    // Given a player with a Command Center and the dummy selected.
+    buildings_.select(kPlayer, model::BuildingType::CommandCenter);
+    buildings_.place(kPlayer, {0, 0});
+    buildings_.select(kPlayer, model::BuildingType::TrainingDummy);
+    ASSERT_FALSE(buildBars_.empty());
+    ASSERT_TRUE(buildBars_.back().selected.has_value());
+
+    // When the dummy is placed.
+    buildings_.place(kPlayer, {10, 10});
+
+    // Then build mode ends, so troops can be selected right away.
+    ASSERT_FALSE(buildBars_.empty());
+    EXPECT_FALSE(buildBars_.back().selected.has_value());
+}
+
 TEST_F(BuildingSystemTest, WarehouseCostsOnlyOneHundredIron)
 {
     // Given a player with a Command Center and 100 units of each resource.

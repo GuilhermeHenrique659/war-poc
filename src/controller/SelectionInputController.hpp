@@ -52,7 +52,7 @@ private:
     void publishBox(Vector2 corner) const;
 
     [[nodiscard]] std::optional<model::ecs::Entity> unitAt(Vector2 world) const;
-    [[nodiscard]] std::optional<model::ecs::Entity> buildingAt(model::GridPos tile) const;
+    [[nodiscard]] std::optional<model::ecs::Entity> buildingAt(Vector2 world) const;
 
     core::EventBus& bus_;
     std::unordered_map<model::ecs::Entity, UnitInfo> units_;

@@ -213,7 +213,7 @@ void BuildingSystem::place(PlayerId player, GridPos anchor)
     bus_.publish(events::BuildingPlaced{entity, player, type, origin, size});
 
     // Keep the selection for repeated placement (walls) unless the type just got locked.
-    if (!isUnlocked(player, type)) {
+    if (!isUnlocked(player, type) || type == BuildingType::TrainingDummy) {
         builder.selected.reset();
     }
     publishBar(player);

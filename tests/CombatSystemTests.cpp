@@ -282,6 +282,36 @@ TEST_F(CombatSystemTest, DestroyingATrainingDummyRemovesItAndFreesItsTile)
     EXPECT_FALSE(buildings_.isOccupied({5, 5}));
 }
 
+TEST_F(CombatSystemTest, AttackOrderWalksAnOutOfRangeUnitIntoRange)
+{
+    // Given a soldier far from the player's Training Dummy.
+    buildings_.select(1, model::BuildingType::CommandCenter);
+    buildings_.place(1, {0, 0});
+    buildings_.select(1, model::BuildingType::TrainingDummy);
+    buildings_.place(1, {10, 10});
+    const model::ecs::Entity dummy = buildingOfType(model::BuildingType::TrainingDummy);
+    ASSERT_NE(dummy, 0U);
+    const auto attacker = units_.spawn(1, model::recruitStats(model::UnitType::Soldier), {0, 10});
+    equip(attacker);
+
+    // When the attack order and time pass.
+    combat_.orderAttack(1, {attacker}, dummy);
+    for (int step = 0; step < 200; ++step) {
+        combat_.update(0.05F);
+        units_.update(0.05F);
+    }
+
+    // Then the soldier walked next to the dummy and damaged it.
+    const auto* position = world_.tryGet<model::components::Position>(attacker);
+    ASSERT_NE(position, nullptr);
+    const float dx = position->x - 10.5F;
+    const float dy = position->y - 10.5F;
+    EXPECT_LE(dx * dx + dy * dy, 1.0F);
+    const auto* health = world_.tryGet<model::components::Health>(dummy);
+    ASSERT_NE(health, nullptr);
+    EXPECT_LT(health->current, 100);
+}
+
 TEST_F(CombatSystemTest, DoesNotAttackWithoutAWeapon)
 {
     // Given an attacker with ammo but no weapon.

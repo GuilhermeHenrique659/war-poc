@@ -2,7 +2,9 @@
 
 #include "model/build/BuildingType.hpp"
 #include "model/units/UnitType.hpp"
+#include "view/build/BarracksViewModel.hpp"
 #include "view/build/CommandCenterViewModel.hpp"
+#include "view/build/FactoryViewModel.hpp"
 #include "view/build/SteelworksViewModel.hpp"
 #include "view/units/DroneViewModel.hpp"
 #include "view/world/WorldObjectViewModel.hpp"
@@ -16,7 +18,8 @@ class BuildingViewModel final : public WorldObjectViewModel {
 public:
     BuildingViewModel(model::BuildingType type, int size, const MineResourceViewModel& mineResourceViewModel,
         const CommandCenterViewModel& commandCenterViewModel, const WarehouseViewModel& warehouseViewModel,
-        const SteelworksViewModel& steelworksViewModel);
+        const SteelworksViewModel& steelworksViewModel, const FactoryViewModel& factoryViewModel,
+        const BarracksViewModel& barracksViewModel);
 
     void drawAt(float gridX, float gridY) const override;
 
@@ -27,6 +30,8 @@ private:
     const CommandCenterViewModel& commandCenterViewModel_;
     const WarehouseViewModel& warehouseViewModel_;
     const SteelworksViewModel& steelworksViewModel_;
+    const FactoryViewModel& factoryViewModel_;
+    const BarracksViewModel& barracksViewModel_;
 };
 
 class UnitViewModel final : public WorldObjectViewModel {

@@ -2,7 +2,9 @@
 #include "view/AnimatedSpriteViewModel.hpp"
 #include "view/StaticSpriteViewModel.hpp"
 #include "view/TextureManager.hpp"
+#include "view/build/BarracksViewModel.hpp"
 #include "view/build/CommandCenterViewModel.hpp"
+#include "view/build/FactoryViewModel.hpp"
 #include "view/build/MineResourceViewModel.hpp"
 #include "view/build/SteelworksViewModel.hpp"
 #include "view/build/WarehouseViewModel.hpp"
@@ -224,6 +226,57 @@ TEST_F(SpriteViewModelTests, WarehouseViewModelDrawsTextureAtFootprintSouthEdge)
     EXPECT_EQ(drawnDestination.width, 256.0F);
     EXPECT_EQ(drawnDestination.height, 128.0F);
     EXPECT_EQ(drawnTint.a, tint.a);
+}
+
+TEST_F(SpriteViewModelTests, FactoryViewModelDrawsDistinctStaticSpriteForEachFactoryType)
+{
+    const auto sprite = [this](const char* key) {
+        return StaticSpriteViewModel{
+            key, texturePath_.filename().string(), Rectangle{0.0F, 0.0F, 1774.0F, 887.0F}, 1774, 887};
+    };
+    const gameplay::FactoryViewModel factories{std::array{sprite("buildings/electronics_factory_test"),
+        sprite("buildings/tool_factory_test"), sprite("buildings/weapon_factory_test"),
+        sprite("buildings/ammo_factory_test")}};
+    const std::array factoryTypes{model::BuildingType::ElectronicsFactory, model::BuildingType::ToolFactory,
+        model::BuildingType::WeaponFactory, model::BuildingType::AmmoFactory};
+    std::array<unsigned int, 4> textureIds{};
+
+    for (std::size_t index = 0; index < factoryTypes.size(); ++index) {
+        EXPECT_TRUE(gameplay::FactoryViewModel::handles(factoryTypes[index]));
+        factories.drawAt(factoryTypes[index], 2.0F, 4.0F, 3, 150);
+        textureIds[index] = drawnTextureId;
+
+        EXPECT_EQ(drawnDestination.x, -320.0F);
+        EXPECT_EQ(drawnDestination.y, 128.0F);
+        EXPECT_EQ(drawnDestination.width, 384.0F);
+        EXPECT_EQ(drawnDestination.height, 256.0F);
+        EXPECT_EQ(drawnTint.a, 150);
+    }
+
+    EXPECT_NE(textureIds[0], textureIds[1]);
+    EXPECT_NE(textureIds[1], textureIds[2]);
+    EXPECT_NE(textureIds[2], textureIds[3]);
+    EXPECT_FALSE(gameplay::FactoryViewModel::handles(model::BuildingType::Barracks));
+    EXPECT_FALSE(gameplay::FactoryViewModel::handles(model::BuildingType::Steelworks));
+}
+
+TEST_F(SpriteViewModelTests, BarracksViewModelDrawsStaticSpriteAtFootprintSouthEdge)
+{
+    const gameplay::BarracksViewModel barracks{StaticSpriteViewModel{
+        "buildings/barracks_test", texturePath_.filename().string(), Rectangle{0.0F, 0.0F, 1774.0F, 887.0F},
+        1774, 887}};
+
+    EXPECT_TRUE(gameplay::BarracksViewModel::handles(model::BuildingType::Barracks));
+    EXPECT_FALSE(gameplay::BarracksViewModel::handles(model::BuildingType::WeaponFactory));
+
+    barracks.drawAt(2.0F, 4.0F, 3, 150);
+
+    EXPECT_NE(drawnTextureId, 0U);
+    EXPECT_EQ(drawnDestination.x, -320.0F);
+    EXPECT_EQ(drawnDestination.y, 128.0F);
+    EXPECT_EQ(drawnDestination.width, 384.0F);
+    EXPECT_EQ(drawnDestination.height, 256.0F);
+    EXPECT_EQ(drawnTint.a, 150);
 }
 
 TEST_F(SpriteViewModelTests, DroneViewModelDrawsAnimatedSpriteAboveItsGridPosition)

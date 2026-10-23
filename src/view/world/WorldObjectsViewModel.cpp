@@ -37,9 +37,9 @@ WorldObjectsViewModel::WorldObjectsViewModel(core::EventBus& bus)
         const int health = model::buildingMaxHealth(event.type);
         buildings_.push_back(BuildingVisual{
             event.entity, event.type, event.origin, event.size, health, health,
-            std::make_unique<BuildingViewModel>(
-                event.type, event.size, mineResourceViewModel_, commandCenterViewModel_, warehouseViewModel_,
-                steelworksViewModel_)
+            std::make_unique<BuildingViewModel>(event.type, event.size, mineResourceViewModel_,
+                commandCenterViewModel_, warehouseViewModel_, steelworksViewModel_, factoryViewModel_,
+                barracksViewModel_)
         });
     });
     bus_.subscribe<events::BuildingRemoved>([this](const events::BuildingRemoved& event) {
@@ -79,6 +79,14 @@ void WorldObjectsViewModel::drawBuildingPreview(
     if (SteelworksViewModel::handles(type)) {
         steelworksViewModel_.drawAt(
             static_cast<float>(origin.x), static_cast<float>(origin.y), size, alpha);
+        return;
+    }
+    if (FactoryViewModel::handles(type)) {
+        factoryViewModel_.drawAt(type, static_cast<float>(origin.x), static_cast<float>(origin.y), size, alpha);
+        return;
+    }
+    if (BarracksViewModel::handles(type)) {
+        barracksViewModel_.drawAt(static_cast<float>(origin.x), static_cast<float>(origin.y), size, alpha);
         return;
     }
     drawBuilding(type, origin, size, alpha);

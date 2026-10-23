@@ -81,11 +81,30 @@ void CombatSystem::orderAttack(PlayerId player, const std::vector<ecs::Entity>& 
     }
     for (const ecs::Entity entity : attackers) {
         const auto* owner = world_.tryGet<components::Owner>(entity);
-        if (owner == nullptr || owner->player != player || world_.tryGet<components::Combat>(entity) == nullptr
-            || world_.tryGet<components::Position>(entity) == nullptr) {
+        const auto* combat = world_.tryGet<components::Combat>(entity);
+        const auto* position = world_.tryGet<components::Position>(entity);
+        if (owner == nullptr || owner->player != player || combat == nullptr || position == nullptr) {
             continue;
         }
         world_.emplace<components::AttackOrder>(entity, target, kAttackCooldown);
+
+        const auto* targetPosition = world_.tryGet<components::Position>(target);
+        if (targetPosition == nullptr) {
+            continue;
+        }
+        const float dx = position->x - targetPosition->x;
+        const float dy = position->y - targetPosition->y;
+        if (dx * dx + dy * dy <= combat->range * combat->range) {
+            // Already in range: stop walking so the unit fires instead of leaving the target.
+            const auto* mover = world_.tryGet<components::Mover>(entity);
+            if (mover != nullptr && !mover->path.empty()) {
+                units_.stop(entity);
+            }
+            continue;
+        }
+        const GridPos targetTile{static_cast<int>(std::floor(targetPosition->x)),
+            static_cast<int>(std::floor(targetPosition->y))};
+        (void)units_.moveWithinRange(entity, targetTile, combat->range);
     }
 }
 
@@ -152,6 +171,13 @@ void CombatSystem::update(float deltaSeconds)
         const float dx = sourcePosition->x - targetPosition->x;
         const float dy = sourcePosition->y - targetPosition->y;
         if (dx * dx + dy * dy > attacker->range * attacker->range) {
+            // A fresh attack order (or a finished resupply trip) walks the unit into range.
+            const auto* mover = world_.tryGet<components::Mover>(entity);
+            if (mover != nullptr && mover->path.empty()) {
+                const GridPos targetTile{static_cast<int>(std::floor(targetPosition->x)),
+                    static_cast<int>(std::floor(targetPosition->y))};
+                (void)units_.moveWithinRange(entity, targetTile, attacker->range);
+            }
             return;
         }
         order.cooldownRemaining -= deltaSeconds;

@@ -135,6 +135,44 @@ bool UnitSystem::moveToAdjacent(ecs::Entity entity, GridPos center)
     return false;
 }
 
+bool UnitSystem::moveWithinRange(ecs::Entity entity, GridPos target, float range)
+{
+    auto* mover = world_.tryGet<components::Mover>(entity);
+    auto* position = world_.tryGet<components::Position>(entity);
+    if (mover == nullptr || position == nullptr) {
+        return false;
+    }
+
+    const components::Position targetCenter = centerOf(centeredOrigin(target, 1), 1);
+    const float dx = position->x - targetCenter.x;
+    const float dy = position->y - targetCenter.y;
+    if (dx * dx + dy * dy <= range * range) {
+        return true;
+    }
+
+    const int size = sizeOf(entity);
+    const int radius = std::max(1, static_cast<int>(std::ceil(range)));
+    const std::vector<ecs::Entity> ignored{entity};
+    const auto destination = findSpawnSquare(target, size, ignored, radius);
+    if (!destination) {
+        return false;
+    }
+    const components::Position destinationCenter = centerOf(*destination, size);
+    const float destinationX = destinationCenter.x - targetCenter.x;
+    const float destinationY = destinationCenter.y - targetCenter.y;
+    if (destinationX * destinationX + destinationY * destinationY > range * range) {
+        return false;
+    }
+
+    const Walker walker{entity, mover, position, size};
+    release(walker);
+    if (startPath(walker, *destination)) {
+        return true;
+    }
+    reserve(entity, mover->destination, size);
+    return false;
+}
+
 ecs::Entity UnitSystem::spawn(PlayerId player, const UnitStats& stats, GridPos origin)
 {
     const components::Position position = centerOf(origin, stats.size);
@@ -185,6 +223,7 @@ void UnitSystem::orderMove(PlayerId player, const std::vector<ecs::Entity>& unit
         if (owner == nullptr || owner->player != player || mover == nullptr || position == nullptr) {
             continue;
         }
+        world_.remove<components::AttackOrder>(entity);
         walkers.push_back(Walker{entity, mover, position, sizeOf(entity)});
     }
 

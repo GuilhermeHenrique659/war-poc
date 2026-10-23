@@ -109,7 +109,7 @@ Documento vivo com as regras do jogo. Itens marcados como **TBD** ainda não for
 - **Recrutamento**: clicar no próprio Centro de Comando (sem construção selecionada) seleciona o Centro e abre o painel de recrutamento no canto superior direito. O painel fecha com o `X`, `ESC` ou ao selecionar outra coisa / clicar no chão vazio.
   - No MVP sandbox, o recrutamento exige ao menos um Quartel e é instantâneo: a tropa aparece no tile livre mais próximo do Centro. Não há custo nem limite populacional nesta etapa.
 - **Seleção**: clique esquerdo numa tropa seleciona só ela. Arrastar com o botão esquerdo desenha uma caixa e seleciona todas as tropas do jogador dentro dela. `Shift` soma à seleção atual. Clique no chão vazio (sem `Shift`) limpa a seleção. Selecionar uma construção tira as tropas da seleção e vice-versa.
-- **Ordens**: botão direito sobre uma unidade inimiga ordena ataque às tropas selecionadas; no chão, manda as tropas para o tile clicado.
+- **Ordens**: botão direito sobre uma unidade inimiga, uma construção inimiga ou um Boneco de Treinamento ordena ataque às tropas selecionadas; no chão, manda as tropas para o tile clicado. O clique considera toda a área visível do sprite, então acertar o topo de uma construção também funciona.
   - Formação: cada tropa recebe um tile livre diferente, os mais próximos do destino. A tropa mais próxima de cada tile fica com ele.
   - Caminho por A* em 8 direções, desviando de construções e sem cortar quinas. Tropas não colidem entre si durante o trajeto, mas paradas nunca dividem tile.
   - Se uma construção for colocada no caminho, a tropa recalcula a rota. Se o destino não for alcançável, ela para no tile livre mais próximo de onde está.
@@ -124,7 +124,7 @@ Documento vivo com as regras do jogo. Itens marcados como **TBD** ainda não for
 | Morcego | 60 | 8 | 5 | 1.6 |
 | Bode | 140 | 14 | 1 | 3.5 |
 
-- Unidades mantêm vida, dano e alcance. Uma ordem de ataque dispara após um segundo de cooldown e repete a cada segundo enquanto o alvo permanecer dentro do alcance.
+- Unidades mantêm vida, dano e alcance. Uma ordem de ataque dispara após um segundo de cooldown e repete a cada segundo enquanto o alvo permanecer dentro do alcance. Se a tropa estiver fora de alcance, ela caminha até entrar no alcance antes de atirar.
 - **Suprimentos**: cada tropa tem inventário de 2 slots (arma e munição) e carrega no máximo 1 arma e 100 munições. A arma é obrigatória para atacar e cada disparo consome 1 munição.
 - **Máquina de estados**: a tropa fica `Idle` quando está com arma e munição; entra em `SeekingSupplies` ao nascer ou quando a munição chega a zero; e fica em `WaitingForSupplies` quando não há suprimentos disponíveis ou o depósito encontrado está vazio.
   - Ao nascer, busca 1 arma e 100 munições. Com munição zerada, volta a buscar uma recarga completa automaticamente.
