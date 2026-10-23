@@ -73,6 +73,7 @@ if(BUILD_TESTING)
     )
     target_include_directories(war_poc_tests SYSTEM PRIVATE "${CMAKE_SOURCE_DIR}/include")
     target_sources(war_poc_tests PRIVATE "${CMAKE_SOURCE_DIR}/src/view/TextureManager.cpp")
+    target_sources(war_poc_tests PRIVATE "${CMAKE_SOURCE_DIR}/src/view/SpriteAnimation.cpp")
     target_link_libraries(war_poc_tests PRIVATE war_model GTest::gtest_main)
     war_enable_warnings(war_poc_tests)
 
