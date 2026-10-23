@@ -181,13 +181,15 @@ void SelectionInputController::issueOrder(Vector2 mouse, const Camera2D& camera)
         bus_.publish(events::CruzadorOrderRequested{localPlayerId_, cruzador->entity, selectedUnits_});
         return;
     }
-    const auto enemyBuilding = std::find_if(buildings_.begin(), buildings_.end(), [this, tile](const auto& building) {
-        return building.owner != localPlayerId_ && tile.x >= building.origin.x
-            && tile.x < building.origin.x + building.size && tile.y >= building.origin.y
-            && tile.y < building.origin.y + building.size;
-    });
-    if (enemyBuilding != buildings_.end()) {
-        bus_.publish(events::AttackOrderRequested{localPlayerId_, selectedUnits_, enemyBuilding->entity});
+    const auto attackableBuilding = std::find_if(buildings_.begin(), buildings_.end(),
+        [this, tile](const auto& building) {
+            const bool attackable = building.owner != localPlayerId_
+                || building.type == model::BuildingType::TrainingDummy;
+            return attackable && tile.x >= building.origin.x && tile.x < building.origin.x + building.size
+                && tile.y >= building.origin.y && tile.y < building.origin.y + building.size;
+        });
+    if (attackableBuilding != buildings_.end()) {
+        bus_.publish(events::AttackOrderRequested{localPlayerId_, selectedUnits_, attackableBuilding->entity});
         return;
     }
     issueMove(mouse, camera);

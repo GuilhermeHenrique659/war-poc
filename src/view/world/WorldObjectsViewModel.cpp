@@ -34,8 +34,9 @@ WorldObjectsViewModel::WorldObjectsViewModel(core::EventBus& bus)
         selectedBuilding_.reset();
     });
     bus_.subscribe<events::BuildingPlaced>([this](const events::BuildingPlaced& event) {
+        const int health = model::buildingMaxHealth(event.type);
         buildings_.push_back(BuildingVisual{
-            event.entity, event.origin, event.size,
+            event.entity, event.type, event.origin, event.size, health, health,
             std::make_unique<BuildingViewModel>(
                 event.type, event.size, mineResourceViewModel_, commandCenterViewModel_, warehouseViewModel_,
                 steelworksViewModel_)
@@ -122,10 +123,17 @@ void WorldObjectsViewModel::subscribeUnits()
     });
     bus_.subscribe<events::HealthChanged>([this](const events::HealthChanged& event) {
         const auto unit = units_.find(event.entity);
-        if (unit == units_.end()) {
+        if (unit != units_.end()) {
+            unit->second.viewModel->setHealth(event.health, event.maxHealth);
             return;
         }
-        unit->second.viewModel->setHealth(event.health, event.maxHealth);
+        const auto building = std::find_if(buildings_.begin(), buildings_.end(),
+            [&event](const BuildingVisual& candidate) { return candidate.entity == event.entity; });
+        if (building == buildings_.end()) {
+            return;
+        }
+        building->health = event.health;
+        building->maxHealth = event.maxHealth;
     });
 }
 
@@ -174,6 +182,7 @@ void WorldObjectsViewModel::draw() const
         model::ecs::Entity entity;
         Kind kind;
         const WorldObjectViewModel* viewModel;
+        const BuildingVisual* building;
         float x;
         float y;
         int size;
@@ -184,19 +193,19 @@ void WorldObjectsViewModel::draw() const
     objects.reserve(buildings_.size() + units_.size() + drones_.size() + players_.size());
     for (const BuildingVisual& building : buildings_) {
         objects.push_back(Drawable{static_cast<float>(depthKey(building.origin, building.size)),
-            building.entity, Kind::Building, building.viewModel.get(), static_cast<float>(building.origin.x),
+            building.entity, Kind::Building, building.viewModel.get(), &building, static_cast<float>(building.origin.x),
             static_cast<float>(building.origin.y), building.size, building.origin});
     }
     for (const auto& [entity, unit] : units_) {
-        objects.push_back(Drawable{unit.x + unit.y, entity, Kind::Unit, unit.viewModel.get(),
+        objects.push_back(Drawable{unit.x + unit.y, entity, Kind::Unit, unit.viewModel.get(), nullptr,
             unit.x, unit.y, unit.size, {}});
     }
     for (const auto& [entity, drone] : drones_) {
-        objects.push_back(Drawable{drone.x + drone.y, entity, Kind::Drone, drone.viewModel.get(),
+        objects.push_back(Drawable{drone.x + drone.y, entity, Kind::Drone, drone.viewModel.get(), nullptr,
             drone.x, drone.y, 1, {}});
     }
     for (const auto& [entity, player] : players_) {
-        objects.push_back(Drawable{player.x + player.y, entity, Kind::Player, player.viewModel.get(),
+        objects.push_back(Drawable{player.x + player.y, entity, Kind::Player, player.viewModel.get(), nullptr,
             player.x, player.y, 1, {}});
     }
     std::sort(objects.begin(), objects.end(), [](const Drawable& a, const Drawable& b) {
@@ -224,6 +233,13 @@ void WorldObjectsViewModel::draw() const
             break;
         }
         object.viewModel->drawAt(object.x, object.y);
+        if (object.building != nullptr && object.building->type == model::BuildingType::TrainingDummy
+            && object.building->maxHealth > 0) {
+            const float ratio = static_cast<float>(object.building->health)
+                / static_cast<float>(object.building->maxHealth);
+            drawUnitHealthBar(object.x + static_cast<float>(object.size) / 2.0F,
+                object.y + static_cast<float>(object.size) / 2.0F, object.size, ratio);
+        }
     }
 }
 

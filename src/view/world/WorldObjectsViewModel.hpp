@@ -34,8 +34,11 @@ public:
 private:
     struct BuildingVisual {
         model::ecs::Entity entity;
+        model::BuildingType type;
         model::GridPos origin;
         int size;
+        int health;
+        int maxHealth;
         std::unique_ptr<BuildingViewModel> viewModel;
     };
 

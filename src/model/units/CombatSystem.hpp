@@ -17,6 +17,7 @@ public:
     void update(float deltaSeconds);
 
 private:
+    // Enemy entities are valid targets; a Training Dummy is valid even for its owner.
     [[nodiscard]] bool validTarget(PlayerId player, ecs::Entity target) const;
     // Units need a weapon and at least one round of ammo; other combat entities do not.
     [[nodiscard]] bool canFire(ecs::Entity entity) const;

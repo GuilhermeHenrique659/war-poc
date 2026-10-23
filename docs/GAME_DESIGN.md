@@ -77,6 +77,7 @@ Documento vivo com as regras do jogo. Itens marcados como **TBD** ainda não for
 |---|---|---|---|
 | Centro de Comando | 5x5 | Grátis | Um por jogador. Precisa ser a primeira construção. Depois de construído, some da seleção. |
 | Muro | 1x1 | 100 de cada recurso | Só liberado depois que o jogador tem um Centro de Comando. |
+| Boneco de Treinamento | 1x1 | Grátis | Requer Centro de Comando; tem 100 de vida e serve de alvo de treino: pode ser atacado por qualquer tropa, inclusive as do próprio jogador. |
 | Casa | 2x2 | 100 de cada recurso | Requer Centro de Comando; sem efeito econômico nesta etapa. |
 | Gerador | 2x2 | 100 de cada recurso | Requer Centro de Comando; sem efeito econômico nesta etapa. |
 | Armazém | 2x2 | 100 ferro | Requer Centro de Comando; inventário de 64 slots; recruta drones de transporte. |
@@ -98,7 +99,8 @@ Documento vivo com as regras do jogo. Itens marcados como **TBD** ainda não for
 
 ## Defesa (tower defense)
 - Torre defensiva: construção 2x2, tem 500 de vida, alcance de 6 tiles e causa 20 de dano a cada segundo.
-- A torre ataca automaticamente a unidade ou avatar inimigo mais próximo já dentro do alcance. Torres e unidades podem receber ordens de ataque por comando do Model; alvos aliados, mortos ou sem vida são inválidos. Ataques fora de alcance não causam dano.
+- A torre ataca automaticamente a unidade ou avatar inimigo mais próximo já dentro do alcance. Torres e unidades podem receber ordens de ataque por comando do Model; alvos aliados, mortos ou sem vida são inválidos, com exceção do Boneco de Treinamento, que pode ser atacado até pelo próprio dono. Ataques fora de alcance não causam dano.
+- O Boneco de Treinamento é removido ao chegar a zero de vida e libera o tile que ocupava.
 - Ataques reduzem vida; ao chegar a zero, unidades ou construções são removidas do mundo e liberam a área ocupada.
 - Ondas e comportamento/pathfinding de inimigos ainda não fazem parte desta fatia; os alvos inimigos são entidades de jogador distintas criadas pelo jogo ou pelos testes.
 

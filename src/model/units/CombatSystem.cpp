@@ -42,6 +42,11 @@ bool CombatSystem::validTarget(PlayerId player, ecs::Entity target) const
     if (!world_.isAlive(target) || world_.tryGet<components::Health>(target) == nullptr) {
         return false;
     }
+    // A training dummy is a practice target: its own player's units may attack it too.
+    const auto* building = world_.tryGet<components::Building>(target);
+    if (building != nullptr && building->type == BuildingType::TrainingDummy) {
+        return true;
+    }
     const auto* owner = world_.tryGet<components::Owner>(target);
     return owner != nullptr && owner->player != player;
 }

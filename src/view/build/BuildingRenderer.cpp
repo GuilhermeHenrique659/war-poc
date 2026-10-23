@@ -19,6 +19,7 @@ constexpr Color kSteelworksColor{125, 135, 145, 255};
 constexpr Color kFactoryColor{135, 115, 155, 255};
 constexpr Color kWeaponFactoryColor{150, 90, 80, 255};
 constexpr Color kAmmoFactoryColor{150, 130, 70, 255};
+constexpr Color kTrainingDummyColor{175, 145, 90, 255};
 
 void drawCommandCenter(model::GridPos origin, int size, unsigned char alpha)
 {
@@ -53,6 +54,28 @@ void drawCommandCenter(model::GridPos origin, int size, unsigned char alpha)
     flag.a = alpha;
     DrawLineEx(poleBase, poleTop, 2.0f, Color{40, 40, 40, alpha});
     DrawTriangle(poleTop, Vector2{poleTop.x, poleTop.y + 10.0f}, Vector2{poleTop.x + 16.0f, poleTop.y + 5.0f}, flag);
+}
+
+void drawTrainingDummy(model::GridPos origin, unsigned char alpha)
+{
+    constexpr float kPostHeight = 34.0f;
+    constexpr float kPostSize = 0.16f;
+    constexpr float kArmHeight = 3.0f;
+    constexpr float kArmLength = 0.8f;
+
+    const float x = static_cast<float>(origin.x);
+    const float y = static_cast<float>(origin.y);
+    const float postOffset = (1.0f - kPostSize) / 2.0f;
+    const float armOffset = (1.0f - kArmLength) / 2.0f;
+
+    const iso::BoxColors wood = iso::boxColors(kTrainingDummyColor, alpha);
+    const iso::BoxColors straw = iso::boxColors(iso::shade(kTrainingDummyColor, 1.15f), alpha);
+
+    iso::drawPrism({x + postOffset, y + postOffset, kPostSize, kPostSize, 0.0f, kPostHeight}, wood);
+    iso::drawPrism({x + armOffset, y + 0.45f, kArmLength, 0.1f, 24.0f, kArmHeight}, wood);
+    iso::drawPrism({x + 0.45f, y + armOffset, 0.1f, kArmLength, 24.0f, kArmHeight}, wood);
+    iso::drawPrism({x + 0.34f, y + 0.34f, 0.32f, 0.32f, 12.0f, 14.0f}, straw);
+    iso::drawPrism({x + 0.38f, y + 0.38f, 0.24f, 0.24f, 30.0f, 8.0f}, straw);
 }
 
 void drawWall(model::GridPos origin, unsigned char alpha)
@@ -102,6 +125,8 @@ Color buildingColor(model::BuildingType type)
         return kWeaponFactoryColor;
     case model::BuildingType::AmmoFactory:
         return kAmmoFactoryColor;
+    case model::BuildingType::TrainingDummy:
+        return kTrainingDummyColor;
     }
     return MAGENTA;
 }
@@ -114,6 +139,9 @@ void drawBuilding(model::BuildingType type, model::GridPos origin, int size, uns
         return;
     case model::BuildingType::Wall:
         drawWall(origin, alpha);
+        return;
+    case model::BuildingType::TrainingDummy:
+        drawTrainingDummy(origin, alpha);
         return;
     case model::BuildingType::House:
     case model::BuildingType::Generator:

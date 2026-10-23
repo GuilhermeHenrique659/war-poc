@@ -141,6 +141,47 @@ TEST_F(BuildingSystemTest, UnlocksWallsAfterTheCommandCenterIsBuilt)
     EXPECT_TRUE(buildings_.isOccupied(wallTile));
 }
 
+TEST_F(BuildingSystemTest, TrainingDummyIsAFreeOneByOneBuildingWithCombatHealth)
+{
+    // Given a player with a Command Center.
+    buildings_.select(kPlayer, model::BuildingType::CommandCenter);
+    buildings_.place(kPlayer, {0, 0});
+
+    // When the player places a Training Dummy on a free tile.
+    const model::GridPos tile{10, 10};
+    buildings_.select(kPlayer, model::BuildingType::TrainingDummy);
+    buildings_.place(kPlayer, tile);
+
+    // Then it is a free 1x1 construction that units can damage.
+    ASSERT_EQ(placements_.size(), 2U);
+    const events::BuildingPlaced dummy = placements_.back();
+    EXPECT_EQ(dummy.type, model::BuildingType::TrainingDummy);
+    EXPECT_EQ(dummy.size, 1);
+    EXPECT_TRUE(dummy.origin == tile);
+    EXPECT_TRUE(buildings_.isOccupied(tile));
+    EXPECT_EQ(model::InventorySystem::amount(*playerInventory_, model::ItemId::Iron), 500);
+
+    const auto* building = world_.tryGet<model::components::Building>(dummy.entity);
+    ASSERT_NE(building, nullptr);
+    EXPECT_EQ(building->name, "Boneco de Treinamento");
+    const auto* health = world_.tryGet<model::components::Health>(dummy.entity);
+    ASSERT_NE(health, nullptr);
+    EXPECT_EQ(health->current, 100);
+    EXPECT_EQ(health->max, 100);
+}
+
+TEST_F(BuildingSystemTest, TrainingDummyRequiresACommandCenter)
+{
+    // Given a player who has not placed a Command Center.
+    buildings_.select(kPlayer, model::BuildingType::TrainingDummy);
+
+    // When the player attempts to place a Training Dummy.
+    buildings_.place(kPlayer, {0, 0});
+
+    // Then nothing is built.
+    EXPECT_TRUE(placements_.empty());
+}
+
 TEST_F(BuildingSystemTest, WarehouseCostsOnlyOneHundredIron)
 {
     // Given a player with a Command Center and 100 units of each resource.

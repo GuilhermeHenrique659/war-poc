@@ -24,7 +24,8 @@ enum class BuildingType {
     ElectronicsFactory,
     ToolFactory,
     WeaponFactory,
-    AmmoFactory
+    AmmoFactory,
+    TrainingDummy
 };
 
 // Order in which the build bar lists the buildings.
@@ -32,7 +33,7 @@ inline constexpr std::array kBuildingTypes{BuildingType::CommandCenter, Building
     BuildingType::Generator, BuildingType::Warehouse, BuildingType::Barracks, BuildingType::Cruzador,
     BuildingType::Tower, BuildingType::IronMine, BuildingType::CoalMine, BuildingType::Steelworks,
     BuildingType::CopperMine, BuildingType::ElectronicsFactory, BuildingType::ToolFactory,
-    BuildingType::WeaponFactory, BuildingType::AmmoFactory};
+    BuildingType::WeaponFactory, BuildingType::AmmoFactory, BuildingType::TrainingDummy};
 
 struct BuildingSpec {
     std::string_view label;
@@ -71,6 +72,7 @@ inline constexpr BuildingCosts kAmmoFactoryBuildingCost{
 {
     switch (type) {
     case BuildingType::CommandCenter:
+    case BuildingType::TrainingDummy:
         return kNoBuildingCost;
     case BuildingType::Warehouse:
         return kWarehouseBuildingCost;
@@ -134,8 +136,16 @@ inline constexpr BuildingCosts kAmmoFactoryBuildingCost{
         return BuildingSpec{"Fabrica de Armas", 3};
     case BuildingType::AmmoFactory:
         return BuildingSpec{"Fabrica de Municao", 3};
+    case BuildingType::TrainingDummy:
+        return BuildingSpec{"Boneco de Treinamento", 1};
     }
     return BuildingSpec{"?", 1};
+}
+
+// Combat health given to a construction when it is placed.
+[[nodiscard]] constexpr int buildingMaxHealth(BuildingType type)
+{
+    return type == BuildingType::TrainingDummy ? 100 : 500;
 }
 
 // The cursor tile is the center of the footprint.

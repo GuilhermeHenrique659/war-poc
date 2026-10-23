@@ -35,6 +35,17 @@ protected:
         }
     }
 
+    [[nodiscard]] model::ecs::Entity buildingOfType(model::BuildingType type)
+    {
+        model::ecs::Entity found = 0;
+        world_.each<model::components::Building>([&](model::ecs::Entity entity, const auto& building) {
+            if (building.type == type) {
+                found = entity;
+            }
+        });
+        return found;
+    }
+
     void equip(model::ecs::Entity unit, int ammo = model::kUnitAmmoCapacity)
     {
         auto* inventory = world_.tryGet<model::components::Inventory>(unit);
@@ -225,6 +236,50 @@ TEST_F(CombatSystemTest, EachAttackConsumesOneAmmoAndStopsFiringWhenAmmoRunsOut)
     // Then the third interval fires nothing because the unit has no ammo left.
     EXPECT_EQ(model::InventorySystem::amount(*inventory, model::ItemId::Ammo), 0);
     EXPECT_EQ(world_.tryGet<model::components::Health>(target)->current, 80);
+}
+
+TEST_F(CombatSystemTest, UnitsCanAttackThePlayersOwnTrainingDummy)
+{
+    // Given a player's soldier and a Training Dummy one tile away.
+    buildings_.select(1, model::BuildingType::CommandCenter);
+    buildings_.place(1, {0, 0});
+    buildings_.select(1, model::BuildingType::TrainingDummy);
+    buildings_.place(1, {5, 5});
+    const model::ecs::Entity dummy = buildingOfType(model::BuildingType::TrainingDummy);
+    ASSERT_NE(dummy, 0U);
+    const auto attacker = units_.spawn(1, model::recruitStats(model::UnitType::Soldier), {4, 5});
+    equip(attacker);
+
+    // When the soldier receives an order to attack the friendly dummy.
+    combat_.orderAttack(1, {attacker}, dummy);
+    combat_.update(1.0F);
+
+    // Then the dummy takes damage like an enemy target.
+    const auto* health = world_.tryGet<model::components::Health>(dummy);
+    ASSERT_NE(health, nullptr);
+    EXPECT_EQ(health->current, 90);
+}
+
+TEST_F(CombatSystemTest, DestroyingATrainingDummyRemovesItAndFreesItsTile)
+{
+    // Given a Training Dummy with little health left and an armed soldier beside it.
+    buildings_.select(1, model::BuildingType::CommandCenter);
+    buildings_.place(1, {0, 0});
+    buildings_.select(1, model::BuildingType::TrainingDummy);
+    buildings_.place(1, {5, 5});
+    const model::ecs::Entity dummy = buildingOfType(model::BuildingType::TrainingDummy);
+    ASSERT_NE(dummy, 0U);
+    world_.tryGet<model::components::Health>(dummy)->current = 10;
+    const auto attacker = units_.spawn(1, model::recruitStats(model::UnitType::Soldier), {4, 5});
+    equip(attacker);
+
+    // When the soldier deals lethal damage.
+    combat_.orderAttack(1, {attacker}, dummy);
+    combat_.update(1.0F);
+
+    // Then the dummy is removed from the world and its tile becomes free.
+    EXPECT_FALSE(world_.isAlive(dummy));
+    EXPECT_FALSE(buildings_.isOccupied({5, 5}));
 }
 
 TEST_F(CombatSystemTest, DoesNotAttackWithoutAWeapon)

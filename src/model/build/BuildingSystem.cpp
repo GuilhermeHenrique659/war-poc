@@ -34,6 +34,7 @@ namespace {
 {
     switch (type) {
     case BuildingType::CommandCenter:
+    case BuildingType::TrainingDummy:
         return "Gratis";
     case BuildingType::Wall:
     case BuildingType::House:
@@ -151,7 +152,8 @@ void BuildingSystem::place(PlayerId player, GridPos anchor)
     world_.emplace<components::Owner>(entity, player);
     world_.emplace<components::Inventory>(entity, std::size_t{64});
     world_.emplace<components::Footprint>(entity, origin, size);
-    world_.emplace<components::Health>(entity, 500, 500);
+    const int health = buildingMaxHealth(type);
+    world_.emplace<components::Health>(entity, health, health);
     world_.emplace<components::Position>(entity, static_cast<float>(origin.x) + static_cast<float>(size) / 2.0F,
         static_cast<float>(origin.y) + static_cast<float>(size) / 2.0F);
     if (type == BuildingType::Tower) {
@@ -197,6 +199,7 @@ void BuildingSystem::place(PlayerId player, GridPos anchor)
     case BuildingType::Barracks:
     case BuildingType::Cruzador:
     case BuildingType::Tower:
+    case BuildingType::TrainingDummy:
         break;
     }
     for (int dy = 0; dy < size; ++dy) {
@@ -274,6 +277,7 @@ std::string_view BuildingSystem::lockedReason(PlayerId player, BuildingType type
     case BuildingType::Cruzador:
         return hasCommandCenter(player) ? "" : "Requer Centro";
     case BuildingType::Tower:
+    case BuildingType::TrainingDummy:
         return hasCommandCenter(player) ? "" : "Requer Centro";
     }
     return "";
