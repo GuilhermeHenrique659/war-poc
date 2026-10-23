@@ -1,6 +1,7 @@
 #include "core/Game.hpp"
 
 #include "core/Events.hpp"
+#include "view/TextureManager.hpp"
 
 #include <raylib.h>
 
@@ -26,6 +27,14 @@ Game::Game()
         window_->applyDisplayConfiguration(e.width, e.height, e.fullscreen);
     });
     model_->initialize();
+}
+
+Game::~Game()
+{
+    controller_.reset();
+    renderer_.reset();
+    model_.reset();
+    view::TextureManager::instance().clear();
 }
 
 void Game::run()

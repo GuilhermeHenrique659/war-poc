@@ -7,6 +7,7 @@ PlayingView::PlayingView(core::EventBus& bus)
     , playerHud_(std::make_unique<PlayerHudView>(bus))
     , buildBar_(std::make_unique<BuildBarView>(bus))
     , inventoryPanel_(std::make_unique<InventoryPanelView>(bus))
+    , logisticsPanel_(std::make_unique<LogisticsPanelView>(bus))
     , recruitPanel_(std::make_unique<RecruitPanelView>(bus))
 {
 }
@@ -18,6 +19,7 @@ void PlayingView::draw() const
     buildBar_->draw();
     recruitPanel_->draw();
     inventoryPanel_->draw();
+    logisticsPanel_->draw();
 }
 
 } // namespace view::gameplay

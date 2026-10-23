@@ -4,11 +4,13 @@
 #include "model/economy/Item.hpp"
 #include "model/GridPos.hpp"
 #include "model/player/Player.hpp"
+#include "model/WorldMap.hpp"
 #include "model/Scene.hpp"
 #include "model/units/UnitType.hpp"
 #include "model/ecs/Entity.hpp"
 
 #include <cstddef>
+#include <cstdint>
 #include <array>
 #include <optional>
 #include <string>
@@ -91,6 +93,23 @@ struct RecruitRequested {
     model::UnitType type;
 };
 
+struct RecruitDroneRequested {
+    model::PlayerId player;
+    model::ecs::Entity warehouse;
+};
+
+struct AssignDroneToRouteRequested {
+    model::PlayerId player;
+    model::ecs::Entity source;
+    std::uint64_t routeId;
+};
+
+struct UnassignDroneFromRouteRequested {
+    model::PlayerId player;
+    model::ecs::Entity source;
+    std::uint64_t routeId;
+};
+
 struct TransferInventoryItemRequested {
     model::PlayerId player;
     model::ecs::Entity building;
@@ -163,7 +182,7 @@ struct CameraPanRequested {
     float dy;
 };
 
-// Controller -> View (debug overlay is presentation state)
+// Controller -> View / Model (debug mode toggle)
 struct DebugToggleRequested {};
 
 // Any -> Game loop
@@ -241,6 +260,15 @@ struct SettingsStateChanged {
 // The match world was emptied; drop every cached entity.
 struct WorldReset {};
 
+struct MapGenerated {
+    std::uint32_t seed = 0;
+    int width = 0;
+    int height = 0;
+    model::GridPos origin{};
+    std::vector<model::Terrain> terrain;
+    std::vector<model::ResourceDeposit> deposits;
+};
+
 struct BuildBarEntry {
     model::BuildingType type;
     std::string label;
@@ -296,6 +324,26 @@ struct UnitMoved {
     float y;
 };
 
+struct DroneSpawned {
+    model::ecs::Entity entity;
+    model::PlayerId owner;
+    float x;
+    float y;
+};
+
+struct DroneMoved {
+    model::ecs::Entity entity;
+    float x;
+    float y;
+};
+
+enum class DroneLoadState { Unloaded, Loaded };
+
+struct DroneLoadStateChanged {
+    model::ecs::Entity entity;
+    DroneLoadState state;
+};
+
 struct HealthChanged {
     model::ecs::Entity entity;
     int health;
@@ -326,6 +374,24 @@ struct RecruitPanelChanged {
     model::PlayerId player;
     bool open;
     std::vector<RecruitEntry> entries;
+};
+
+struct LogisticsRouteEntry {
+    std::uint64_t id = 0;
+    model::ecs::Entity destination = 0;
+    std::string destinationName;
+    model::ItemId item = model::ItemId::Count;
+    int assignedDrones = 0;
+};
+
+struct LogisticsPanelChanged {
+    model::PlayerId player = model::kNoPlayer;
+    bool open = false;
+    model::ecs::Entity building = 0;
+    std::string buildingName;
+    bool warehouse = false;
+    int idleDrones = 0;
+    std::vector<LogisticsRouteEntry> routes;
 };
 
 // View -> Controller (needed for mouse picking)

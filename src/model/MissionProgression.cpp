@@ -1,46 +1,9 @@
 #include "model/MissionProgression.hpp"
 
 #include <algorithm>
-#include <cstdint>
 #include <ranges>
 
 namespace model {
-
-BoundedMap::BoundedMap(int width, int height, GridPos origin)
-    : width_(std::max(0, width))
-    , height_(std::max(0, height))
-    , origin_(origin)
-{
-}
-
-bool BoundedMap::contains(GridPos tile) const noexcept
-{
-    const auto dx = static_cast<std::int64_t>(tile.x) - origin_.x;
-    const auto dy = static_cast<std::int64_t>(tile.y) - origin_.y;
-    return dx >= 0 && dy >= 0 && dx < width_ && dy < height_;
-}
-
-Terrain BoundedMap::terrainAt(GridPos tile) const noexcept
-{
-    if (!contains(tile)) {
-        return Terrain::Blocked;
-    }
-    const auto found = terrain_.find(tile);
-    return found == terrain_.end() ? Terrain::Plain : found->second;
-}
-
-bool BoundedMap::setTerrain(GridPos tile, Terrain terrain) noexcept
-{
-    if (!contains(tile)) {
-        return false;
-    }
-    if (terrain == Terrain::Plain) {
-        terrain_.erase(tile);
-    } else {
-        terrain_.insert_or_assign(tile, terrain);
-    }
-    return true;
-}
 
 void Progression::addPlayer(PlayerId player)
 {

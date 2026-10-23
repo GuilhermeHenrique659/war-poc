@@ -26,7 +26,7 @@ Documento vivo com as regras do jogo. Itens marcados como **TBD** ainda não for
 - No sandbox atual há somente o jogador local. O `PlayerId` é propagado aos Controllers e Views pelo event bus, permitindo que novos jogadores sejam adicionados depois.
 
 ## Modo debug
-- `F3` liga e desliga o modo debug em qualquer cena. Ele só muda o que aparece na tela e não afeta as regras do jogo.
+- `F3` liga e desliga o modo debug em qualquer cena. Quando ativo, o custo em recursos de todas as construções e unidades é zero. A prévia de construção não exige materiais, a colocação não desconta recursos e a interface mostra `Gratis`; o recrutamento de drones também não exige nem desconta recursos.
 - Painel no canto superior esquerdo com FPS e tempo do frame (verde ≥ 55, amarelo ≥ 30, vermelho abaixo disso) e a cena atual. Durante a partida mostra também a quantidade de construções e tropas, a posição e o zoom da câmera, e o tile sob o mouse.
 - Em cada entidade da partida aparecem:
   - o contorno da área ocupada no chão (ciano);
@@ -36,10 +36,13 @@ Documento vivo com as regras do jogo. Itens marcados como **TBD** ainda não for
 ## Mapa
 - Grid isométrico. Toda posição de jogo é uma coordenada de tile (lógica), independente da projeção na tela.
 - Tile de 64x32 px na tela (zoom 1).
-- O sandbox segue com mapa **infinito** e sem terreno. O Model também oferece `BoundedMap` para missões finitas: retângulo definido por origem lógica, largura e altura; tiles dentro dele começam como planície transitável, tiles fora são bloqueados e o terreno pode ser marcado como bloqueado. A classe não depende de raylib.
+- Cada partida gera um mapa finito de 1024x1024 tiles a partir de uma seed aleatória, mantida no Model para reproduzir a geração. A origem lógica do mapa é (-512, -512), com o ponto inicial em (0, 0).
+- O mapa tem terra transitável e água em regiões conectadas, com alvo aproximado de 30% de tiles de água. Movimento de jogadores e unidades, assim como construção, só é permitido em terra; tiles fora dos limites também são bloqueados.
+- O Centro de Comando também precisa ter pelo menos um tile de terra adjacente para permitir o surgimento do avatar.
+- Jazidas de ferro, cobre e carvão ocupam áreas de 2x2 tiles em terra. A área inicial contém 2 jazidas de ferro, 1 de cobre e 2 de carvão; fora dela são geradas mais 50 jazidas de cada recurso. Cada tipo de mina só pode ser construído sobre uma jazida do recurso correspondente.
+- `BoundedMap` representa o retângulo lógico e seu terreno, sem dependência de raylib. A View recebe o mapa por evento e desenha somente os tiles visíveis.
 - Câmera: acompanha o avatar do jogador com zoom fixo de 1,0x.
 - Renderização de construções, tropas e avatar usa o algoritmo do pintor: objetos mais distantes no eixo de profundidade do grid são desenhados primeiro.
-- Origem do mapa definitivo (Tiled `.tmx` ou procedural), tamanho e tipos de terreno: **TBD**.
 
 ## Economia / recursos
 - O inventário é composto por slots; cada slot armazena um item e sua quantidade atual em unidades inteiras (não há frações de item). Cada pilha comporta até 100 unidades. O inventário do jogador tem 32 slots e o de cada construção tem 64.
@@ -53,7 +56,12 @@ Documento vivo com as regras do jogo. Itens marcados como **TBD** ainda não for
   - Fábrica de Eletrônicos: consome 1 ferro/s e 1 cobre/s e produz 0,5 eletrônico/s.
   - Fábrica de Ferramentas: consome 1 aço/s e 1 eletrônico/s e produz 0,5 ferramenta/s.
 - As construções descontam seu custo do inventário do jogador no momento da colocação; recursos armazenados em construções não contam para pagar o custo. A prévia fica inválida quando faltam recursos. O recrutamento continua instantâneo, requer Quartel e não tem custo nem limite populacional.
-- Casa, Gerador e Depósito permanecem como estruturas sem efeitos econômicos nesta etapa. Unidades ainda não recebem inventários.
+- Casa e Gerador permanecem como estruturas sem efeitos econômicos nesta etapa. Unidades de combate ainda não recebem inventários.
+- O Depósito existente passa a ser chamado **Armazém**, mantém sua área 2x2 e inventário de 64 slots, custa 100 de ferro e permite recrutar drones de transporte. Cada drone é recrutado instantaneamente e custa 50 de ferro e 50 eletrônicos, sem limite.
+- Cada construção produtora cria rotas de saída para todos os Armazéns do mesmo jogador e para as construções do mesmo jogador que consomem seu produto. Ao criar um Armazém ou uma construção consumidora, também são criadas rotas de produtores existentes para ela. Cada rota tem ID único, origem, destino, item e quantidade de drones atribuídos; sua lista pertence à construção de origem.
+- Um drone de transporte é uma unidade logística com dono, sem combate nem ordens de tropa. É recrutado no Armazém e pode ser atribuído ou desatribuído de uma rota pela interface da construção de origem. Ao desatribuir um drone que carrega itens, ele retorna à origem e devolve a carga antes de ficar ocioso. O drone percorre continuamente origem → destino → origem a 2 tiles/s, usando os caminhos do mapa.
+- Cada drone tem inventário de 10 slots, com pilhas de até 100 itens. Ele carrega o produto da origem até preencher o inventário ou esgotar o estoque disponível, descarrega no destino o que couber e mantém a carga restante se o destino estiver cheio. Sem produto, aguarda na origem; se não houver espaço no destino, aguarda no destino para tentar descarregar novamente.
+- O estado visual do drone é `Unloaded` quando o inventário está vazio e `Loaded` quando contém qualquer item.
 
 ## Construção
 - Barra de construção no rodapé da tela: clique (ou teclas `1`-`9`) seleciona a estrutura. Clicar de novo na mesma desmarca.
@@ -69,7 +77,7 @@ Documento vivo com as regras do jogo. Itens marcados como **TBD** ainda não for
 | Muro | 1x1 | 100 de cada recurso | Só liberado depois que o jogador tem um Centro de Comando. |
 | Casa | 2x2 | 100 de cada recurso | Requer Centro de Comando; sem efeito econômico nesta etapa. |
 | Gerador | 2x2 | 100 de cada recurso | Requer Centro de Comando; sem efeito econômico nesta etapa. |
-| Depósito | 2x2 | 100 de cada recurso | Requer Centro de Comando; sem efeito econômico nesta etapa. |
+| Armazém | 2x2 | 100 ferro | Requer Centro de Comando; inventário de 64 slots; recruta drones de transporte. |
 | Quartel | 3x3 | 100 de cada recurso | Requer Centro de Comando; libera recrutamento. |
 | Cruzador | 3x3 | 100 de cada recurso | Requer Centro de Comando; recebe duas tropas para gerar uma descendente. |
 | Torre | 2x2 | 100 de cada recurso | Requer Centro de Comando. |
@@ -81,7 +89,8 @@ Documento vivo com as regras do jogo. Itens marcados como **TBD** ainda não for
 | Fábrica de Ferramentas | 3x3 | 200 aço, 200 ferro, 100 eletrônicos | Requer Centro de Comando; inventário de 64 slots; consome 1 aço/s e 1 eletrônico/s e produz 0,5 ferramenta/s. |
 
 - Clicar numa construção abre seu inventário para consulta e transferência ao jogador.
-- **TBD**: tempo de construção, demolição/reembolso, terreno válido.
+- O Armazém (antigo Depósito) também abre o painel de logística, onde drones podem ser recrutados. Selecionar uma construção produtora mostra as rotas de saída e permite atribuir drones ociosos.
+- **TBD**: tempo de construção, demolição/reembolso.
 
 ## Defesa (tower defense)
 - Torre defensiva: construção 2x2, tem 500 de vida, alcance de 6 tiles e causa 20 de dano a cada segundo.

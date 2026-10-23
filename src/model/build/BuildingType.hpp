@@ -53,6 +53,7 @@ inline constexpr BuildingCosts kCommonBuildingCost{{
     {ItemId::Tools, 100},
 }};
 inline constexpr BuildingCosts kMineBuildingCost{{{ItemId::Iron, 100}}};
+inline constexpr BuildingCosts kWarehouseBuildingCost{{{ItemId::Iron, 100}}};
 inline constexpr BuildingCosts kSteelworksBuildingCost{{{ItemId::Iron, 300}}};
 inline constexpr BuildingCosts kElectronicsFactoryBuildingCost{
     {{ItemId::Steel, 100}, {ItemId::Iron, 200}}};
@@ -64,10 +65,11 @@ inline constexpr BuildingCosts kToolFactoryBuildingCost{
     switch (type) {
     case BuildingType::CommandCenter:
         return kNoBuildingCost;
+    case BuildingType::Warehouse:
+        return kWarehouseBuildingCost;
     case BuildingType::Wall:
     case BuildingType::House:
     case BuildingType::Generator:
-    case BuildingType::Warehouse:
     case BuildingType::Barracks:
     case BuildingType::Cruzador:
     case BuildingType::Tower:
@@ -98,7 +100,7 @@ inline constexpr BuildingCosts kToolFactoryBuildingCost{
     case BuildingType::Generator:
         return BuildingSpec{"Gerador", 2};
     case BuildingType::Warehouse:
-        return BuildingSpec{"Deposito", 2};
+        return BuildingSpec{"Armazem", 2};
     case BuildingType::Barracks:
         return BuildingSpec{"Quartel", 3};
     case BuildingType::Cruzador:

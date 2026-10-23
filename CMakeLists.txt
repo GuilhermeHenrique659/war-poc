@@ -34,6 +34,16 @@ target_link_libraries(war_poc PRIVATE raylib opengl32 gdi32 winmm)
 # Static runtime so the executable runs outside the MSYS2 shell.
 target_link_options(war_poc PRIVATE -static)
 
+if(EXISTS "${CMAKE_SOURCE_DIR}/resource")
+    add_custom_command(TARGET war_poc POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy_directory
+            "${CMAKE_SOURCE_DIR}/resource"
+            "$<TARGET_FILE_DIR:war_poc>/resource"
+        COMMENT "Copying game resources next to the executable"
+        VERBATIM
+    )
+endif()
+
 install(TARGETS war_poc RUNTIME DESTINATION .)
 if(EXISTS "${CMAKE_SOURCE_DIR}/resource")
     install(DIRECTORY "${CMAKE_SOURCE_DIR}/resource/" DESTINATION resource)
@@ -61,6 +71,16 @@ if(BUILD_TESTING)
     target_include_directories(war_poc_tests PRIVATE
         "${CMAKE_SOURCE_DIR}/src"
     )
+    target_include_directories(war_poc_tests SYSTEM PRIVATE "${CMAKE_SOURCE_DIR}/include")
+    target_sources(war_poc_tests PRIVATE "${CMAKE_SOURCE_DIR}/src/view/TextureManager.cpp")
+    target_sources(war_poc_tests PRIVATE "${CMAKE_SOURCE_DIR}/src/view/AnimatedSpriteViewModel.cpp")
+    target_sources(war_poc_tests PRIVATE "${CMAKE_SOURCE_DIR}/src/view/StaticSpriteViewModel.cpp")
+    target_sources(war_poc_tests PRIVATE "${CMAKE_SOURCE_DIR}/src/view/SpriteSheet.cpp")
+    target_sources(war_poc_tests PRIVATE "${CMAKE_SOURCE_DIR}/src/view/build/MineResourceViewModel.cpp")
+    target_sources(war_poc_tests PRIVATE "${CMAKE_SOURCE_DIR}/src/view/build/CommandCenterViewModel.cpp")
+    target_sources(war_poc_tests PRIVATE "${CMAKE_SOURCE_DIR}/src/view/build/SteelworksViewModel.cpp")
+    target_sources(war_poc_tests PRIVATE "${CMAKE_SOURCE_DIR}/src/view/build/WarehouseViewModel.cpp")
+    target_sources(war_poc_tests PRIVATE "${CMAKE_SOURCE_DIR}/src/view/units/DroneViewModel.cpp")
     target_link_libraries(war_poc_tests PRIVATE war_model GTest::gtest_main)
     war_enable_warnings(war_poc_tests)
 

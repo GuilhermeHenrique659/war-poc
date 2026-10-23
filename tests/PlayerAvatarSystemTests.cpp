@@ -187,3 +187,21 @@ TEST_F(PlayerAvatarSystemTest, StopsAtBuildingCollisionAndSlidesAlongItsWall)
     EXPECT_FLOAT_EQ(position->x, 1.7F);
     EXPECT_FLOAT_EQ(position->y, 0.5F + 3.5F / std::sqrt(2.0F));
 }
+
+TEST_F(PlayerAvatarSystemTest, StopsAtWaterInsteadOfWalkingAcrossIt)
+{
+    // Given an avatar on land with water beginning at tile x=4.
+    constexpr model::PlayerId playerId = 12;
+    const model::ecs::Entity avatar = players_.create(playerId, "Jogador");
+    bus_.publish(events::BuildingPlaced{99, playerId, model::BuildingType::CommandCenter, {0, 0}, 5});
+    players_.setTileWalkable([](model::GridPos tile) { return tile.x < 4; });
+
+    // When it moves east for one second.
+    players_.move(playerId, 1.0F, 0.0F, 1.0F);
+
+    // Then its collision radius stops before the water tile.
+    const auto* position = world_.tryGet<model::components::Position>(avatar);
+    ASSERT_NE(position, nullptr);
+    EXPECT_LT(position->x + 0.3F, 4.001F);
+    EXPECT_GT(position->x, 3.5F);
+}

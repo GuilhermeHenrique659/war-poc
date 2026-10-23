@@ -46,6 +46,7 @@ private:
     bool placing_ = false; // Left button went down on the map and is still held.
     std::vector<model::UnitType> panelTypes_; // Empty while the recruit panel is closed.
     events::InventoryPanelChanged inventoryPanel_;
+    events::LogisticsPanelChanged logisticsPanel_;
     std::optional<std::size_t> inventoryDragSlot_;
     bool inventoryDragFromPlayer_ = false;
     model::PlayerId localPlayerId_ = model::kNoPlayer;

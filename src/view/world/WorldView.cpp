@@ -1,13 +1,9 @@
 #include "view/world/WorldView.hpp"
 
-#include "model/player/Player.hpp"
 #include "view/build/BuildingRenderer.hpp"
 #include "view/IsoProjection.hpp"
 #include "view/IsoShapes.hpp"
-#include "view/player/PlayerRenderer.hpp"
-#include "view/units/UnitRenderer.hpp"
 
-#include <algorithm>
 #include <array>
 #include <climits>
 #include <cmath>
@@ -18,8 +14,7 @@ namespace view::gameplay {
 namespace {
 
 constexpr Color kGroundColor{58, 94, 52, 255};
-constexpr Color kGridColor{74, 116, 66, 255};
-constexpr Color kOriginColor{96, 140, 86, 255};
+constexpr Color kOutsideMapColor{24, 48, 70, 255};
 constexpr Color kValidColor{80, 220, 100, 110};
 constexpr Color kInvalidColor{230, 60, 50, 130};
 constexpr Color kSelectedFill{90, 255, 120, 50};
@@ -27,130 +22,59 @@ constexpr Color kSelectedOutline{90, 255, 120, 255};
 constexpr unsigned char kGhostAlpha = 150;
 constexpr float kFixedZoom = 1.0f;
 
-// Painter's order for square footprints: farther (smaller x + y) first.
-[[nodiscard]] int depthKey(model::GridPos origin, int size)
-{
-    return origin.x + origin.y + size;
-}
-
 } // namespace
 
 WorldView::WorldView(core::EventBus& bus)
     : bus_(bus)
+    , objects_(bus)
 {
     bus_.subscribe<events::WorldReset>([this](const events::WorldReset&) {
-        buildings_.clear();
-        units_.clear();
-        players_.clear();
-        selectedUnits_.clear();
-        selectedBuilding_.reset();
         preview_ = {};
         selectionBox_ = {};
+        worldMap_.reset();
         resetCamera();
     });
-    bus_.subscribe<events::BuildingPlaced>([this](const events::BuildingPlaced& e) { onBuildingPlaced(e); });
-    bus_.subscribe<events::BuildingRemoved>([this](const events::BuildingRemoved& e) {
-        std::erase_if(buildings_, [&e](const BuildingVisual& building) { return building.entity == e.entity; });
-        if (selectedBuilding_ == e.entity) selectedBuilding_.reset();
-    });
+    bus_.subscribe<events::MapGenerated>([this](const events::MapGenerated& event) { worldMap_ = event; });
     bus_.subscribe<events::LocalPlayerChanged>([this](const events::LocalPlayerChanged& e) {
         localPlayerId_ = e.player;
-        for (const auto& [entity, player] : players_) {
-            (void)entity;
-            if (player.player == localPlayerId_) {
-                focusCameraOn(player.x, player.y);
-                break;
-            }
+        if (const auto position = objects_.playerGridPosition(localPlayerId_)) {
+            focusCameraOn(position->x, position->y);
         }
     });
+    bus_.subscribe<events::PlayerSpawned>([this](const events::PlayerSpawned& event) {
+        if (event.player == localPlayerId_) {
+            focusCameraOn(event.x, event.y);
+        }
+    });
+    bus_.subscribe<events::PlayerMoved>([this](const events::PlayerMoved& event) { onPlayerMoved(event); });
     bus_.subscribe<events::BuildPreviewChanged>([this](const events::BuildPreviewChanged& e) {
         if (e.player == localPlayerId_) {
             preview_ = e;
         }
     });
     bus_.subscribe<events::CameraPanRequested>([this](const events::CameraPanRequested& e) { onPan(e); });
-    subscribeUnits();
-    subscribePlayers();
-}
-
-void WorldView::subscribeUnits()
-{
-    bus_.subscribe<events::UnitSpawned>([this](const events::UnitSpawned& e) {
-        units_[e.entity] = UnitVisual{e.entity, e.type, e.x, e.y, e.health, e.maxHealth, e.size};
-    });
-    bus_.subscribe<events::UnitRemoved>([this](const events::UnitRemoved& e) {
-        units_.erase(e.entity);
-        selectedUnits_.erase(e.entity);
-    });
-    bus_.subscribe<events::UnitMoved>([this](const events::UnitMoved& e) {
-        const auto it = units_.find(e.entity);
-        if (it == units_.end()) {
-            return;
-        }
-        it->second.x = e.x;
-        it->second.y = e.y;
-    });
-    bus_.subscribe<events::HealthChanged>([this](const events::HealthChanged& e) {
-        const auto it = units_.find(e.entity);
-        if (it != units_.end()) {
-            it->second.health = e.health;
-            it->second.maxHealth = e.maxHealth;
-        }
-    });
-    bus_.subscribe<events::SelectionChanged>([this](const events::SelectionChanged& e) { onSelectionChanged(e); });
     bus_.subscribe<events::SelectionBoxChanged>([this](const events::SelectionBoxChanged& e) { selectionBox_ = e; });
-}
-
-void WorldView::subscribePlayers()
-{
-    bus_.subscribe<events::PlayerSpawned>([this](const events::PlayerSpawned& e) {
-        players_[e.entity] = PlayerVisual{e.entity, e.player, e.x, e.y};
-        if (e.player == localPlayerId_) {
-            focusCameraOn(e.x, e.y);
-        }
-    });
-    bus_.subscribe<events::PlayerMoved>([this](const events::PlayerMoved& e) { onPlayerMoved(e); });
 }
 
 void WorldView::draw() const
 {
-    DrawRectangle(0, 0, GetScreenWidth(), GetScreenHeight(), kGroundColor);
+    DrawRectangle(0, 0, GetScreenWidth(), GetScreenHeight(), worldMap_ ? kOutsideMapColor : kGroundColor);
 
     const Camera2D cam = camera();
     BeginMode2D(cam);
     drawGrid(cam);
-    drawObjects();
+    drawDeposits(cam);
+    objects_.draw();
     drawPreview();
     EndMode2D();
     drawSelectionBox();
 }
 
-void WorldView::onSelectionChanged(const events::SelectionChanged& event)
-{
-    if (event.player != localPlayerId_) {
-        return;
-    }
-    selectedUnits_ = std::unordered_set<model::ecs::Entity>(event.units.begin(), event.units.end());
-    selectedBuilding_ = event.building;
-}
-
 void WorldView::onPlayerMoved(const events::PlayerMoved& event)
 {
-    const auto player = players_.find(event.entity);
-    if (player == players_.end()) {
-        return;
-    }
-
-    player->second.x = event.x;
-    player->second.y = event.y;
     if (event.player == localPlayerId_) {
         focusCameraOn(event.x, event.y);
     }
-}
-
-void WorldView::onBuildingPlaced(const events::BuildingPlaced& event)
-{
-    buildings_.push_back(BuildingVisual{event.entity, event.type, event.origin, event.size});
 }
 
 void WorldView::onPan(const events::CameraPanRequested& event)
@@ -201,77 +125,65 @@ void WorldView::drawGrid(const Camera2D& cam) const
         maxY = std::max(maxY, tile.y);
     }
 
-    const float top = static_cast<float>(minY);
-    const float bottom = static_cast<float>(maxY + 1);
-    for (int gx = minX; gx <= maxX + 1; ++gx) {
-        const float x = static_cast<float>(gx);
-        DrawLineV(iso::gridToWorld(x, top), iso::gridToWorld(x, bottom), gx == 0 ? kOriginColor : kGridColor);
+    if (worldMap_) {
+        const int mapMaxX = worldMap_->origin.x + worldMap_->width - 1;
+        const int mapMaxY = worldMap_->origin.y + worldMap_->height - 1;
+        minX = std::max(minX, worldMap_->origin.x);
+        minY = std::max(minY, worldMap_->origin.y);
+        maxX = std::min(maxX, mapMaxX);
+        maxY = std::min(maxY, mapMaxY);
+        if (minX > maxX || minY > maxY) {
+            return;
+        }
+
+        for (int y = minY; y <= maxY; ++y) {
+            for (int x = minX; x <= maxX; ++x) {
+                const int localX = x - worldMap_->origin.x;
+                const int localY = y - worldMap_->origin.y;
+                const std::size_t index
+                    = static_cast<std::size_t>(localY) * static_cast<std::size_t>(worldMap_->width)
+                    + static_cast<std::size_t>(localX);
+                environment_.drawTile(worldMap_->terrain[index], static_cast<float>(x), static_cast<float>(y));
+            }
+        }
     }
 
-    const float left = static_cast<float>(minX);
-    const float right = static_cast<float>(maxX + 1);
-    for (int gy = minY; gy <= maxY + 1; ++gy) {
-        const float y = static_cast<float>(gy);
-        DrawLineV(iso::gridToWorld(left, y), iso::gridToWorld(right, y), gy == 0 ? kOriginColor : kGridColor);
-    }
 }
 
-void WorldView::drawObjects() const
+void WorldView::drawDeposits(const Camera2D& cam) const
 {
-    enum class Kind { Building, Unit, Player };
-    struct Drawable {
-        float depth;
-        model::ecs::Entity entity;
-        Kind kind;
-        const BuildingVisual* building;
-        const UnitVisual* unit;
-        const PlayerVisual* player;
-    };
-
-    std::vector<Drawable> objects;
-    objects.reserve(buildings_.size() + units_.size() + players_.size());
-    for (const BuildingVisual& building : buildings_) {
-        objects.push_back(Drawable{static_cast<float>(depthKey(building.origin, building.size)),
-            building.entity, Kind::Building, &building, nullptr, nullptr});
+    if (!worldMap_) {
+        return;
     }
-    for (const auto& [entity, unit] : units_) {
-        objects.push_back(Drawable{unit.x + unit.y, entity, Kind::Unit, nullptr, &unit, nullptr});
-    }
-    for (const auto& [entity, player] : players_) {
-        objects.push_back(Drawable{player.x + player.y, entity, Kind::Player, nullptr, nullptr, &player});
-    }
-    std::sort(objects.begin(), objects.end(),
-        [](const Drawable& a, const Drawable& b) {
-            return a.depth != b.depth ? a.depth < b.depth : a.entity < b.entity;
-        });
-
-    for (const Drawable& object : objects) {
-        switch (object.kind) {
-        case Kind::Building:
-            if (selectedBuilding_ == object.entity) {
-                constexpr float kMargin = 0.2f;
-                const BuildingVisual& building = *object.building;
-                const float x = static_cast<float>(building.origin.x) - kMargin;
-                const float y = static_cast<float>(building.origin.y) - kMargin;
-                const float size = static_cast<float>(building.size) + 2.0f * kMargin;
-                iso::drawFootprint(x, y, size, size, kSelectedFill, kSelectedOutline);
-            }
-            drawBuilding(object.building->type, object.building->origin, object.building->size);
-            break;
-        case Kind::Unit:
-            if (selectedUnits_.contains(object.entity)) {
-                drawUnitSelectionRing(object.unit->x, object.unit->y, object.unit->size);
-            }
-            drawUnit(object.unit->type, object.unit->x, object.unit->y, object.unit->size);
-            if (object.unit->maxHealth > 0) {
-                drawUnitHealthBar(object.unit->x, object.unit->y, object.unit->size,
-                    static_cast<float>(object.unit->health) / static_cast<float>(object.unit->maxHealth));
-            }
-            break;
-        case Kind::Player:
-            drawPlayerAvatar(object.player->x, object.player->y);
-            break;
+    for (const model::ResourceDeposit& deposit : worldMap_->deposits) {
+        if (ResourceDepositViewModel::textureKey(deposit.resource) != nullptr) {
+            resourceDeposits_.draw(deposit);
+            continue;
         }
+        const Vector2 center = GetWorldToScreen2D(
+            iso::gridToWorld(static_cast<float>(deposit.origin.x) + static_cast<float>(deposit.size) / 2.0F,
+                static_cast<float>(deposit.origin.y) + static_cast<float>(deposit.size) / 2.0F),
+            cam);
+        constexpr float kHorizontalMargin = 64.0F;
+        constexpr float kVerticalMargin = 32.0F;
+        if (center.x < -kHorizontalMargin || center.x > static_cast<float>(GetScreenWidth()) + kHorizontalMargin
+            || center.y < -kVerticalMargin || center.y > static_cast<float>(GetScreenHeight()) + kVerticalMargin) {
+            continue;
+        }
+        Color color{};
+        switch (deposit.resource) {
+        case model::ItemId::Copper:
+        case model::ItemId::Iron:
+        case model::ItemId::Coal:
+        case model::ItemId::Steel:
+        case model::ItemId::Electronics:
+        case model::ItemId::Tools:
+        case model::ItemId::Count: continue;
+        }
+        Color outline = color;
+        outline.a = 255;
+        iso::drawFootprint(static_cast<float>(deposit.origin.x), static_cast<float>(deposit.origin.y),
+            static_cast<float>(deposit.size), static_cast<float>(deposit.size), color, outline);
     }
 }
 
@@ -300,7 +212,7 @@ void WorldView::drawPreview() const
     outline.a = 255;
 
     iso::drawFootprint(x, y, size, size, fill, outline);
-    drawBuilding(preview_.type, preview_.origin, preview_.size, kGhostAlpha);
+    objects_.drawBuildingPreview(preview_.type, preview_.origin, preview_.size, kGhostAlpha);
 }
 
 } // namespace view::gameplay

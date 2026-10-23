@@ -1,6 +1,7 @@
 #pragma once
 
 #include "model/GridPos.hpp"
+#include "model/WorldMap.hpp"
 #include "model/player/Player.hpp"
 
 #include <string>
@@ -9,27 +10,6 @@
 #include <vector>
 
 namespace model {
-
-enum class Terrain { Plain, Blocked };
-
-// Finite, logical tile rectangle. Terrain defaults to Plain; no rendering data is stored here.
-class BoundedMap {
-public:
-    BoundedMap(int width, int height, GridPos origin = {});
-
-    [[nodiscard]] bool contains(GridPos tile) const noexcept;
-    [[nodiscard]] Terrain terrainAt(GridPos tile) const noexcept;
-    bool setTerrain(GridPos tile, Terrain terrain) noexcept;
-    [[nodiscard]] int width() const noexcept { return width_; }
-    [[nodiscard]] int height() const noexcept { return height_; }
-    [[nodiscard]] GridPos origin() const noexcept { return origin_; }
-
-private:
-    int width_;
-    int height_;
-    GridPos origin_;
-    std::unordered_map<GridPos, Terrain, GridPosHash> terrain_;
-};
 
 enum class MissionState { Active, Won, Lost };
 
