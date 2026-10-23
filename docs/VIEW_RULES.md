@@ -7,6 +7,7 @@ Este documento descreve como implementar e integrar a apresentação visual do j
 - A View apresenta o estado recebido e encaminha comandos de interface pelo `core::EventBus`; não implementa regras de jogo nem altera o Model diretamente.
 - Model, View e Controller não fazem chamadas diretas entre si. A View se inscreve nos eventos relevantes, atualiza seu estado local e desenha a partir dessa cópia.
 - Use notificações existentes em `src/core/Events.hpp`. Se faltar um dado ou evento, adicione-o ao fluxo apropriado em vez de consultar o Model ou duplicar regras na View.
+- Quando a representação visual de uma entidade depender do seu estado (por exemplo, um sprite diferente quando está carregada), o Model deve publicar uma notificação pelo bus sempre que esse estado mudar, e a View deve atualizar a cópia local da entidade ao recebê-la. Informe também o estado inicial na criação da entidade para que a View comece sincronizada. A View seleciona a representação correspondente ao estado recebido; não consulta o Model nem deduz regras de gameplay a partir de componentes ou inventários.
 - A View pode usar raylib para desenhar e para operações visuais. Não deixe `Texture2D`, coordenadas de tela ou chamadas raylib vazarem para o Model.
 - Separe responsabilidades em componentes pequenos: a View de cena coordena seus painéis e elementos; ViewModels específicos desenham objetos ou grupos de dados. Siga a composição existente em `src/view/Renderer.cpp` e `src/view/gameplay/PlayingView.cpp`.
 

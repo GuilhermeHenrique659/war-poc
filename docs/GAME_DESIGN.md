@@ -61,6 +61,7 @@ Documento vivo com as regras do jogo. Itens marcados como **TBD** ainda não for
 - Cada construção produtora cria rotas de saída para todos os Armazéns do mesmo jogador e para as construções do mesmo jogador que consomem seu produto. Ao criar um Armazém ou uma construção consumidora, também são criadas rotas de produtores existentes para ela. Cada rota tem ID único, origem, destino, item e quantidade de drones atribuídos; sua lista pertence à construção de origem.
 - Um drone de transporte é uma unidade logística com dono, sem combate nem ordens de tropa. É recrutado no Armazém e pode ser atribuído ou desatribuído de uma rota pela interface da construção de origem. Ao desatribuir um drone que carrega itens, ele retorna à origem e devolve a carga antes de ficar ocioso. O drone percorre continuamente origem → destino → origem a 2 tiles/s, usando os caminhos do mapa.
 - Cada drone tem inventário de 10 slots, com pilhas de até 100 itens. Ele carrega o produto da origem até preencher o inventário ou esgotar o estoque disponível, descarrega no destino o que couber e mantém a carga restante se o destino estiver cheio. Sem produto, aguarda na origem; se não houver espaço no destino, aguarda no destino para tentar descarregar novamente.
+- O estado visual do drone é `Unloaded` quando o inventário está vazio e `Loaded` quando contém qualquer item.
 
 ## Construção
 - Barra de construção no rodapé da tela: clique (ou teclas `1`-`9`) seleciona a estrutura. Clicar de novo na mesma desmarca.

@@ -15,6 +15,17 @@
 
 namespace model {
 
+namespace {
+
+[[nodiscard]] bool hasInventoryItems(const components::Inventory& inventory)
+{
+    return std::any_of(inventory.slots.begin(), inventory.slots.end(), [](const auto& slot) {
+        return slot && slot->currentQuantity > 0;
+    });
+}
+
+} // namespace
+
 LogisticsSystem::LogisticsSystem(core::EventBus& bus, ecs::Registry& world, UnitSystem& units)
     : bus_(bus)
     , world_(world)
@@ -318,6 +329,15 @@ bool LogisticsSystem::sendToBuilding(ecs::Entity drone, ecs::Entity building)
         GridPos{footprint->origin.x + footprint->size / 2, footprint->origin.y + footprint->size / 2});
 }
 
+void LogisticsSystem::publishLoadStateIfChanged(ecs::Entity drone, bool wasLoaded, bool isLoaded) const
+{
+    if (wasLoaded == isLoaded) {
+        return;
+    }
+    bus_.publish(events::DroneLoadStateChanged{
+        drone, isLoaded ? events::DroneLoadState::Loaded : events::DroneLoadState::Unloaded});
+}
+
 void LogisticsSystem::loadCargo(ecs::Entity drone, const components::LogisticsRoute& route)
 {
     auto* source = world_.tryGet<components::Inventory>(route.source);
@@ -325,7 +345,9 @@ void LogisticsSystem::loadCargo(ecs::Entity drone, const components::LogisticsRo
     if (source == nullptr || cargo == nullptr) {
         return;
     }
+    const bool wasLoaded = hasInventoryItems(*cargo);
     (void)InventorySystem::transfer(*source, *cargo, route.item, InventorySystem::amount(*source, route.item));
+    publishLoadStateIfChanged(drone, wasLoaded, hasInventoryItems(*cargo));
 }
 
 void LogisticsSystem::unloadCargo(ecs::Entity drone, const components::LogisticsRoute& route)
@@ -335,7 +357,9 @@ void LogisticsSystem::unloadCargo(ecs::Entity drone, const components::Logistics
     if (destination == nullptr || cargo == nullptr) {
         return;
     }
+    const bool wasLoaded = hasInventoryItems(*cargo);
     (void)InventorySystem::transfer(*cargo, *destination, route.item, InventorySystem::amount(*cargo, route.item));
+    publishLoadStateIfChanged(drone, wasLoaded, hasInventoryItems(*cargo));
 }
 
 void LogisticsSystem::advanceDrone(ecs::Entity entity, components::TransportDrone& drone)
@@ -431,8 +455,10 @@ void LogisticsSystem::returnCargoToSource(ecs::Entity entity, components::Transp
         drone.state = components::DroneTransportState::Idle;
         return;
     }
+    const bool wasLoaded = hasInventoryItems(*cargo);
     (void)InventorySystem::transfer(
         *cargo, *source, *drone.returnItem, InventorySystem::amount(*cargo, *drone.returnItem));
+    publishLoadStateIfChanged(entity, wasLoaded, hasInventoryItems(*cargo));
     if (InventorySystem::amount(*cargo, *drone.returnItem) > 0) {
         return;
     }

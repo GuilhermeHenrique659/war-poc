@@ -35,6 +35,7 @@ private:
     [[nodiscard]] bool ownedBy(ecs::Entity entity, PlayerId player) const;
     [[nodiscard]] components::Inventory* playerInventory(PlayerId player) const;
     [[nodiscard]] bool sendToBuilding(ecs::Entity drone, ecs::Entity building);
+    void publishLoadStateIfChanged(ecs::Entity drone, bool wasLoaded, bool isLoaded) const;
     void loadCargo(ecs::Entity drone, const components::LogisticsRoute& route);
     void unloadCargo(ecs::Entity drone, const components::LogisticsRoute& route);
     void returnCargoToSource(ecs::Entity drone, components::TransportDrone& transport);

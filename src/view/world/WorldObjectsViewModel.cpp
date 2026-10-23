@@ -99,6 +99,13 @@ void WorldObjectsViewModel::subscribeUnits()
         drone->second.x = event.x;
         drone->second.y = event.y;
     });
+    bus_.subscribe<events::DroneLoadStateChanged>([this](const events::DroneLoadStateChanged& event) {
+        const auto drone = drones_.find(event.entity);
+        if (drone == drones_.end()) {
+            return;
+        }
+        drone->second.viewModel->setLoaded(event.state == events::DroneLoadState::Loaded);
+    });
     bus_.subscribe<events::UnitMoved>([this](const events::UnitMoved& event) {
         const auto unit = units_.find(event.entity);
         if (unit == units_.end()) {

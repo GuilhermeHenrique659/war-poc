@@ -16,6 +16,7 @@
 #include <gtest/gtest.h>
 
 #include <algorithm>
+#include <utility>
 
 namespace {
 
@@ -277,4 +278,50 @@ TEST_F(LogisticsSystemTest, TransportsCargoAlongTheRouteAndRetainsCargoWhenDesti
     const auto* transport = world_.tryGet<model::components::TransportDrone>(*drone);
     ASSERT_NE(transport, nullptr);
     EXPECT_EQ(transport->state, model::components::DroneTransportState::WaitingAtDestination);
+}
+
+TEST_F(LogisticsSystemTest, PublishesDroneLoadStateWhenCargoIsLoadedAndUnloaded)
+{
+    // Given a route whose source has cargo and whose destination has room.
+    const auto warehouse = makeBuilding(model::BuildingType::Warehouse, kPlayer, {12, 12}, model::ItemId::Count);
+    publishPlaced(warehouse, model::BuildingType::Warehouse, kPlayer);
+    const auto mine = makeBuilding(model::BuildingType::IronMine, kPlayer, {0, 0}, model::ItemId::Iron);
+    publishPlaced(mine, model::BuildingType::IronMine, kPlayer);
+    auto* sourceInventory = world_.tryGet<model::components::Inventory>(mine);
+    auto* warehouseInventory = world_.tryGet<model::components::Inventory>(warehouse);
+    ASSERT_NE(sourceInventory, nullptr);
+    ASSERT_NE(warehouseInventory, nullptr);
+    EXPECT_EQ(model::InventorySystem::add(*sourceInventory, model::ItemId::Iron, 40), 40);
+
+    const auto* routes = world_.tryGet<model::components::LogisticsRoutes>(mine);
+    ASSERT_NE(routes, nullptr);
+    ASSERT_EQ(routes->routes.size(), 1U);
+    std::vector<std::pair<model::ecs::Entity, events::DroneLoadState>> observedStates;
+    bus_.subscribe<events::DroneLoadStateChanged>([&](const events::DroneLoadStateChanged& event) {
+        observedStates.emplace_back(event.entity, event.state);
+    });
+    const auto drone = logistics_.recruitDrone(kPlayer, warehouse);
+    ASSERT_TRUE(drone.has_value());
+
+    // When the drone is assigned and runs until it has delivered its cargo.
+    ASSERT_TRUE(logistics_.assignIdleDrone(kPlayer, mine, routes->routes.front().id));
+    for (int frame = 0; frame < 100; ++frame) {
+        (void)units_.update(1.0F);
+        logistics_.update();
+        if (model::InventorySystem::amount(*warehouseInventory, model::ItemId::Iron) == 40) {
+            break;
+        }
+    }
+
+    // Then the bus reports each visible inventory-state transition in order.
+    std::vector<events::DroneLoadState> droneStates;
+    for (const auto& [entity, state] : observedStates) {
+        if (entity == *drone) {
+            droneStates.push_back(state);
+        }
+    }
+    ASSERT_EQ(droneStates.size(), 3U);
+    EXPECT_EQ(droneStates[0], events::DroneLoadState::Unloaded);
+    EXPECT_EQ(droneStates[1], events::DroneLoadState::Loaded);
+    EXPECT_EQ(droneStates[2], events::DroneLoadState::Unloaded);
 }

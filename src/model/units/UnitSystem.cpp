@@ -110,6 +110,7 @@ std::optional<ecs::Entity> UnitSystem::spawnTransportDrone(PlayerId player, Grid
     world_.emplace<components::TransportDrone>(entity);
     reserve(entity, *origin, 1);
     bus_.publish(events::DroneSpawned{entity, player, position.x, position.y});
+    bus_.publish(events::DroneLoadStateChanged{entity, events::DroneLoadState::Unloaded});
     return entity;
 }
 

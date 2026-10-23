@@ -337,6 +337,13 @@ struct DroneMoved {
     float y;
 };
 
+enum class DroneLoadState { Unloaded, Loaded };
+
+struct DroneLoadStateChanged {
+    model::ecs::Entity entity;
+    DroneLoadState state;
+};
+
 struct HealthChanged {
     model::ecs::Entity entity;
     int health;

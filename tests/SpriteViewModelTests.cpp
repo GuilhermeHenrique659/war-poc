@@ -196,14 +196,16 @@ TEST_F(SpriteViewModelTests, WarehouseViewModelDrawsTextureAtFootprintSouthEdge)
 
 TEST_F(SpriteViewModelTests, DroneViewModelDrawsAnimatedSpriteAboveItsGridPosition)
 {
-    const SpriteSheet sheet{
-        "units/drone_test", texturePath_.filename().string(), 8, Vector2{443.5F, 443.5F}, 8.0};
-    const gameplay::DroneViewModel drone{sheet};
+    const SpriteSheet loadedSheet{
+        "units/drone_loaded_test", texturePath_.filename().string(), 8, Vector2{443.5F, 443.5F}, 8.0};
+    const SpriteSheet unloadedSheet{
+        "units/drone_unloaded_test", texturePath_.filename().string(), 8, Vector2{443.5F, 443.5F}, 8.0};
+    gameplay::DroneViewModel drone{loadedSheet, unloadedSheet};
     currentTime = 0.375;
 
     drone.drawAt(2.0F, 4.0F);
 
-    EXPECT_NE(drawnTextureId, 0U);
+    EXPECT_EQ(drawnTextureId, unloadedSheet.texture().id);
     EXPECT_EQ(drawnSource.x, 1330.5F);
     EXPECT_EQ(drawnSource.y, 0.0F);
     EXPECT_EQ(drawnSource.width, 443.5F);
@@ -212,6 +214,11 @@ TEST_F(SpriteViewModelTests, DroneViewModelDrawsAnimatedSpriteAboveItsGridPositi
     EXPECT_EQ(drawnDestination.y, 64.0F);
     EXPECT_EQ(drawnDestination.width, 128.0F);
     EXPECT_EQ(drawnDestination.height, 128.0F);
+
+    drone.setLoaded(true);
+    drone.drawAt(2.0F, 4.0F);
+
+    EXPECT_EQ(drawnTextureId, loadedSheet.texture().id);
 }
 
 } // namespace
