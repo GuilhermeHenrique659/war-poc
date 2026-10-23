@@ -14,9 +14,12 @@ public:
     void draw() const;
 
 private:
-    void drawSlot(std::size_t index, bool playerInventory) const;
-    void drawInventory(
-        const std::vector<events::InventorySlotState>& slots, bool playerInventory) const;
+    void drawPane(const events::InventoryPaneState& pane, std::size_t paneIndex) const;
+    void drawSlotsPane(const events::InventoryPaneState& pane, std::size_t paneIndex) const;
+    void drawSlot(const events::InventoryPaneState& pane, std::size_t paneIndex, std::size_t index) const;
+    void drawUnitsPane(const events::InventoryPaneState& pane, std::size_t paneIndex) const;
+    void drawUnitRow(
+        const events::InventoryPaneState& pane, std::size_t paneIndex, std::size_t index) const;
 
     events::InventoryPanelChanged panel_;
     events::InventoryDragChanged drag_;

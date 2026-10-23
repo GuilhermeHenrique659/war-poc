@@ -3,6 +3,7 @@
 #include "core/EventBus.hpp"
 #include "core/Events.hpp"
 #include "model/build/BuildingSystem.hpp"
+#include "model/economy/InventoryPanelSystem.hpp"
 #include "model/economy/LogisticsSystem.hpp"
 #include "model/economy/ProductionSystem.hpp"
 #include "model/units/CombatSystem.hpp"
@@ -39,7 +40,6 @@ private:
     void changeScene(Scene scene);
     void resetWorld();
     void createLocalPlayer(const std::string& playerName);
-    void publishInventoryPanel(PlayerId player) const;
     void publishLogisticsPanel(PlayerId player) const;
 
     core::EventBus& bus_;
@@ -57,10 +57,9 @@ private:
     std::unique_ptr<CombatSystem> combat_;
     std::unique_ptr<SelectionSystem> selection_;
     std::unique_ptr<GenealogySystem> genealogy_; // References buildings_, units_ and selection_.
+    std::unique_ptr<InventoryPanelSystem> inventoryPanels_;
     ProductionSystem production_;
-    std::unordered_map<PlayerId, ecs::Entity> inventoryPanels_;
     std::unordered_map<PlayerId, ecs::Entity> logisticsPanels_;
-    std::unordered_map<PlayerId, bool> playerInventoryOpen_;
 };
 
 } // namespace model

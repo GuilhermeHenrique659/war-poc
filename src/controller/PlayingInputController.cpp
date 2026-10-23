@@ -240,38 +240,45 @@ void PlayingInputController::handlePanelMouse(Vector2 mouse)
             return;
         }
 
-        if (!inventoryDragSlot_ && inventoryPanel_.hasBuilding
+        const auto* playerPane = events::findPane(inventoryPanel_, events::InventoryPaneRole::Player);
+        const auto* targetPane
+            = events::findPane(inventoryPanel_, events::InventoryPaneRole::TransferTarget);
+        const std::size_t playerPaneIndex
+            = events::findPaneIndex(inventoryPanel_, events::InventoryPaneRole::Player);
+        const std::size_t targetPaneIndex
+            = events::findPaneIndex(inventoryPanel_, events::InventoryPaneRole::TransferTarget);
+
+        if (!inventoryDragSlot_ && playerPane != nullptr && targetPane != nullptr
             && IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
-            for (std::size_t index = 0; index < inventoryPanel_.playerSlots.size(); ++index) {
-                const Rectangle slot = view::inventory_panel_layout::slotBounds(index, true, screenWidth);
-                if (inventoryPanel_.playerSlots[index].occupied && CheckCollisionPointRec(mouse, slot)) {
+            const auto startDrag = [this, mouse, screenWidth](const events::InventoryPaneState& pane,
+                                      std::size_t paneIndex, bool fromPlayer) {
+                for (std::size_t index = 0; index < pane.slots.size(); ++index) {
+                    const Rectangle bounds
+                        = view::inventory_panel_layout::slotBounds(index, paneIndex, screenWidth);
+                    if (!pane.slots[index].occupied || !CheckCollisionPointRec(mouse, bounds)) {
+                        continue;
+                    }
                     inventoryDragSlot_ = index;
-                    inventoryDragFromPlayer_ = true;
-                    bus_.publish(events::InventoryDragChanged{
-                        localPlayerId_, true, inventoryPanel_.playerSlots[index].item,
-                        inventoryPanel_.playerSlots[index].currentQuantity});
-                    return;
+                    inventoryDragFromPlayer_ = fromPlayer;
+                    bus_.publish(events::InventoryDragChanged{localPlayerId_, true,
+                        pane.slots[index].item, pane.slots[index].currentQuantity});
+                    return true;
                 }
-            }
-            for (std::size_t index = 0; index < inventoryPanel_.buildingSlots.size(); ++index) {
-                const Rectangle slot = view::inventory_panel_layout::slotBounds(index, false, screenWidth);
-                if (inventoryPanel_.buildingSlots[index].occupied && CheckCollisionPointRec(mouse, slot)) {
-                    inventoryDragSlot_ = index;
-                    inventoryDragFromPlayer_ = false;
-                    bus_.publish(events::InventoryDragChanged{
-                        localPlayerId_, true, inventoryPanel_.buildingSlots[index].item,
-                        inventoryPanel_.buildingSlots[index].currentQuantity});
-                    return;
-                }
+                return false;
+            };
+            if (startDrag(*playerPane, playerPaneIndex, true)
+                || startDrag(*targetPane, targetPaneIndex, false)) {
+                return;
             }
         }
 
         if (inventoryDragSlot_ && IsMouseButtonReleased(MOUSE_BUTTON_LEFT)) {
-            const bool targetIsPlayer = !inventoryDragFromPlayer_;
-            const Rectangle targetPane = view::inventory_panel_layout::paneBounds(targetIsPlayer, screenWidth);
-            if (CheckCollisionPointRec(mouse, targetPane)) {
+            const std::size_t dropPaneIndex = inventoryDragFromPlayer_ ? targetPaneIndex : playerPaneIndex;
+            const bool overDropPane = CheckCollisionPointRec(
+                mouse, view::inventory_panel_layout::paneBounds(dropPaneIndex, screenWidth));
+            if (targetPane != nullptr && overDropPane) {
                 bus_.publish(events::TransferInventoryItemRequested{
-                    localPlayerId_, inventoryPanel_.building, *inventoryDragSlot_, inventoryDragFromPlayer_});
+                    localPlayerId_, targetPane->entity, *inventoryDragSlot_, inventoryDragFromPlayer_});
             }
             inventoryDragSlot_.reset();
             bus_.publish(events::InventoryDragChanged{localPlayerId_, false, model::ItemId::Count, 0});

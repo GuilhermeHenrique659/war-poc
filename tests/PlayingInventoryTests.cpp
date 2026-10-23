@@ -5,6 +5,21 @@
 
 #include <gtest/gtest.h>
 
+namespace {
+
+int amountOf(const events::InventoryPaneState& pane, model::ItemId item)
+{
+    int amount = 0;
+    for (const auto& slot : pane.slots) {
+        if (slot.occupied && slot.item == item) {
+            amount += slot.currentQuantity;
+        }
+    }
+    return amount;
+}
+
+} // namespace
+
 TEST(PlayingInventoryTests, StartsWithIronAndTransfersProductionFromASelectedBuilding)
 {
     // Given a new match with the player's inventory panel observed.
@@ -28,51 +43,44 @@ TEST(PlayingInventoryTests, StartsWithIronAndTransfersProductionFromASelectedBui
     bus.publish(events::SelectBuildingRequested{1, mine.entity});
     playing.update(1.0F);
 
-    // Then the player has 400 iron after paying for the mine, which stores one more iron on update.
+    // Then the player and the mine are two panes of the same generic panel.
+    const auto playerAmount = [&panel](model::ItemId item) {
+        const auto* pane = events::findPane(panel, events::InventoryPaneRole::Player);
+        return pane == nullptr ? -1 : amountOf(*pane, item);
+    };
+    const auto buildingPane = [&panel]() {
+        return events::findPane(panel, events::InventoryPaneRole::TransferTarget);
+    };
     ASSERT_TRUE(panel.open);
-    EXPECT_EQ(panel.buildingSlots.size(), 64U);
-    EXPECT_EQ(panel.playerSlots.size(), 32U);
-    int playerIron = 0;
-    for (const auto& slot : panel.playerSlots) {
-        if (slot.occupied && slot.item == model::ItemId::Iron) {
-            playerIron += slot.currentQuantity;
-        }
-    }
-    EXPECT_EQ(playerIron, 400);
+    ASSERT_NE(events::findPane(panel, events::InventoryPaneRole::Player), nullptr);
+    ASSERT_NE(buildingPane(), nullptr);
+    EXPECT_EQ(buildingPane()->entity, mine.entity);
+    EXPECT_EQ(buildingPane()->layout, events::InventoryPaneLayout::Slots);
+    EXPECT_EQ(buildingPane()->slots.size(), 64U);
+    EXPECT_EQ(events::findPane(panel, events::InventoryPaneRole::Player)->slots.size(), 32U);
+    EXPECT_EQ(playerAmount(model::ItemId::Iron), 400);
 
     bus.publish(events::TransferInventoryItemRequested{1, mine.entity, 0, false});
-    playerIron = 0.0F;
-    for (const auto& slot : panel.playerSlots) {
-        if (slot.occupied && slot.item == model::ItemId::Iron) {
-            playerIron += slot.currentQuantity;
-        }
-    }
-    EXPECT_EQ(playerIron, 401);
-    EXPECT_FALSE(panel.buildingSlots[0].occupied);
+    EXPECT_EQ(playerAmount(model::ItemId::Iron), 401);
+    EXPECT_FALSE(buildingPane()->slots[0].occupied);
 
     // When a stack is dragged from the player inventory into the selected building.
     bus.publish(events::TransferInventoryItemRequested{1, mine.entity, 1, true});
 
     // Then the player stack moves to the mine, respecting its stack capacity.
-    playerIron = 0.0F;
-    for (const auto& slot : panel.playerSlots) {
-        if (slot.occupied && slot.item == model::ItemId::Iron) {
-            playerIron += slot.currentQuantity;
-        }
-    }
-    EXPECT_EQ(playerIron, 301);
-    EXPECT_TRUE(panel.buildingSlots[0].occupied);
-    EXPECT_EQ(panel.buildingSlots[0].currentQuantity, 100);
+    EXPECT_EQ(playerAmount(model::ItemId::Iron), 301);
+    EXPECT_TRUE(buildingPane()->slots[0].occupied);
+    EXPECT_EQ(buildingPane()->slots[0].currentQuantity, 100);
 
     // When the selected building is deselected and the player opens their inventory.
     bus.publish(events::SelectionClearRequested{1});
     bus.publish(events::TogglePlayerInventoryRequested{1});
 
-    // Then the player inventory opens by itself and can be toggled closed.
+    // Then only the player pane remains open.
     ASSERT_TRUE(panel.open);
-    EXPECT_TRUE(panel.playerVisible);
     EXPECT_TRUE(panel.playerInventoryOpen);
-    EXPECT_FALSE(panel.hasBuilding);
+    EXPECT_EQ(panel.panes.size(), 1U);
+    EXPECT_EQ(events::findPane(panel, events::InventoryPaneRole::TransferTarget), nullptr);
     bus.publish(events::TogglePlayerInventoryRequested{1});
     EXPECT_FALSE(panel.open);
 }

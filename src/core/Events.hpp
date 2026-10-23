@@ -225,17 +225,59 @@ struct InventorySlotState {
     int maxQuantity = 0;
 };
 
+// Inventory of one selected unit, shown in the same panel used for buildings.
+struct UnitInventoryState {
+    model::ecs::Entity entity = 0;
+    std::string label;
+    int health = 0;
+    int maxHealth = 0;
+    std::vector<InventorySlotState> slots;
+};
+
+// One pane of the inventory panel. The same structure describes the player's inventory,
+// a building (transfer target) and the selected units; only the layout changes.
+enum class InventoryPaneRole { Player, TransferTarget, Units };
+enum class InventoryPaneLayout { Slots, Rows };
+
+struct InventoryPaneState {
+    InventoryPaneRole role = InventoryPaneRole::Player;
+    InventoryPaneLayout layout = InventoryPaneLayout::Slots;
+    model::ecs::Entity entity = 0; // Container for slot panes (player avatar or building).
+    std::string title;
+    bool showSummary = false;
+    bool showTransferHint = false;
+    std::vector<InventorySlotState> slots;
+    std::vector<UnitInventoryState> units;
+};
+
 struct InventoryPanelChanged {
     model::PlayerId player = model::kNoPlayer;
     bool open = false;
-    bool playerVisible = false;
-    bool hasBuilding = false;
     bool playerInventoryOpen = false;
-    model::ecs::Entity building = 0;
-    std::string buildingName;
-    std::vector<InventorySlotState> buildingSlots;
-    std::vector<InventorySlotState> playerSlots;
+    std::vector<InventoryPaneState> panes;
 };
+
+[[nodiscard]] inline const InventoryPaneState* findPane(
+    const InventoryPanelChanged& panel, InventoryPaneRole role)
+{
+    for (const InventoryPaneState& pane : panel.panes) {
+        if (pane.role == role) {
+            return &pane;
+        }
+    }
+    return nullptr;
+}
+
+[[nodiscard]] inline std::size_t findPaneIndex(
+    const InventoryPanelChanged& panel, InventoryPaneRole role)
+{
+    for (std::size_t index = 0; index < panel.panes.size(); ++index) {
+        if (panel.panes[index].role == role) {
+            return index;
+        }
+    }
+    return panel.panes.size();
+}
 
 struct InventoryDragChanged {
     model::PlayerId player = model::kNoPlayer;

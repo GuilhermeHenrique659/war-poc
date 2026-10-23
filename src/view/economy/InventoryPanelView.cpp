@@ -20,6 +20,9 @@ constexpr Color kSlotHover{72, 105, 78, 255};
 constexpr int kTitleSize = 18;
 constexpr int kTextSize = 14;
 constexpr int kSlotTextSize = 10;
+constexpr int kUnitNameSize = 15;
+constexpr int kUnitDetailSize = 12;
+constexpr int kUnitSlotTextSize = 8;
 
 [[nodiscard]] int itemAmount(const std::vector<events::InventorySlotState>& slots, model::ItemId item)
 {
@@ -35,6 +38,19 @@ constexpr int kSlotTextSize = 10;
 [[nodiscard]] std::string formatQuantity(int quantity)
 {
     return std::to_string(quantity);
+}
+
+// Unit slots are narrow, so weapon/ammo use compact labels; other items keep their full name.
+[[nodiscard]] std::string unitSlotLabel(model::ItemId item)
+{
+    switch (item) {
+    case model::ItemId::Weapon:
+        return "Arma";
+    case model::ItemId::Ammo:
+        return "Mun";
+    default:
+        return std::string(itemDefinition(item).name);
+    }
 }
 
 } // namespace
@@ -81,38 +97,8 @@ void InventoryPanelView::draw() const
     ui::Button{closeStyle}.draw(
         closeBounds, "X", closeHovered ? ui::ButtonState::Selected : ui::ButtonState::Normal, kTextSize);
 
-    if (panel_.playerVisible) {
-        const Rectangle playerPane = inventory_panel_layout::paneBounds(true, GetScreenWidth());
-        const int paneX = static_cast<int>(playerPane.x);
-        const int paneY = static_cast<int>(panelBounds.y + 44.0F);
-        const auto usedSlots = static_cast<int>(std::count_if(
-            panel_.playerSlots.begin(), panel_.playerSlots.end(), [](const auto& slot) { return slot.occupied; }));
-        DrawText(TextFormat("Jogador (%d/32)", usedSlots), paneX, paneY, kTextSize, RAYWHITE);
-        constexpr std::array items{
-            model::ItemId::Iron, model::ItemId::Coal, model::ItemId::Steel,
-            model::ItemId::Copper, model::ItemId::Electronics, model::ItemId::Tools,
-            model::ItemId::Weapon, model::ItemId::Ammo};
-        for (std::size_t index = 0; index < items.size(); ++index) {
-            const std::string value = std::string(model::itemDefinition(items[index]).name) + " "
-                + formatQuantity(itemAmount(panel_.playerSlots, items[index]));
-            const std::size_t column = index % 2;
-            const std::size_t row = index / 2;
-            const int summaryX = paneX + static_cast<int>(column) * 144;
-            DrawText(value.c_str(), summaryX, paneY + 20 + static_cast<int>(row) * 18, kTextSize, LIGHTGRAY);
-        }
-        DrawText("Arraste itens para transferir", paneX, paneY + 96, kTextSize, LIGHTGRAY);
-        drawInventory(panel_.playerSlots, true);
-    }
-
-    if (panel_.hasBuilding) {
-        const Rectangle buildingPane = inventory_panel_layout::paneBounds(false, GetScreenWidth());
-        const int paneX = static_cast<int>(buildingPane.x);
-        const int paneY = static_cast<int>(panelBounds.y + 44.0F);
-        const auto usedSlots = static_cast<int>(std::count_if(
-            panel_.buildingSlots.begin(), panel_.buildingSlots.end(), [](const auto& slot) { return slot.occupied; }));
-        DrawText(TextFormat("%s (%d/64)", panel_.buildingName.c_str(), usedSlots), paneX, paneY, kTextSize, RAYWHITE);
-        DrawText("Arraste itens para transferir", paneX, paneY + 62, kTextSize, LIGHTGRAY);
-        drawInventory(panel_.buildingSlots, false);
+    for (std::size_t index = 0; index < panel_.panes.size(); ++index) {
+        drawPane(panel_.panes[index], index);
     }
 
     if (drag_.active) {
@@ -127,20 +113,58 @@ void InventoryPanelView::draw() const
     }
 }
 
-void InventoryPanelView::drawInventory(
-    const std::vector<events::InventorySlotState>& slots, bool playerInventory) const
+void InventoryPanelView::drawPane(
+    const events::InventoryPaneState& pane, std::size_t paneIndex) const
 {
-    for (std::size_t index = 0; index < slots.size(); ++index) {
-        drawSlot(index, playerInventory);
+    if (pane.layout == events::InventoryPaneLayout::Rows) {
+        drawUnitsPane(pane, paneIndex);
+        return;
+    }
+    drawSlotsPane(pane, paneIndex);
+}
+
+void InventoryPanelView::drawSlotsPane(
+    const events::InventoryPaneState& pane, std::size_t paneIndex) const
+{
+    const int screenWidth = GetScreenWidth();
+    const int paneX = static_cast<int>(inventory_panel_layout::paneBounds(paneIndex, screenWidth).x);
+    const int paneY = static_cast<int>(inventory_panel_layout::panelBounds(screenWidth).y + 44.0F);
+    const auto usedSlots = static_cast<int>(std::count_if(
+        pane.slots.begin(), pane.slots.end(), [](const auto& slot) { return slot.occupied; }));
+    DrawText(TextFormat("%s (%d/%d)", pane.title.c_str(), usedSlots, static_cast<int>(pane.slots.size())),
+        paneX, paneY, kTextSize, RAYWHITE);
+
+    if (pane.showSummary) {
+        constexpr std::array items{
+            model::ItemId::Iron, model::ItemId::Coal, model::ItemId::Steel,
+            model::ItemId::Copper, model::ItemId::Electronics, model::ItemId::Tools,
+            model::ItemId::Weapon, model::ItemId::Ammo};
+        for (std::size_t index = 0; index < items.size(); ++index) {
+            const std::string value = std::string(model::itemDefinition(items[index]).name) + " "
+                + formatQuantity(itemAmount(pane.slots, items[index]));
+            const std::size_t column = index % 2;
+            const std::size_t row = index / 2;
+            const int summaryX = paneX + static_cast<int>(column) * 144;
+            DrawText(value.c_str(), summaryX, paneY + 20 + static_cast<int>(row) * 18, kTextSize, LIGHTGRAY);
+        }
+    }
+    if (pane.showTransferHint) {
+        DrawText("Arraste itens para transferir", paneX, paneY + (pane.showSummary ? 96 : 62),
+            kTextSize, LIGHTGRAY);
+    }
+
+    for (std::size_t index = 0; index < pane.slots.size(); ++index) {
+        drawSlot(pane, paneIndex, index);
     }
 }
 
-void InventoryPanelView::drawSlot(std::size_t index, bool playerInventory) const
+void InventoryPanelView::drawSlot(
+    const events::InventoryPaneState& pane, std::size_t paneIndex, std::size_t index) const
 {
-    const auto& slots = playerInventory ? panel_.playerSlots : panel_.buildingSlots;
-    const Rectangle bounds = inventory_panel_layout::slotBounds(index, playerInventory, GetScreenWidth());
+    const Rectangle bounds
+        = inventory_panel_layout::slotBounds(index, paneIndex, GetScreenWidth());
     const bool hovered = CheckCollisionPointRec(GetMousePosition(), bounds);
-    const bool occupied = slots[index].occupied;
+    const bool occupied = pane.slots[index].occupied;
     const ui::CardStyle style{
         occupied && hovered ? kSlotHover : kSlotColor,
         hovered ? GOLD : GRAY,
@@ -151,13 +175,68 @@ void InventoryPanelView::drawSlot(std::size_t index, bool playerInventory) const
         return;
     }
 
-    const auto& slot = slots[index];
+    const auto& slot = pane.slots[index];
     const std::string name(itemDefinition(slot.item).name);
     DrawText(name.c_str(), static_cast<int>(bounds.x + 2.0F), static_cast<int>(bounds.y + 4.0F),
         kSlotTextSize, RAYWHITE);
     const std::string quantity = formatQuantity(slot.currentQuantity);
     DrawText(quantity.c_str(), static_cast<int>(bounds.x + 2.0F), static_cast<int>(bounds.y + 17.0F),
         kSlotTextSize, LIGHTGRAY);
+}
+
+void InventoryPanelView::drawUnitsPane(
+    const events::InventoryPaneState& pane, std::size_t paneIndex) const
+{
+    const int screenWidth = GetScreenWidth();
+    const int paneX = static_cast<int>(inventory_panel_layout::paneBounds(paneIndex, screenWidth).x);
+    const int paneY = static_cast<int>(inventory_panel_layout::panelBounds(screenWidth).y + 44.0F);
+
+    DrawText(TextFormat("%s (%d)", pane.title.c_str(), static_cast<int>(pane.units.size())), paneX,
+        paneY, kTextSize, RAYWHITE);
+    const std::size_t rows
+        = std::min(pane.units.size(), inventory_panel_layout::kMaxUnitRows);
+    if (pane.units.size() > rows) {
+        DrawText(TextFormat("Arma e municao por tropa (+%d)", static_cast<int>(pane.units.size() - rows)),
+            paneX, paneY + 20, kTextSize, LIGHTGRAY);
+    } else {
+        DrawText("Arma e municao por tropa", paneX, paneY + 20, kTextSize, LIGHTGRAY);
+    }
+
+    for (std::size_t index = 0; index < rows; ++index) {
+        drawUnitRow(pane, paneIndex, index);
+    }
+}
+
+void InventoryPanelView::drawUnitRow(
+    const events::InventoryPaneState& pane, std::size_t paneIndex, std::size_t index) const
+{
+    const events::UnitInventoryState& unit = pane.units[index];
+    const Rectangle row
+        = inventory_panel_layout::unitRowBounds(index, paneIndex, GetScreenWidth());
+    DrawText(unit.label.c_str(), static_cast<int>(row.x), static_cast<int>(row.y), kUnitNameSize, RAYWHITE);
+    DrawText(TextFormat("Vida %d/%d", unit.health, unit.maxHealth), static_cast<int>(row.x),
+        static_cast<int>(row.y + 17.0F), kUnitDetailSize, LIGHTGRAY);
+
+    for (std::size_t slotIndex = 0; slotIndex < unit.slots.size(); ++slotIndex) {
+        const Rectangle bounds = inventory_panel_layout::unitSlotBounds(
+            index, slotIndex, unit.slots.size(), paneIndex, GetScreenWidth());
+        const events::InventorySlotState& slot = unit.slots[slotIndex];
+        const ui::CardStyle style{
+            kSlotColor,
+            slot.occupied ? GRAY : Color{150, 70, 60, 255},
+            1.0F,
+        };
+        ui::Card{style}.draw(bounds);
+        if (!slot.occupied) {
+            continue;
+        }
+        const std::string name = unitSlotLabel(slot.item);
+        DrawText(name.c_str(), static_cast<int>(bounds.x + 2.0F), static_cast<int>(bounds.y + 2.0F),
+            kUnitSlotTextSize, RAYWHITE);
+        const std::string quantity = formatQuantity(slot.currentQuantity);
+        DrawText(quantity.c_str(), static_cast<int>(bounds.x + 2.0F), static_cast<int>(bounds.y + 14.0F),
+            kUnitSlotTextSize, LIGHTGRAY);
+    }
 }
 
 } // namespace view::gameplay

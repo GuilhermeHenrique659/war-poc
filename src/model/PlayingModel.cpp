@@ -2,10 +2,7 @@
 
 #include "model/build/BuildingComponents.hpp"
 #include "model/components/Owner.hpp"
-#include "model/economy/InventoryComponents.hpp"
-#include "model/economy/InventorySystem.hpp"
 #include "model/economy/LogisticsComponents.hpp"
-#include "model/player/PlayerComponents.hpp"
 
 #include <random>
 
@@ -22,6 +19,7 @@ PlayingModel::PlayingModel(core::EventBus& bus)
     , combat_(std::make_unique<CombatSystem>(bus_, *world_, *units_, *buildings_))
     , selection_(std::make_unique<SelectionSystem>(bus_, *world_))
     , genealogy_(std::make_unique<GenealogySystem>(*world_, *units_, *selection_))
+    , inventoryPanels_(std::make_unique<InventoryPanelSystem>(bus_, *world_, *selection_, *playerAvatars_))
 {
     buildings_->setTileBlocker([this](GridPos tile) { return units_->isTileTaken(tile); });
     buildings_->setPlacementRule([this](BuildingType type, GridPos origin, int size) {
@@ -45,61 +43,11 @@ PlayingModel::PlayingModel(core::EventBus& bus)
             logisticsPanels_.erase(event.player);
         }
         publishLogisticsPanel(event.player);
-        if (event.building && world_->has<components::Inventory>(*event.building)) {
-            if (owner != nullptr && owner->player == event.player) {
-                inventoryPanels_[event.player] = *event.building;
-                publishInventoryPanel(event.player);
-                return;
-            }
-        }
-        inventoryPanels_.erase(event.player);
-        publishInventoryPanel(event.player);
-    });
-    bus_.subscribe<events::TogglePlayerInventoryRequested>([this](const events::TogglePlayerInventoryRequested& e) {
-        if (!inMatch()) {
-            return;
-        }
-        playerInventoryOpen_[e.player] = !playerInventoryOpen_[e.player];
-        publishInventoryPanel(e.player);
-    });
-    bus_.subscribe<events::CloseInventoryRequested>([this](const events::CloseInventoryRequested& e) {
-        if (!inMatch()) {
-            return;
-        }
-        playerInventoryOpen_[e.player] = false;
-        inventoryPanels_.erase(e.player);
-        publishInventoryPanel(e.player);
     });
     bus_.subscribe<events::TransferInventoryItemRequested>([this](const events::TransferInventoryItemRequested& e) {
-        const auto panel = inventoryPanels_.find(e.player);
-        const auto playerEntity = playerAvatars_->entity(e.player);
-        if (!inMatch() || panel == inventoryPanels_.end() || panel->second != e.building || !playerEntity) {
-            return;
+        if (inMatch() && inventoryPanels_->transfer(e.player, e.building, e.slotIndex, e.fromPlayer)) {
+            buildings_->refreshPreviews();
         }
-        const auto* owner = world_->tryGet<components::Owner>(e.building);
-        auto* buildingInventory = world_->tryGet<components::Inventory>(e.building);
-        auto* playerInventory = world_->tryGet<components::Inventory>(*playerEntity);
-        if (owner == nullptr || owner->player != e.player || buildingInventory == nullptr || playerInventory == nullptr
-            || e.slotIndex >= buildingInventory->slots.size()) {
-            return;
-        }
-        const auto& sourceSlots = e.fromPlayer ? playerInventory->slots : buildingInventory->slots;
-        if (e.slotIndex >= sourceSlots.size()) {
-            return;
-        }
-        const auto& slot = sourceSlots[e.slotIndex];
-        if (!slot) {
-            return;
-        }
-        if (e.fromPlayer) {
-            (void)InventorySystem::transfer(
-                *playerInventory, *buildingInventory, slot->item, slot->currentQuantity);
-        } else {
-            (void)InventorySystem::transfer(
-                *buildingInventory, *playerInventory, slot->item, slot->currentQuantity);
-        }
-        publishInventoryPanel(e.player);
-        buildings_->refreshPreviews();
     });
     bus_.subscribe<events::RecruitDroneRequested>([this](const events::RecruitDroneRequested& e) {
         if (!inMatch()) {
@@ -193,10 +141,7 @@ void PlayingModel::update(float deltaSeconds)
         return;
     }
     production_.update(*world_, deltaSeconds);
-    for (const auto& [player, building] : inventoryPanels_) {
-        (void)building;
-        publishInventoryPanel(player);
-    }
+    inventoryPanels_->update();
     // Resupply decisions happen before movement, so a unit can start walking in the same frame.
     unitSupplies_->update();
     // Moving units can make a placement preview (in)valid.
@@ -244,9 +189,8 @@ void PlayingModel::resetWorld()
 {
     world_->clear();
     worldMap_.reset();
-    inventoryPanels_.clear();
     logisticsPanels_.clear();
-    playerInventoryOpen_.clear();
+    inventoryPanels_->reset();
     production_.reset();
     logistics_->reset();
     bus_.publish(events::WorldReset{});
@@ -304,69 +248,6 @@ void PlayingModel::publishLogisticsPanel(PlayerId player) const
                 route.id, route.destination, destination->name, route.item, route.assignedDrones});
         }
     }
-    bus_.publish(event);
-}
-
-void PlayingModel::publishInventoryPanel(PlayerId player) const
-{
-    const auto panel = inventoryPanels_.find(player);
-    const auto playerEntity = playerAvatars_->entity(player);
-    if (!playerEntity) {
-        events::InventoryPanelChanged closed{};
-        closed.player = player;
-        bus_.publish(closed);
-        return;
-    }
-    const auto* playerInventory = world_->tryGet<components::Inventory>(*playerEntity);
-    if (playerInventory == nullptr) {
-        events::InventoryPanelChanged closed{};
-        closed.player = player;
-        bus_.publish(closed);
-        return;
-    }
-
-    const auto buildingEntity = panel == inventoryPanels_.end()
-        ? std::optional<ecs::Entity>{}
-        : std::optional<ecs::Entity>{panel->second};
-    const auto* building = buildingEntity ? world_->tryGet<components::Building>(*buildingEntity) : nullptr;
-    const auto* buildingInventory
-        = buildingEntity ? world_->tryGet<components::Inventory>(*buildingEntity) : nullptr;
-    const bool hasBuilding = building != nullptr && buildingInventory != nullptr;
-    const auto isOpen = playerInventoryOpen_.find(player);
-    const bool playerInventoryOpen = isOpen != playerInventoryOpen_.end() && isOpen->second;
-    if (!hasBuilding && !playerInventoryOpen) {
-        events::InventoryPanelChanged closed{};
-        closed.player = player;
-        bus_.publish(closed);
-        return;
-    }
-
-    const auto makeSlots = [](const components::Inventory& inventory) {
-        std::vector<events::InventorySlotState> slots;
-        slots.reserve(inventory.slots.size());
-        for (const auto& slot : inventory.slots) {
-            if (!slot) {
-                slots.emplace_back();
-                continue;
-            }
-            slots.push_back(events::InventorySlotState{
-                true, slot->item, slot->currentQuantity, slot->maxQuantity});
-        }
-        return slots;
-    };
-
-    events::InventoryPanelChanged event{};
-    event.player = player;
-    event.open = true;
-    event.playerVisible = true;
-    event.hasBuilding = hasBuilding;
-    event.playerInventoryOpen = playerInventoryOpen;
-    if (hasBuilding) {
-        event.building = *buildingEntity;
-        event.buildingName = building->name;
-        event.buildingSlots = makeSlots(*buildingInventory);
-    }
-    event.playerSlots = makeSlots(*playerInventory);
     bus_.publish(event);
 }
 
