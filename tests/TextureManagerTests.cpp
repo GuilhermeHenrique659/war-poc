@@ -124,6 +124,24 @@ TEST_F(TextureManagerTests, LoadsTextureRelativeToExecutableDirectory)
     EXPECT_EQ(manager.get("ui/button").id, 1U);
 }
 
+TEST_F(TextureManagerTests, ReusesTextureWhenLoadingAnAlreadyRegisteredKey)
+{
+    auto& manager = TextureManager::instance();
+    const std::filesystem::path path = executableDirectory() / "texture_manager_reused_test.png";
+    {
+        std::ofstream file(path, std::ios::binary);
+        file << "png test data";
+    }
+
+    manager.load("units/drone", "texture_manager_reused_test.png");
+    const unsigned int textureId = manager.get("units/drone").id;
+    manager.load("units/drone", "texture_manager_reused_test.png");
+
+    std::filesystem::remove(path);
+    EXPECT_EQ(manager.get("units/drone").id, textureId);
+    EXPECT_TRUE(unloadedTextures.empty());
+}
+
 TEST_F(TextureManagerTests, CropsAndResizesTextureBeforeUploading)
 {
     auto& manager = TextureManager::instance();

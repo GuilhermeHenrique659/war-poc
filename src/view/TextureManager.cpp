@@ -178,6 +178,9 @@ void TextureManager::loadFromFile(
     if (key.empty()) {
         throw std::invalid_argument("Texture key cannot be empty");
     }
+    if (textures_.find(key) != textures_.end()) {
+        return;
+    }
 
     const std::filesystem::path path = executableDirectory() / utf8Path(relativePath);
     std::ifstream file(path, std::ios::binary | std::ios::ate);
