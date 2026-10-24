@@ -387,6 +387,18 @@ struct HealthChanged {
     int maxHealth;
 };
 
+// Model -> View: a direct (hitscan) shot was fired. Positions are continuous grid coordinates.
+struct ShotFired {
+    model::ecs::Entity source;
+    model::ecs::Entity target;
+    model::PlayerId owner;
+    model::WeaponType weapon;
+    float sourceX;
+    float sourceY;
+    float targetX;
+    float targetY;
+};
+
 // Model -> View: a parabolic shot left the shooter. The impact point is locked at launch.
 struct ProjectileSpawned {
     model::ecs::Entity entity;

@@ -55,7 +55,7 @@ WorldView::WorldView(core::EventBus& bus)
     bus_.subscribe<events::SelectionBoxChanged>([this](const events::SelectionBoxChanged& e) { selectionBox_ = e; });
 }
 
-void WorldView::draw() const
+void WorldView::draw()
 {
     DrawRectangle(0, 0, GetScreenWidth(), GetScreenHeight(), worldMap_ ? kOutsideMapColor : kGroundColor);
 

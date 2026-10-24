@@ -16,7 +16,7 @@ class PlayingView {
 public:
     explicit PlayingView(core::EventBus& bus);
 
-    void draw() const;
+    void draw();
 
 private:
     std::unique_ptr<WorldView> world_;

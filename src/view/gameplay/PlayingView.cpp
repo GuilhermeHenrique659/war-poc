@@ -12,7 +12,7 @@ PlayingView::PlayingView(core::EventBus& bus)
 {
 }
 
-void PlayingView::draw() const
+void PlayingView::draw()
 {
     world_->draw();
     playerHud_->draw();

@@ -210,6 +210,73 @@ TEST_F(CombatSystemTest, PublishesHealthChangeAfterDamage)
     EXPECT_EQ(changes.front().maxHealth, 100);
 }
 
+TEST_F(CombatSystemTest, DirectShotPublishesShotFiredForTheView)
+{
+    // Given an armed soldier and an enemy two tiles away, with shot events observed.
+    const auto attacker = units_.spawn(1, model::recruitStats(model::UnitType::Soldier), {0, 0});
+    const auto target = units_.spawn(2, model::recruitStats(model::UnitType::Soldier), {2, 0});
+    equip(attacker);
+    std::vector<events::ShotFired> shots;
+    bus_.subscribe<events::ShotFired>([&](const auto& event) { shots.push_back(event); });
+
+    // When the soldier fires.
+    combat_.orderAttack(1, {attacker}, target);
+    combat_.update(1.0F);
+
+    // Then the view receives both endpoints and the weapon that fired.
+    ASSERT_EQ(shots.size(), 1U);
+    EXPECT_EQ(shots.front().source, attacker);
+    EXPECT_EQ(shots.front().target, target);
+    EXPECT_EQ(shots.front().owner, 1);
+    EXPECT_EQ(shots.front().weapon, model::WeaponType::Rifle);
+    EXPECT_FLOAT_EQ(shots.front().sourceX, 0.5F);
+    EXPECT_FLOAT_EQ(shots.front().sourceY, 0.5F);
+    EXPECT_FLOAT_EQ(shots.front().targetX, 2.5F);
+    EXPECT_FLOAT_EQ(shots.front().targetY, 0.5F);
+}
+
+TEST_F(CombatSystemTest, HeldFirePublishesNoShotEffect)
+{
+    // Given a wall blocking the line of sight, with shot events observed.
+    buildings_.select(1, model::BuildingType::CommandCenter);
+    buildings_.place(1, {20, 20});
+    buildings_.select(1, model::BuildingType::Wall);
+    buildings_.place(1, {1, 0});
+    const auto attacker = units_.spawn(1, model::recruitStats(model::UnitType::Soldier), {0, 0});
+    const auto target = units_.spawn(2, model::recruitStats(model::UnitType::Soldier), {2, 0});
+    equip(attacker);
+    std::vector<events::ShotFired> shots;
+    bus_.subscribe<events::ShotFired>([&](const auto& event) { shots.push_back(event); });
+
+    // When the soldier holds fire.
+    combat_.orderAttack(1, {attacker}, target);
+    combat_.update(1.0F);
+
+    // Then no tracer is announced.
+    EXPECT_TRUE(shots.empty());
+}
+
+TEST_F(CombatSystemTest, ParabolicShotDoesNotPublishTheDirectTracer)
+{
+    // Given a mortar soldier and a distant target, with shot events observed.
+    model::UnitStats mortarStats = model::recruitStats(model::UnitType::Soldier);
+    mortarStats.weapon = model::WeaponType::Mortar;
+    mortarStats.damage = model::weaponSpec(model::WeaponType::Mortar).damage;
+    mortarStats.range = model::weaponSpec(model::WeaponType::Mortar).range;
+    const auto attacker = units_.spawn(1, mortarStats, {0, 0});
+    const auto target = units_.spawn(2, model::recruitStats(model::UnitType::Soldier), {6, 0});
+    equip(attacker);
+    std::vector<events::ShotFired> shots;
+    bus_.subscribe<events::ShotFired>([&](const auto& event) { shots.push_back(event); });
+
+    // When the mortar fires.
+    combat_.orderAttack(1, {attacker}, target);
+    combat_.update(1.0F);
+
+    // Then only the projectile event is used, not the direct tracer.
+    EXPECT_TRUE(shots.empty());
+}
+
 TEST_F(CombatSystemTest, RespawnsAPlayerAvatarWhenCombatReducesItsHealthToZero)
 {
     // Given an attacker beside a player avatar with a Command Center respawn point.

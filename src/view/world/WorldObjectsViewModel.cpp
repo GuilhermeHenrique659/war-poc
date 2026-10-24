@@ -28,6 +28,7 @@ WorldObjectsViewModel::WorldObjectsViewModel(core::EventBus& bus)
     , warehouseViewModel_{loadWarehouseViewModel()}
     , steelworksViewModel_{loadSteelworksViewModel()}
     , barracksViewModel_{loadBarracksViewModel()}
+    , shotEffects_(bus)
 {
     bus_.subscribe<events::WorldReset>([this](const events::WorldReset&) {
         buildings_.clear();
@@ -161,8 +162,10 @@ std::optional<Vector2> WorldObjectsViewModel::playerGridPosition(model::PlayerId
     return std::nullopt;
 }
 
-void WorldObjectsViewModel::draw() const
+void WorldObjectsViewModel::draw()
 {
+    shotEffects_.update(GetFrameTime());
+
     enum class Kind { Building, Unit, Drone, Player };
     struct Drawable {
         float depth;
@@ -228,6 +231,9 @@ void WorldObjectsViewModel::draw() const
                 object.y + static_cast<float>(object.size) / 2.0F, object.size, ratio);
         }
     }
+
+    // Tracers stay on top of the world objects so short shots are still visible.
+    shotEffects_.draw();
 }
 
 } // namespace view::gameplay

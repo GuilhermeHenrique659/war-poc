@@ -276,6 +276,9 @@ void CombatSystem::update(float deltaSeconds)
                 shot.targetY);
             continue;
         }
+        // Direct shots resolve instantly; the view gets a short tracer.
+        bus_.publish(events::ShotFired{shot.source, shot.target, shot.owner, shot.weapon.type, shot.sourceX,
+            shot.sourceY, shot.targetX, shot.targetY});
         if (shot.damage.type == DamageType::Explosive && shot.damage.areaRadius > 0.0F) {
             (void)damage_.applyArea(shot.targetX, shot.targetY, shot.damage);
             continue;

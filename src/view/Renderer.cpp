@@ -14,7 +14,7 @@ Renderer::Renderer(core::EventBus& bus)
     bus.subscribe<events::SceneChanged>([this](const events::SceneChanged& e) { scene_ = e.scene; });
 }
 
-void Renderer::render() const
+void Renderer::render()
 {
     BeginDrawing();
     ClearBackground(Color{20, 20, 28, 255});

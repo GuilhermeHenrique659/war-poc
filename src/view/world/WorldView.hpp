@@ -19,7 +19,7 @@ class WorldView {
 public:
     explicit WorldView(core::EventBus& bus);
 
-    void draw() const;
+    void draw();
 
 private:
     void onPlayerMoved(const events::PlayerMoved& event);

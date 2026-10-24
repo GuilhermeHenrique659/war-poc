@@ -15,7 +15,7 @@ class Renderer {
 public:
     explicit Renderer(core::EventBus& bus);
 
-    void render() const;
+    void render();
 
 private:
     model::Scene scene_ = model::Scene::MainMenu;

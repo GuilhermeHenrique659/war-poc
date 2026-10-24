@@ -10,6 +10,7 @@
 #include "view/build/BuildingSpriteViewModel.hpp"
 #include "view/build/FactoryViewModel.hpp"
 #include "view/build/MineResourceViewModel.hpp"
+#include "view/world/ShotEffectViewModel.hpp"
 #include "view/world/WorldEntityViewModels.hpp"
 
 #include <raylib.h>
@@ -26,7 +27,7 @@ class WorldObjectsViewModel {
 public:
     explicit WorldObjectsViewModel(core::EventBus& bus);
 
-    void draw() const;
+    void draw();
     void drawBuildingPreview(model::BuildingType type, model::GridPos origin, int size, unsigned char alpha) const;
     [[nodiscard]] std::optional<Vector2> playerGridPosition(model::PlayerId player) const;
 
@@ -79,6 +80,7 @@ private:
     std::unordered_map<model::ecs::Entity, UnitVisual> units_;
     std::unordered_map<model::ecs::Entity, DroneVisual> drones_;
     std::unordered_map<model::ecs::Entity, PlayerVisual> players_;
+    ShotEffectViewModel shotEffects_;
     std::unordered_set<model::ecs::Entity> selectedUnits_;
     std::optional<model::ecs::Entity> selectedBuilding_;
     model::PlayerId localPlayerId_ = model::kNoPlayer;
