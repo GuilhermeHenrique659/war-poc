@@ -16,7 +16,9 @@ PlayingModel::PlayingModel(core::EventBus& bus)
     , unitSupplies_(std::make_unique<UnitSupplySystem>(*world_, *units_))
     , logistics_(std::make_unique<LogisticsSystem>(bus_, *world_, *units_))
     , playerAvatars_(std::make_unique<PlayerAvatarSystem>(bus_, *world_))
-    , combat_(std::make_unique<CombatSystem>(bus_, *world_, *units_, *buildings_))
+    , damage_(std::make_unique<DamageSystem>(bus_, *world_, *units_, *buildings_))
+    , projectiles_(std::make_unique<ProjectileSystem>(bus_, *world_, *damage_))
+    , combat_(std::make_unique<CombatSystem>(bus_, *world_, *units_, *buildings_, *damage_, *projectiles_))
     , selection_(std::make_unique<SelectionSystem>(bus_, *world_))
     , genealogy_(std::make_unique<GenealogySystem>(*world_, *units_, *selection_))
     , inventoryPanels_(std::make_unique<InventoryPanelSystem>(bus_, *world_, *selection_, *playerAvatars_))
@@ -27,6 +29,10 @@ PlayingModel::PlayingModel(core::EventBus& bus)
     });
     units_->setTileWalkable([this](GridPos tile) { return !worldMap_ || worldMap_->isWalkable(tile); });
     playerAvatars_->setTileWalkable([this](GridPos tile) { return !worldMap_ || worldMap_->isWalkable(tile); });
+    combat_->setTileSightBlocker([this](GridPos tile) {
+        return buildings_->isOccupied(tile)
+            || (worldMap_ && worldMap_->terrain().terrainAt(tile) == Terrain::Blocked);
+    });
 
     bus_.subscribe<events::SceneChanged>([this](const auto& e) { scene_ = e.scene; });
     bus_.subscribe<events::StartMatchRequested>([this](const auto& e) { onStartMatch(e); });
@@ -154,6 +160,7 @@ void PlayingModel::update(float deltaSeconds)
         publishLogisticsPanel(player);
     }
     combat_->update(deltaSeconds);
+    projectiles_->update(deltaSeconds);
     genealogy_->update();
 }
 
@@ -198,6 +205,7 @@ void PlayingModel::resetWorld()
     units_->reset();
     playerAvatars_->reset();
     combat_->reset();
+    projectiles_->reset();
     selection_->reset();
     genealogy_->reset();
 }

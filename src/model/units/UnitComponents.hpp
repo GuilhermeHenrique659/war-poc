@@ -39,11 +39,6 @@ struct Health {
     int max;
 };
 
-struct Combat {
-    int damage;
-    float range; // Tiles.
-};
-
 struct AttackOrder {
     ecs::Entity target;
     float cooldownRemaining;

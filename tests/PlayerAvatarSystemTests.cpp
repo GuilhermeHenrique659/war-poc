@@ -1,6 +1,7 @@
 #include "core/EventBus.hpp"
 #include "core/Events.hpp"
 #include "model/build/BuildingComponents.hpp"
+#include "model/combat/WeaponComponents.hpp"
 #include "model/player/PlayerAvatarSystem.hpp"
 #include "model/components/Owner.hpp"
 #include "model/economy/InventoryComponents.hpp"
@@ -43,7 +44,7 @@ TEST_F(PlayerAvatarSystemTest, CreatesOnlyThePlayerIdentityUntilTheCommandCenter
     const auto* owner = world_.tryGet<model::components::Owner>(entity);
     const auto* position = world_.tryGet<model::components::Position>(entity);
     const auto* health = world_.tryGet<model::components::Health>(entity);
-    const auto* combat = world_.tryGet<model::components::Combat>(entity);
+    const auto* weapon = world_.tryGet<model::components::Weapon>(entity);
     ASSERT_NE(profile, nullptr);
     ASSERT_NE(owner, nullptr);
     EXPECT_EQ(profile->id, playerId);
@@ -51,7 +52,7 @@ TEST_F(PlayerAvatarSystemTest, CreatesOnlyThePlayerIdentityUntilTheCommandCenter
     EXPECT_EQ(owner->player, playerId);
     EXPECT_EQ(position, nullptr);
     EXPECT_EQ(health, nullptr);
-    EXPECT_EQ(combat, nullptr);
+    EXPECT_EQ(weapon, nullptr);
 }
 
 TEST_F(PlayerAvatarSystemTest, StartsWithWeaponsAndAmmoToSupplyItsUnits)
@@ -87,16 +88,17 @@ TEST_F(PlayerAvatarSystemTest, SpawnsAtTheCommandCenterWhenItIsPlaced)
     // Then the avatar spawns at the Command Center center with its combat attributes.
     const auto* position = world_.tryGet<model::components::Position>(entity);
     const auto* health = world_.tryGet<model::components::Health>(entity);
-    const auto* combat = world_.tryGet<model::components::Combat>(entity);
+    const auto* weapon = world_.tryGet<model::components::Weapon>(entity);
     ASSERT_NE(position, nullptr);
     ASSERT_NE(health, nullptr);
-    ASSERT_NE(combat, nullptr);
+    ASSERT_NE(weapon, nullptr);
     EXPECT_FLOAT_EQ(position->x, 4.5F);
     EXPECT_FLOAT_EQ(position->y, 3.5F);
     EXPECT_EQ(health->current, 10);
     EXPECT_EQ(health->max, 10);
-    EXPECT_EQ(combat->damage, 1);
-    EXPECT_FLOAT_EQ(combat->range, 1.0F);
+    EXPECT_EQ(weapon->type, model::WeaponType::Pistol);
+    EXPECT_EQ(weapon->damage, 1);
+    EXPECT_FLOAT_EQ(weapon->range, 3.0F);
     ASSERT_EQ(spawnCount, 1);
     EXPECT_EQ(spawned.entity, entity);
     EXPECT_EQ(spawned.player, playerId);

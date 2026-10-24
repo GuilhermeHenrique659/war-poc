@@ -3,6 +3,7 @@
 #include "core/Events.hpp"
 #include "model/FootprintGeometry.hpp"
 #include "model/build/BuildingComponents.hpp"
+#include "model/combat/WeaponComponents.hpp"
 #include "model/economy/InventoryComponents.hpp"
 #include "model/economy/InventorySystem.hpp"
 #include "model/economy/ProductionComponents.hpp"
@@ -154,7 +155,8 @@ void BuildingSystem::place(PlayerId player, GridPos anchor)
     const FootprintBounds bounds = footprintBounds(components::Footprint{origin, size});
     world_.emplace<components::Position>(entity, bounds.centerX(), bounds.centerY());
     if (type == BuildingType::Tower) {
-        world_.emplace<components::Combat>(entity, 20, 6.0F);
+        const WeaponSpec cannon = weaponSpec(WeaponType::Cannon);
+        world_.emplace<components::Weapon>(entity, WeaponType::Cannon, cannon.damage, cannon.range);
     }
     switch (type) {
     case BuildingType::IronMine:

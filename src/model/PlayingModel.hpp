@@ -3,6 +3,8 @@
 #include "core/EventBus.hpp"
 #include "core/Events.hpp"
 #include "model/build/BuildingSystem.hpp"
+#include "model/combat/DamageSystem.hpp"
+#include "model/combat/ProjectileSystem.hpp"
 #include "model/economy/InventoryPanelSystem.hpp"
 #include "model/economy/LogisticsSystem.hpp"
 #include "model/economy/ProductionSystem.hpp"
@@ -54,6 +56,8 @@ private:
     std::unique_ptr<UnitSupplySystem> unitSupplies_;
     std::unique_ptr<LogisticsSystem> logistics_;
     std::unique_ptr<PlayerAvatarSystem> playerAvatars_;
+    std::unique_ptr<DamageSystem> damage_;
+    std::unique_ptr<ProjectileSystem> projectiles_;
     std::unique_ptr<CombatSystem> combat_;
     std::unique_ptr<SelectionSystem> selection_;
     std::unique_ptr<GenealogySystem> genealogy_; // References buildings_, units_ and selection_.

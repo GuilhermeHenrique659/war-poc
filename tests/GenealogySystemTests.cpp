@@ -1,6 +1,7 @@
 #include "core/EventBus.hpp"
 #include "core/Events.hpp"
 #include "model/build/BuildingSystem.hpp"
+#include "model/combat/WeaponComponents.hpp"
 #include "model/units/GenealogySystem.hpp"
 #include "model/selection/SelectionSystem.hpp"
 #include "model/units/UnitSystem.hpp"
@@ -88,7 +89,7 @@ TEST_F(GenealogySystemTest, SendsExactlyTwoFriendlyUnitsToCruzadorAndUsesLegacyF
     ASSERT_EQ(spawns_.size(), 3U);
     const auto* child = world_.tryGet<model::components::Unit>(spawns_.back().entity);
     const auto* health = world_.tryGet<model::components::Health>(spawns_.back().entity);
-    const auto* combat = world_.tryGet<model::components::Combat>(spawns_.back().entity);
+    const auto* combat = world_.tryGet<model::components::Weapon>(spawns_.back().entity);
     ASSERT_NE(child, nullptr);
     ASSERT_NE(health, nullptr);
     ASSERT_NE(combat, nullptr);
@@ -97,6 +98,7 @@ TEST_F(GenealogySystemTest, SendsExactlyTwoFriendlyUnitsToCruzadorAndUsesLegacyF
     EXPECT_EQ(health->max, 160);
     EXPECT_EQ(combat->damage, 18);
     EXPECT_FLOAT_EQ(combat->range, 5.0F);
+    EXPECT_EQ(combat->type, model::WeaponType::MarksmanRifle);
 }
 
 TEST_F(GenealogySystemTest, RejectsSendingAnythingOtherThanExactlyTwoUnits)

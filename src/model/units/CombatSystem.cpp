@@ -1,8 +1,11 @@
 #include "model/units/CombatSystem.hpp"
 
 #include "core/Events.hpp"
-#include "model/components/Owner.hpp"
+#include "model/FootprintGeometry.hpp"
 #include "model/build/BuildingComponents.hpp"
+#include "model/combat/LineOfSight.hpp"
+#include "model/combat/WeaponComponents.hpp"
+#include "model/components/Owner.hpp"
 #include "model/economy/InventoryComponents.hpp"
 #include "model/economy/InventorySystem.hpp"
 #include "model/economy/Item.hpp"
@@ -10,20 +13,50 @@
 #include "model/units/UnitComponents.hpp"
 
 #include <cmath>
-#include <unordered_set>
 #include <vector>
 
 namespace model {
 
 namespace {
-constexpr float kAttackCooldown = 1.0F;
+
+[[nodiscard]] bool tileInFootprint(GridPos tile, const components::Footprint& footprint)
+{
+    return tile.x >= footprint.origin.x && tile.x < footprint.origin.x + footprint.size
+        && tile.y >= footprint.origin.y && tile.y < footprint.origin.y + footprint.size;
 }
 
-CombatSystem::CombatSystem(core::EventBus& bus, ecs::Registry& world, UnitSystem& units, BuildingSystem& buildings)
+[[nodiscard]] GridPos tileOf(const components::Position& position)
+{
+    return GridPos{static_cast<int>(std::floor(position.x)), static_cast<int>(std::floor(position.y))};
+}
+
+
+
+// Damage is resolved after the AttackOrder pass so that defeats cannot invalidate the iteration.
+struct PendingShot {
+    ecs::Entity source;
+    ecs::Entity target;
+    PlayerId owner;
+    components::Weapon weapon;
+    float sourceX;
+    float sourceY;
+    float targetX;
+    float targetY;
+    Ballistic ballistic;
+    DamageSpec damage;
+};
+
+} // namespace
+
+CombatSystem::CombatSystem(core::EventBus& bus, ecs::Registry& world, UnitSystem& units, BuildingSystem& buildings,
+    DamageSystem& damage, ProjectileSystem& projectiles)
     : bus_(bus)
     , world_(world)
     , units_(units)
     , buildings_(buildings)
+    , damage_(damage)
+    , projectiles_(projectiles)
+    , tileSightBlocker_([this](GridPos tile) { return buildings_.isOccupied(tile); })
 {
     bus_.subscribe<events::AttackOrderRequested>([this](const auto& event) {
         orderAttack(event.player, event.attackers, event.target);
@@ -64,6 +97,38 @@ bool CombatSystem::canFire(ecs::Entity entity) const
         && InventorySystem::amount(*inventory, ItemId::Ammo) > 0;
 }
 
+bool CombatSystem::hasLineOfSightTo(ecs::Entity source, ecs::Entity target) const
+{
+    const auto* sourcePosition = world_.tryGet<components::Position>(source);
+    const auto* targetPosition = world_.tryGet<components::Position>(target);
+    if (sourcePosition == nullptr || targetPosition == nullptr) {
+        return false;
+    }
+    const auto* sourceFootprint = world_.tryGet<components::Footprint>(source);
+    const auto* targetFootprint = world_.tryGet<components::Footprint>(target);
+
+    return combat::hasLineOfSight(tileOf(*sourcePosition), tileOf(*targetPosition),
+        [this, sourceFootprint, targetFootprint](GridPos tile) {
+            // A shooter or target standing inside a building never blocks its own shot.
+            if (sourceFootprint != nullptr && tileInFootprint(tile, *sourceFootprint)) {
+                return false;
+            }
+            if (targetFootprint != nullptr && tileInFootprint(tile, *targetFootprint)) {
+                return false;
+            }
+            return tileSightBlocker_(tile);
+        });
+}
+
+GridPos CombatSystem::targetTile(ecs::Entity target) const
+{
+    if (const auto* footprint = world_.tryGet<components::Footprint>(target); footprint != nullptr) {
+        return footprintCenter(*footprint);
+    }
+    const auto* position = world_.tryGet<components::Position>(target);
+    return position == nullptr ? GridPos{0, 0} : tileOf(*position);
+}
+
 void CombatSystem::consumeAmmo(ecs::Entity entity) const
 {
     if (world_.tryGet<components::Unit>(entity) == nullptr) {
@@ -81,12 +146,12 @@ void CombatSystem::orderAttack(PlayerId player, const std::vector<ecs::Entity>& 
     }
     for (const ecs::Entity entity : attackers) {
         const auto* owner = world_.tryGet<components::Owner>(entity);
-        const auto* combat = world_.tryGet<components::Combat>(entity);
+        const auto* weapon = world_.tryGet<components::Weapon>(entity);
         const auto* position = world_.tryGet<components::Position>(entity);
-        if (owner == nullptr || owner->player != player || combat == nullptr || position == nullptr) {
+        if (owner == nullptr || owner->player != player || weapon == nullptr || position == nullptr) {
             continue;
         }
-        world_.emplace<components::AttackOrder>(entity, target, kAttackCooldown);
+        world_.emplace<components::AttackOrder>(entity, target, weaponSpec(weapon->type).cooldown);
 
         const auto* targetPosition = world_.tryGet<components::Position>(target);
         if (targetPosition == nullptr) {
@@ -94,7 +159,7 @@ void CombatSystem::orderAttack(PlayerId player, const std::vector<ecs::Entity>& 
         }
         const float dx = position->x - targetPosition->x;
         const float dy = position->y - targetPosition->y;
-        if (dx * dx + dy * dy <= combat->range * combat->range) {
+        if (dx * dx + dy * dy <= weapon->range * weapon->range) {
             // Already in range: stop walking so the unit fires instead of leaving the target.
             const auto* mover = world_.tryGet<components::Mover>(entity);
             if (mover != nullptr && !mover->path.empty()) {
@@ -102,9 +167,7 @@ void CombatSystem::orderAttack(PlayerId player, const std::vector<ecs::Entity>& 
             }
             continue;
         }
-        const GridPos targetTile{static_cast<int>(std::floor(targetPosition->x)),
-            static_cast<int>(std::floor(targetPosition->y))};
-        (void)units_.moveWithinRange(entity, targetTile, combat->range);
+        (void)units_.moveWithinRange(entity, targetTile(target), weapon->range);
     }
 }
 
@@ -117,12 +180,12 @@ void CombatSystem::update(float deltaSeconds)
         }
         const auto* towerOwner = world_.tryGet<components::Owner>(tower);
         const auto* towerPosition = world_.tryGet<components::Position>(tower);
-        const auto* towerCombat = world_.tryGet<components::Combat>(tower);
-        if (towerOwner == nullptr || towerPosition == nullptr || towerCombat == nullptr) {
+        const auto* towerWeapon = world_.tryGet<components::Weapon>(tower);
+        if (towerOwner == nullptr || towerPosition == nullptr || towerWeapon == nullptr) {
             return;
         }
         ecs::Entity nearest = 0;
-        float nearestDistance = towerCombat->range * towerCombat->range;
+        float nearestDistance = towerWeapon->range * towerWeapon->range;
         world_.each<components::Position>([&](ecs::Entity target, const components::Position& position) {
             const auto* owner = world_.tryGet<components::Owner>(target);
             const auto* health = world_.tryGet<components::Health>(target);
@@ -150,33 +213,31 @@ void CombatSystem::update(float deltaSeconds)
         }
     });
 
-    std::vector<ecs::Entity> defeated;
     std::vector<ecs::Entity> invalidOrders;
+    std::vector<PendingShot> shots;
     world_.each<components::AttackOrder>([&](ecs::Entity entity, components::AttackOrder& order) {
         auto* health = world_.tryGet<components::Health>(order.target);
-        auto* attacker = world_.tryGet<components::Combat>(entity);
+        auto* weapon = world_.tryGet<components::Weapon>(entity);
         const auto* sourcePosition = world_.tryGet<components::Position>(entity);
         const auto* targetPosition = world_.tryGet<components::Position>(order.target);
         const auto* owner = world_.tryGet<components::Owner>(entity);
-        if (health == nullptr || attacker == nullptr || sourcePosition == nullptr || targetPosition == nullptr
+        if (health == nullptr || weapon == nullptr || sourcePosition == nullptr || targetPosition == nullptr
             || owner == nullptr || !validTarget(owner->player, order.target)) {
             invalidOrders.push_back(entity);
             return;
         }
         if (health->current <= 0) {
-            defeated.push_back(order.target);
+            invalidOrders.push_back(entity);
             return;
         }
 
         const float dx = sourcePosition->x - targetPosition->x;
         const float dy = sourcePosition->y - targetPosition->y;
-        if (dx * dx + dy * dy > attacker->range * attacker->range) {
-            // A fresh attack order (or a finished resupply trip) walks the unit into range.
+        if (dx * dx + dy * dy > weapon->range * weapon->range) {
+            // A fresh attack order (or a finished resupply trip) walks until the target is in range.
             const auto* mover = world_.tryGet<components::Mover>(entity);
             if (mover != nullptr && mover->path.empty()) {
-                const GridPos targetTile{static_cast<int>(std::floor(targetPosition->x)),
-                    static_cast<int>(std::floor(targetPosition->y))};
-                (void)units_.moveWithinRange(entity, targetTile, attacker->range);
+                (void)units_.moveWithinRange(entity, targetTile(order.target), weapon->range);
             }
             return;
         }
@@ -187,13 +248,18 @@ void CombatSystem::update(float deltaSeconds)
         if (!canFire(entity)) {
             return;
         }
-        consumeAmmo(entity);
-        health->current -= attacker->damage;
-        bus_.publish(events::HealthChanged{order.target, health->current, health->max});
-        order.cooldownRemaining += kAttackCooldown;
-        if (health->current <= 0) {
-            defeated.push_back(order.target);
+
+        const WeaponSpec spec = weaponSpec(weapon->type);
+        if (spec.ballistic == Ballistic::Direct && !hasLineOfSightTo(entity, order.target)) {
+            // Hold fire without spending ammo or moving the cooldown.
+            return;
         }
+
+        consumeAmmo(entity);
+        order.cooldownRemaining += spec.cooldown;
+        shots.push_back(PendingShot{entity, order.target, owner->player, *weapon, sourcePosition->x,
+            sourcePosition->y, targetPosition->x, targetPosition->y, spec.ballistic,
+            DamageSpec{spec.damageType, weapon->damage, spec.areaRadius}});
     });
 
     for (const ecs::Entity entity : invalidOrders) {
@@ -201,20 +267,20 @@ void CombatSystem::update(float deltaSeconds)
             world_.remove<components::AttackOrder>(entity);
         }
     }
-    std::unordered_set<ecs::Entity> handledDefeats;
-    for (const ecs::Entity entity : defeated) {
-        if (!handledDefeats.insert(entity).second || !world_.isAlive(entity)) {
+
+    // Resolving damage here keeps any defeat from invalidating the AttackOrder traversal above.
+    for (const PendingShot& shot : shots) {
+        if (shot.ballistic == Ballistic::Parabolic) {
+            (void)projectiles_.launch(
+                shot.owner, shot.source, shot.target, shot.weapon, shot.sourceX, shot.sourceY, shot.targetX,
+                shot.targetY);
             continue;
         }
-        if (world_.tryGet<components::PlayerProfile>(entity) != nullptr) {
-            bus_.publish(events::PlayerRespawnRequested{entity});
+        if (shot.damage.type == DamageType::Explosive && shot.damage.areaRadius > 0.0F) {
+            (void)damage_.applyArea(shot.targetX, shot.targetY, shot.damage);
             continue;
         }
-        if (world_.tryGet<components::Unit>(entity) != nullptr) {
-            units_.remove(entity);
-        } else {
-            buildings_.remove(entity);
-        }
+        (void)damage_.apply(shot.target, shot.damage);
     }
 }
 

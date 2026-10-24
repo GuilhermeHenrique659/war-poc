@@ -4,6 +4,7 @@
 #include "model/FootprintGeometry.hpp"
 #include "model/Pathfinding.hpp"
 #include "model/build/BuildingComponents.hpp"
+#include "model/combat/WeaponComponents.hpp"
 #include "model/economy/InventoryComponents.hpp"
 #include "model/economy/LogisticsComponents.hpp"
 
@@ -166,7 +167,29 @@ bool UnitSystem::moveWithinRange(ecs::Entity entity, GridPos target, float range
     }
 
     const Walker walker{entity, mover, position, size};
+    const GridPos origin = originOf(*position, size);
     release(walker);
+
+    // Stop on the first tile of the route where the target is already inside weapon range,
+    // instead of walking all the way next to it.
+    const auto route = pathfinding::findPath(
+        origin, *destination, [this, size](GridPos tile) { return !isSquareWalkable(tile, size); });
+    if (route) {
+        for (const GridPos waypoint : *route) {
+            const components::Position waypointCenter = centerOf(waypoint, size);
+            const float relativeX = waypointCenter.x - targetCenter.x;
+            const float relativeY = waypointCenter.y - targetCenter.y;
+            if (relativeX * relativeX + relativeY * relativeY > range * range
+                || !isSquareFreeDestination(waypoint, size)) {
+                continue;
+            }
+            if (startPath(walker, waypoint)) {
+                return true;
+            }
+            break;
+        }
+    }
+
     if (startPath(walker, *destination)) {
         return true;
     }
@@ -183,7 +206,7 @@ ecs::Entity UnitSystem::spawn(PlayerId player, const UnitStats& stats, GridPos o
     world_.emplace<components::Unit>(entity, stats.type, stats.baseCount, stats.size);
     world_.emplace<components::Owner>(entity, player);
     world_.emplace<components::Health>(entity, stats.health, stats.maxHealth);
-    world_.emplace<components::Combat>(entity, stats.damage, stats.range);
+    world_.emplace<components::Weapon>(entity, stats.weapon, stats.damage, stats.range);
     world_.emplace<components::Position>(entity, position);
     world_.emplace<components::Mover>(entity, std::move(mover));
     world_.emplace<components::Inventory>(entity, kUnitInventorySlots);

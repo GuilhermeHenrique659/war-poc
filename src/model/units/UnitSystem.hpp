@@ -32,8 +32,8 @@ public:
     // Spawns a non-combat drone next to the supplied tile.
     [[nodiscard]] std::optional<ecs::Entity> spawnTransportDrone(PlayerId player, GridPos center);
     [[nodiscard]] bool moveToAdjacent(ecs::Entity entity, GridPos center);
-    // Walks the unit to the nearest free square from which a target centered on `target` is
-    // within `range` tiles. Does nothing (and returns true) when already in range.
+    // Walks the unit along the route to `target` only until the target is within `range` tiles,
+    // stopping there instead of hugging it. Does nothing (and returns true) when already in range.
     [[nodiscard]] bool moveWithinRange(ecs::Entity entity, GridPos target, float range);
     void orderMove(PlayerId player, const std::vector<ecs::Entity>& units, GridPos target);
     // Clears the current path and settles the unit on the nearest free square.

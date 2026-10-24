@@ -2,6 +2,7 @@
 
 #include "model/FootprintGeometry.hpp"
 #include "model/build/BuildingComponents.hpp"
+#include "model/combat/WeaponComponents.hpp"
 #include "model/units/UnitComponents.hpp"
 
 #include <algorithm>
@@ -15,20 +16,26 @@ constexpr int kSpawnRadius = 3;
 [[nodiscard]] UnitStats legacyChildStats(
     const std::vector<ecs::Entity>& parents, ecs::Registry& world)
 {
-    UnitStats stats{UnitType::Combined, 0, 0, 0, 0.0F, 0.0F, 0, 1};
+    UnitStats stats{UnitType::Combined, 0, 0, 0, 0.0F, 0.0F, 0, 1, WeaponType::Rifle};
     float weightedSpeed = 0.0F;
+    float widestRange = -1.0F;
     for (const ecs::Entity entity : parents) {
         const auto* unit = world.tryGet<components::Unit>(entity);
         const auto* health = world.tryGet<components::Health>(entity);
-        const auto* combat = world.tryGet<components::Combat>(entity);
+        const auto* weapon = world.tryGet<components::Weapon>(entity);
         const auto* mover = world.tryGet<components::Mover>(entity);
-        if (unit == nullptr || health == nullptr || combat == nullptr || mover == nullptr) {
-            return UnitStats{UnitType::Combined, 0, 0, 0, 0.0F, 0.0F, 0, 1};
+        if (unit == nullptr || health == nullptr || weapon == nullptr || mover == nullptr) {
+            return UnitStats{UnitType::Combined, 0, 0, 0, 0.0F, 0.0F, 0, 1, WeaponType::Rifle};
         }
         stats.health += health->current;
         stats.maxHealth += health->max;
-        stats.damage += combat->damage;
-        stats.range = std::max(stats.range, combat->range);
+        stats.damage += weapon->damage;
+        if (weapon->range > widestRange) {
+            // The child keeps the behaviour of the parent that can shoot the furthest.
+            widestRange = weapon->range;
+            stats.weapon = weapon->type;
+        }
+        stats.range = std::max(stats.range, weapon->range);
         stats.baseCount += unit->baseCount;
         weightedSpeed += mover->speed * static_cast<float>(unit->baseCount);
     }
@@ -69,7 +76,7 @@ bool GenealogySystem::send(PlayerId player, ecs::Entity cruzador, const std::vec
     for (const ecs::Entity entity : units) {
         const auto* owner = world_.tryGet<components::Owner>(entity);
         if (owner == nullptr || owner->player != player || !world_.has<components::Unit>(entity)
-            || !world_.has<components::Health>(entity) || !world_.has<components::Combat>(entity)
+            || !world_.has<components::Health>(entity) || !world_.has<components::Weapon>(entity)
             || !world_.has<components::Mover>(entity) || !world_.has<components::Position>(entity)) {
             return false;
         }

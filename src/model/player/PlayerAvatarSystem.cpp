@@ -2,6 +2,7 @@
 
 #include "model/FootprintGeometry.hpp"
 #include "model/build/BuildingType.hpp"
+#include "model/combat/WeaponComponents.hpp"
 #include "model/units/UnitType.hpp"
 #include "model/build/BuildingComponents.hpp"
 #include "model/components/Owner.hpp"
@@ -19,8 +20,7 @@ namespace model {
 namespace {
 
 constexpr int kPlayerHealth = 10;
-constexpr int kPlayerDamage = 1;
-constexpr float kPlayerRange = 1.0F;
+constexpr WeaponSpec kPlayerWeapon = weaponSpec(WeaponType::Pistol);
 constexpr float kPlayerSpeed = unitSpec(UnitType::Goat).speed;
 constexpr float kPlayerCollisionRadius = 0.3F;
 
@@ -101,7 +101,8 @@ void PlayerAvatarSystem::onBuildingPlaced(const events::BuildingPlaced& event)
     auto* position = world_.tryGet<components::Position>(entity->second);
     if (position == nullptr) {
         world_.emplace<components::Health>(entity->second, kPlayerHealth, kPlayerHealth);
-        world_.emplace<components::Combat>(entity->second, kPlayerDamage, kPlayerRange);
+        world_.emplace<components::Weapon>(
+            entity->second, WeaponType::Pistol, kPlayerWeapon.damage, kPlayerWeapon.range);
         world_.emplace<components::Position>(entity->second, spawnPosition);
         spawnPositions_[entity->second] = spawnPosition;
         bus_.publish(events::PlayerSpawned{

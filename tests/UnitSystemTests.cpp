@@ -1,6 +1,7 @@
 #include "core/EventBus.hpp"
 #include "core/Events.hpp"
 #include "model/build/BuildingSystem.hpp"
+#include "model/combat/WeaponComponents.hpp"
 #include "model/units/UnitType.hpp"
 #include "model/units/UnitSystem.hpp"
 
@@ -55,6 +56,27 @@ TEST_F(UnitSystemTest, MovesAnOwnedUnitToTheRequestedFreeDestination)
     EXPECT_TRUE(units_.isTileTaken(destination));
     ASSERT_EQ(moves_.size(), 1U);
     EXPECT_EQ(moves_.front().entity, unit);
+}
+
+TEST_F(UnitSystemTest, SoldierSpawnsWithTheFuzilWeaponType)
+{
+    // Given the stats the soldier is recruited with.
+    const model::UnitStats soldier = model::recruitStats(model::UnitType::Soldier);
+    EXPECT_EQ(soldier.weapon, model::WeaponType::Rifle);
+
+    // When the soldier spawns into the world.
+    const model::ecs::Entity unit = units_.spawn(kPlayer, soldier, {0, 0});
+
+    // Then its Weapon component is the Fuzil with the rifle damage and range.
+    const auto* weapon = world_.tryGet<model::components::Weapon>(unit);
+    ASSERT_NE(weapon, nullptr);
+    const model::WeaponSpec fuzil = model::weaponSpec(model::WeaponType::Rifle);
+    EXPECT_EQ(fuzil.label, "Fuzil");
+    EXPECT_EQ(weapon->type, model::WeaponType::Rifle);
+    EXPECT_EQ(weapon->damage, fuzil.damage);
+    EXPECT_FLOAT_EQ(weapon->range, fuzil.range);
+    EXPECT_EQ(fuzil.ballistic, model::Ballistic::Direct);
+    EXPECT_EQ(fuzil.damageType, model::DamageType::Kinetic);
 }
 
 TEST_F(UnitSystemTest, DoesNotPathfindThroughBlockedTerrain)

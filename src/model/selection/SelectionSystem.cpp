@@ -1,6 +1,7 @@
 #include "model/selection/SelectionSystem.hpp"
 
 #include "core/Events.hpp"
+#include "model/combat/WeaponType.hpp"
 #include "model/units/UnitType.hpp"
 #include "model/build/BuildingComponents.hpp"
 #include "model/units/UnitComponents.hpp"
@@ -128,8 +129,9 @@ void SelectionSystem::publish(PlayerId player) const
     if (panel.open) {
         for (const UnitType type : kRecruitableUnitTypes) {
             const UnitSpec spec = unitSpec(type);
+            const WeaponSpec weapon = weaponSpec(spec.weapon);
             panel.entries.push_back(events::RecruitEntry{
-                type, std::string(spec.label), spec.maxHealth, spec.damage, spec.range, spec.speed});
+                type, std::string(spec.label), spec.maxHealth, weapon.damage, weapon.range, spec.speed});
         }
     }
     bus_.publish(panel);

@@ -1,6 +1,7 @@
 #pragma once
 
 #include "model/build/BuildingType.hpp"
+#include "model/combat/WeaponType.hpp"
 #include "model/economy/Item.hpp"
 #include "model/GridPos.hpp"
 #include "model/player/Player.hpp"
@@ -384,6 +385,32 @@ struct HealthChanged {
     model::ecs::Entity entity;
     int health;
     int maxHealth;
+};
+
+// Model -> View: a parabolic shot left the shooter. The impact point is locked at launch.
+struct ProjectileSpawned {
+    model::ecs::Entity entity;
+    model::ecs::Entity target;
+    model::PlayerId owner;
+    model::WeaponType weapon;
+    float x;
+    float y;
+    float targetX;
+    float targetY;
+    float flightTime;
+};
+
+struct ProjectileMoved {
+    model::ecs::Entity entity;
+    float x;
+    float y;
+    float progress; // 0 at launch, 1 at impact.
+};
+
+struct ProjectileImpacted {
+    model::ecs::Entity entity;
+    float x;
+    float y;
 };
 
 struct UnitRemoved {

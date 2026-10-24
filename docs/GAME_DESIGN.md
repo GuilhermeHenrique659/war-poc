@@ -18,7 +18,7 @@ Documento vivo com as regras do jogo. Itens marcados como **TBD** ainda não for
 ## Jogador
 - Cada partida cria a entidade ECS de identidade do jogador local, com o `PlayerId` gerado pelo Model, o nome configurado e o componente de dono. Ela ainda não tem posição, vida, combate nem representação visual.
 - O avatar só spawna quando o jogador coloca o Centro de Comando: nesse momento recebe `Position`, vida e atributos de combate e passa a ser representado no mundo.
-- O avatar tem 10 de vida, causa 1 de dano, tem alcance de 1 tile e velocidade de 3,5 tiles/s (a velocidade do Bode).
+- O avatar tem 10 de vida, causa 1 de dano com pistola, tem alcance de 3 tiles e velocidade de 3,5 tiles/s (a velocidade do Bode).
 - WASD controla o avatar nas quatro direções da tela isométrica. O movimento é contínuo em coordenadas lógicas; diagonais mantêm a mesma velocidade.
 - O ponto inicial é a casa livre mais próxima, fora do Centro de Comando colocado pelo jogador. Ao chegar a 0 de vida, o avatar reaparece nessa casa com a vida cheia.
 - O avatar colide com os footprints das construções, tem raio de colisão de 0,3 tile e desliza pelas paredes ao mover-se na diagonal.
@@ -98,11 +98,34 @@ Documento vivo com as regras do jogo. Itens marcados como **TBD** ainda não for
 - **TBD**: tempo de construção, demolição/reembolso.
 
 ## Defesa (tower defense)
-- Torre defensiva: construção 2x2, tem 500 de vida, alcance de 6 tiles e causa 20 de dano a cada segundo.
+- Torre defensiva: construção 2x2, tem 500 de vida, alcance de 6 tiles e causa 20 de dano a cada segundo com o Canhão (tiro direto, cinético).
 - A torre ataca automaticamente a unidade ou avatar inimigo mais próximo já dentro do alcance. Torres e unidades podem receber ordens de ataque por comando do Model; alvos aliados, mortos ou sem vida são inválidos, com exceção do Boneco de Treinamento, que pode ser atacado até pelo próprio dono. Ataques fora de alcance não causam dano.
 - O Boneco de Treinamento é removido ao chegar a zero de vida e libera o tile que ocupava.
 - Ataques reduzem vida; ao chegar a zero, unidades ou construções são removidas do mundo e liberam a área ocupada.
 - Ondas e comportamento/pathfinding de inimigos ainda não fazem parte desta fatia; os alvos inimigos são entidades de jogador distintas criadas pelo jogo ou pelos testes.
+
+## Armas, projéteis e dano
+- Cada arma tem um tipo que define balística, tipo de dano, dano, alcance, cooldown, raio de área e velocidade de projétil. A entidade guarda dano e alcance efetivos (a genealogia pode combiná-los), mas o comportamento vem sempre do tipo.
+- Armas atuais (alcance e raio em tiles, dano por disparo):
+
+| Arma | Balística | Dano | Dano | Alcance | Cooldown | Área | Usada por |
+|---|---|---|---|---|---|---|---|
+| Pistola | Direta | Cinético | 1 | 3 | 1 s | — | avatar do jogador |
+| Fuzil | Direta | Cinético | 10 | 4 | 1 s | — | Soldado |
+| Rifle de Precisão | Direta | Cinético | 8 | 5 | 1 s | — | Morcego |
+| Espingarda | Direta | Cinético | 14 | 1 | 1 s | — | Bode |
+| Canhão | Direta | Cinético | 20 | 6 | 1 s | — | Torre |
+| Morteiro | Parabólica | Explosivo | 15 | 8 | 1 s | 2 | reservada para testes e conteúdo futuro |
+
+- **Balística direta (hitscan)**: o disparo resolve no mesmo instante. Exige linha de visão livre entre atirador e alvo; se estiver bloqueada, a unidade ou torre segura o fogo, não gasta munição e não reinicia o cooldown. Dispara assim que a visão abrir.
+- **Linha de visão**: bloqueada pelo footprint de qualquer construção e por tiles `Blocked` do terreno. Água, tropas e projéteis não bloqueiam. Os footprints do atirador e do alvo são ignorados, então quem atira de dentro de uma construção ou mira numa construção não bloqueia o próprio tiro.
+- **Balística parabólica**: cria uma entidade de projétil com tempo de voo proporcional à distância e à velocidade da arma. Ignora obstáculos e resolve o dano no impacto. O ponto de impacto é travado no disparo (o projétil não persegue o alvo); se o alvo morrer antes, o projétil ainda cai e explode no ponto travado.
+- **Dano cinético**: atinge somente o alvo.
+- **Dano explosivo**: atinge com dano cheio todas as entidades com vida dentro do raio, incluindo aliados, construções do próprio dono e o próprio atirador se estiver no raio. Não há queda de dano pela distância.
+- O disparo consome 1 munição no momento do disparo (não no impacto). Torres e o avatar não precisam de munição; tropas precisam de arma e munição.
+- O cooldown é por arma e o primeiro disparo após uma ordem de ataque espera um cooldown completo.
+- Genealogia: a descendente herda o tipo de arma do pai de maior alcance (empate: primeiro pai) e mantém dano somado e maior alcance.
+- **TBD**: armas parabólicas jogáveis, alcance mínimo de morteiro, resistência/armadura por tipo de dano, representação visual do arco e sprites de projétil.
 
 ## Unidades
 - Tropas móveis controladas pelo jogador (estilo RTS). Cada tropa tem dono.
@@ -119,13 +142,14 @@ Documento vivo com as regras do jogo. Itens marcados como **TBD** ainda não for
 - `ESC` com tropas ou construção selecionadas limpa a seleção; sem seleção, volta ao menu.
 - Tipos atuais (velocidade em tiles/s, alcance em tiles):
 
-| Tropa | Vida | Dano | Alcance | Velocidade |
-|---|---|---|---|---|
-| Soldado | 100 | 10 | 1 | 2.0 |
-| Morcego | 60 | 8 | 5 | 1.6 |
-| Bode | 140 | 14 | 1 | 3.5 |
+| Tropa | Vida | Dano | Alcance | Velocidade | Arma |
+|---|---|---|---|---|---|
+| Soldado | 100 | 10 | 4 | 2.0 | Fuzil |
+| Morcego | 60 | 8 | 5 | 1.6 | Rifle de Precisão |
+| Bode | 140 | 14 | 1 | 3.5 | Espingarda |
 
-- Unidades mantêm vida, dano e alcance. Uma ordem de ataque dispara após um segundo de cooldown e repete a cada segundo enquanto o alvo permanecer dentro do alcance. Se a tropa estiver fora de alcance, ela caminha até entrar no alcance antes de atirar.
+- As tropas usam as armas da tabela de **Armas, projéteis e dano**. Uma ordem de ataque dispara após um cooldown de um segundo e repete enquanto o alvo permanecer dentro do alcance. Tiros diretos exigem linha de visão; sem ela, a tropa segura o fogo.
+- Ao receber uma ordem de ataque, a tropa caminha pela rota até o alvo **entrar no alcance da arma e para ali** — não é preciso encostar. O primeiro tile da rota em que o alvo já está no alcance vira o destino; se ela já estiver no alcance, não se desloca. O disparo continua exigindo alvo no alcance e linha de visão; sem caminho até um tile dentro do alcance, ela não atira. Torres e outras entidades sem `Mover` não se deslocam e atacam apenas o que estiver no alcance.
 - **Suprimentos**: cada tropa tem inventário de 2 slots (arma e munição) e carrega no máximo 1 arma e 100 munições. A arma é obrigatória para atacar e cada disparo consome 1 munição.
 - **Máquina de estados**: a tropa fica `Idle` quando está com arma e munição; entra em `SeekingSupplies` ao nascer ou quando a munição chega a zero; e fica em `WaitingForSupplies` quando não há suprimentos disponíveis ou o depósito encontrado está vazio.
   - Ao nascer, busca 1 arma e 100 munições. Com munição zerada, volta a buscar uma recarga completa automaticamente.
