@@ -8,6 +8,7 @@
 #include "model/combat/WeaponComponents.hpp"
 #include "model/economy/InventoryComponents.hpp"
 #include "model/economy/InventorySystem.hpp"
+#include "model/economy/Market.hpp"
 #include "model/economy/ProductionComponents.hpp"
 #include "model/economy/Item.hpp"
 #include "model/player/PlayerComponents.hpp"
@@ -32,12 +33,29 @@ namespace {
     return entries;
 }
 
+using PriceTable = std::array<double, static_cast<std::size_t>(ItemId::Count)>;
+
+[[nodiscard]] double creditCostFor(BuildingType type, const PriceTable& prices)
+{
+    double total = 0.0;
+    for (const BuildingCost& cost : buildingCosts(type)) {
+        if (cost.item == ItemId::Count || cost.quantity <= 0) {
+            continue;
+        }
+        total += prices[itemIndex(cost.item)] * static_cast<double>(cost.quantity);
+    }
+    return total;
+}
+
 } // namespace
 
 BuildingSystem::BuildingSystem(core::EventBus& bus, ecs::Registry& world)
     : bus_(bus)
     , world_(world)
 {
+    for (const ItemId item : kAllItems) {
+        prices_[itemIndex(item)] = marketDefinition(item).basePrice;
+    }
     bus_.subscribe<events::DebugToggleRequested>([this](const events::DebugToggleRequested&) {
         debugMode_ = !debugMode_;
         for (const auto& [player, builder] : builders_) {
@@ -45,6 +63,13 @@ BuildingSystem::BuildingSystem(core::EventBus& bus, ecs::Registry& world)
             publishBar(player);
         }
         refreshPreviews();
+    });
+    bus_.subscribe<events::MarketPricesChanged>([this](const events::MarketPricesChanged& event) {
+        prices_ = event.prices;
+        for (const auto& [player, builder] : builders_) {
+            (void)builder;
+            publishBar(player);
+        }
     });
 }
 
@@ -265,7 +290,8 @@ void BuildingSystem::publishBar(PlayerId player) const
         const BuildingSpec spec = buildingSpec(type);
         const events::BuildLockReason reason = lockReason(player, type);
         bar.entries.push_back(events::BuildBarEntry{
-            type, spec.size, reason == events::BuildLockReason::None, reason, costEntries(type), debugMode_});
+            type, spec.size, reason == events::BuildLockReason::None, reason, costEntries(type), debugMode_,
+            creditCostFor(type, prices_)});
     }
     bus_.publish(bar);
 }

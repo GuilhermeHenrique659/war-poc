@@ -3,6 +3,7 @@
 #include "model/build/BuildingComponents.hpp"
 #include "model/combat/WeaponComponents.hpp"
 #include "model/economy/ProductionComponents.hpp"
+#include "model/economy/TradeComponents.hpp"
 
 #include <vector>
 
@@ -14,6 +15,9 @@ void completeBuilding(ecs::Registry& world, ecs::Entity entity, BuildingType typ
         return;
     }
     world.emplace<components::Building>(entity, type);
+    if (type == BuildingType::TradeCenter) {
+        world.emplace<components::TradeQuota>(entity);
+    }
     if (type == BuildingType::Tower) {
         const WeaponSpec cannon = weaponSpec(WeaponType::Cannon);
         world.emplace<components::Weapon>(entity, WeaponType::Cannon, cannon.damage, cannon.range);
@@ -58,6 +62,7 @@ void completeBuilding(ecs::Registry& world, ecs::Entity entity, BuildingType typ
     case BuildingType::Barracks:
     case BuildingType::Cruzador:
     case BuildingType::Tower:
+    case BuildingType::TradeCenter:
     case BuildingType::TrainingDummy:
         break;
     }

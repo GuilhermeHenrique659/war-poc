@@ -35,6 +35,7 @@ namespace view::build_layout {
     case model::BuildingType::ToolFactory:
     case model::BuildingType::WeaponFactory:
     case model::BuildingType::AmmoFactory:
+    case model::BuildingType::TradeCenter:
         return 24.0f;
     }
     return 24.0f;

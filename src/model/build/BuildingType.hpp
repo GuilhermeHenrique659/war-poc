@@ -25,6 +25,7 @@ enum class BuildingType {
     ToolFactory,
     WeaponFactory,
     AmmoFactory,
+    TradeCenter,
     TrainingDummy
 };
 
@@ -33,7 +34,8 @@ inline constexpr std::array kBuildingTypes{BuildingType::CommandCenter, Building
     BuildingType::Generator, BuildingType::Warehouse, BuildingType::Barracks, BuildingType::Cruzador,
     BuildingType::Tower, BuildingType::IronMine, BuildingType::CoalMine, BuildingType::Steelworks,
     BuildingType::CopperMine, BuildingType::ElectronicsFactory, BuildingType::ToolFactory,
-    BuildingType::WeaponFactory, BuildingType::AmmoFactory, BuildingType::TrainingDummy};
+    BuildingType::WeaponFactory, BuildingType::AmmoFactory, BuildingType::TradeCenter,
+    BuildingType::TrainingDummy};
 
 struct BuildingSpec {
     std::string_view label;
@@ -67,6 +69,7 @@ inline constexpr BuildingCosts kWeaponFactoryBuildingCost{
     {{ItemId::Steel, 200}, {ItemId::Iron, 200}, {ItemId::Electronics, 100}}};
 inline constexpr BuildingCosts kAmmoFactoryBuildingCost{
     {{ItemId::Steel, 200}, {ItemId::Iron, 200}, {ItemId::Copper, 100}}};
+inline constexpr BuildingCosts kTradeCenterBuildingCost{{{ItemId::Iron, 200}}};
 
 [[nodiscard]] constexpr const BuildingCosts& buildingCosts(BuildingType type)
 {
@@ -74,6 +77,8 @@ inline constexpr BuildingCosts kAmmoFactoryBuildingCost{
     case BuildingType::CommandCenter:
     case BuildingType::TrainingDummy:
         return kNoBuildingCost;
+    case BuildingType::TradeCenter:
+        return kTradeCenterBuildingCost;
     case BuildingType::Warehouse:
         return kWarehouseBuildingCost;
     case BuildingType::Wall:
@@ -136,6 +141,8 @@ inline constexpr BuildingCosts kAmmoFactoryBuildingCost{
         return BuildingSpec{"Fabrica de Armas", 3};
     case BuildingType::AmmoFactory:
         return BuildingSpec{"Fabrica de Municao", 3};
+    case BuildingType::TradeCenter:
+        return BuildingSpec{"Centro Comercial", 3};
     case BuildingType::TrainingDummy:
         return BuildingSpec{"Boneco de Treinamento", 1};
     }
@@ -172,6 +179,8 @@ inline constexpr BuildingCosts kAmmoFactoryBuildingCost{
     case BuildingType::ToolFactory:
     case BuildingType::WeaponFactory:
     case BuildingType::AmmoFactory:
+        return 12.0F;
+    case BuildingType::TradeCenter:
         return 12.0F;
     }
     return 0.0F;

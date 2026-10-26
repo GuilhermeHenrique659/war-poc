@@ -34,6 +34,8 @@ namespace view::ui {
     X(HudHealth, "hud.health") \
     X(HudMonthWeek, "hud.month_week") \
     X(HudDayClock, "hud.day_clock") \
+    X(HudCredit, "hud.credit") \
+    X(HudInterest, "hud.interest") \
     X(BuildBarHelpShortcuts, "buildbar.help.shortcuts") \
     X(BuildBarHelpConstruct, "buildbar.help.construct") \
     X(BuildBarHelpCancel, "buildbar.help.cancel") \
@@ -51,6 +53,7 @@ namespace view::ui {
     X(BuildBarShortcut, "buildbar.shortcut") \
     X(BuildBarCostEach, "buildbar.cost_each") \
     X(BuildBarCostEntry, "buildbar.cost_entry") \
+    X(BuildBarCredit, "buildbar.credit") \
     X(LockAlreadyBuilt, "lock.already_built") \
     X(LockRequiresCommandCenter, "lock.requires_command_center") \
     X(RecruitTitle, "recruit.title") \
@@ -75,6 +78,7 @@ namespace view::ui {
     X(LogisticsRouteItems, "logistics.route_items") \
     X(LogisticsAssign, "logistics.assign") \
     X(LogisticsUnassign, "logistics.unassign") \
+    X(TradeRow, "trade.row") \
     X(DebugFps, "debug.fps") \
     X(DebugScene, "debug.scene") \
     X(DebugCounts, "debug.counts") \
@@ -118,6 +122,7 @@ namespace view::ui {
     X(BuildingToolFactory, "building.tool_factory") \
     X(BuildingWeaponFactory, "building.weapon_factory") \
     X(BuildingAmmoFactory, "building.ammo_factory") \
+    X(BuildingTradeCenter, "building.trade_center") \
     X(BuildingTrainingDummy, "building.training_dummy") \
     X(UnitSoldier, "unit.soldier") \
     X(UnitBat, "unit.bat") \

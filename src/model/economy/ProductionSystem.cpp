@@ -1,5 +1,7 @@
 #include "model/economy/ProductionSystem.hpp"
 
+#include "core/Events.hpp"
+#include "model/components/Owner.hpp"
 #include "model/economy/InventoryComponents.hpp"
 #include "model/economy/InventorySystem.hpp"
 #include "model/economy/ProductionComponents.hpp"
@@ -10,6 +12,11 @@
 #include <vector>
 
 namespace model {
+
+ProductionSystem::ProductionSystem(core::EventBus& bus)
+    : bus_(bus)
+{
+}
 
 void ProductionSystem::update(ecs::Registry& world, float deltaSeconds)
 {
@@ -31,6 +38,9 @@ void ProductionSystem::update(ecs::Registry& world, float deltaSeconds)
         if (progress.inputRemainders.size() != production.inputs.size()) {
             progress.inputRemainders.assign(production.inputs.size(), 0.0F);
         }
+
+        const auto* owner = world.tryGet<components::Owner>(entity);
+        const PlayerId player = owner != nullptr ? owner->player : kNoPlayer;
 
         float productionTime = deltaSeconds;
         for (const ProductionInput& input : production.inputs) {
@@ -71,6 +81,9 @@ void ProductionSystem::update(ecs::Registry& world, float deltaSeconds)
             const int consumed = inputConsumption[index];
             if (consumed > 0) {
                 (void)InventorySystem::remove(*inventory, production.inputs[index].item, consumed);
+                if (owner != nullptr) {
+                    bus_.publish(events::ResourceConsumed{player, production.inputs[index].item, consumed});
+                }
             }
             const float accumulated = progress.inputRemainders[index]
                 + production.inputs[index].quantityPerSecond * productionTime;
@@ -78,6 +91,9 @@ void ProductionSystem::update(ecs::Registry& world, float deltaSeconds)
         }
         if (outputItems > 0) {
             (void)InventorySystem::add(*inventory, production.output, outputItems);
+            if (owner != nullptr) {
+                bus_.publish(events::ResourceProduced{player, production.output, outputItems});
+            }
         }
         progress.outputRemainder = accumulatedOutput - static_cast<float>(outputItems);
     });

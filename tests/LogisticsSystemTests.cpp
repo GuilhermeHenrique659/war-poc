@@ -32,6 +32,8 @@ protected:
         auto& inventory = world_.emplace<model::components::Inventory>(player, std::size_t{32});
         EXPECT_EQ(model::InventorySystem::add(inventory, model::ItemId::Iron, 500), 500);
         EXPECT_EQ(model::InventorySystem::add(inventory, model::ItemId::Electronics, 500), 500);
+        bus_.subscribe<events::ResourceConsumed>(
+            [this](const events::ResourceConsumed& event) { consumed_.push_back(event); });
     }
 
     model::ecs::Entity makeBuilding(
@@ -75,6 +77,7 @@ protected:
     model::BuildingSystem buildings_;
     model::UnitSystem units_;
     model::LogisticsSystem logistics_;
+    std::vector<events::ResourceConsumed> consumed_;
     static constexpr model::PlayerId kPlayer = 1;
 };
 
@@ -132,6 +135,60 @@ TEST_F(LogisticsSystemTest, RecruitsIdleDronesAtWarehousesAndAssignsThemToOwnedR
     ASSERT_NE(routes, nullptr);
     ASSERT_EQ(routes->routes.size(), 1U);
     EXPECT_EQ(routes->routes.front().assignedDrones, 1);
+}
+
+TEST_F(LogisticsSystemTest, CreatesAutomaticRoutesFromProducersToTradeCenters)
+{
+    // Given a Trade Center owned by the player.
+    const auto center = makeBuilding(model::BuildingType::TradeCenter, kPlayer, {20, 20}, model::ItemId::Count);
+    publishPlaced(center, model::BuildingType::TradeCenter, kPlayer);
+
+    // When the player places an iron mine.
+    const auto mine = makeBuilding(model::BuildingType::IronMine, kPlayer, {0, 0}, model::ItemId::Iron);
+    publishPlaced(mine, model::BuildingType::IronMine, kPlayer);
+
+    // Then the mine delivers its iron to the Trade Center.
+    const auto* routes = world_.tryGet<model::components::LogisticsRoutes>(mine);
+    ASSERT_NE(routes, nullptr);
+    ASSERT_EQ(routes->routes.size(), 1U);
+    EXPECT_EQ(routes->routes[0].destination, center);
+    EXPECT_EQ(routes->routes[0].item, model::ItemId::Iron);
+}
+
+TEST_F(LogisticsSystemTest, ConnectsExistingProducersWhenATradeCenterIsPlaced)
+{
+    // Given an iron mine already placed.
+    const auto mine = makeBuilding(model::BuildingType::IronMine, kPlayer, {0, 0}, model::ItemId::Iron);
+    publishPlaced(mine, model::BuildingType::IronMine, kPlayer);
+
+    // When the player places a Trade Center.
+    const auto center = makeBuilding(model::BuildingType::TradeCenter, kPlayer, {20, 20}, model::ItemId::Count);
+    publishPlaced(center, model::BuildingType::TradeCenter, kPlayer);
+
+    // Then the existing mine gets a route to the new Trade Center.
+    const auto* routes = world_.tryGet<model::components::LogisticsRoutes>(mine);
+    ASSERT_NE(routes, nullptr);
+    ASSERT_EQ(routes->routes.size(), 1U);
+    EXPECT_EQ(routes->routes[0].destination, center);
+    EXPECT_EQ(routes->routes[0].item, model::ItemId::Iron);
+}
+
+TEST_F(LogisticsSystemTest, RecruitReportsTheConsumedMaterials)
+{
+    // Given an owned warehouse and enough materials.
+    const auto warehouse = makeBuilding(model::BuildingType::Warehouse, kPlayer, {10, 10}, model::ItemId::Count);
+    consumed_.clear();
+
+    // When the player recruits a transport drone.
+    ASSERT_TRUE(logistics_.recruitDrone(kPlayer, warehouse).has_value());
+
+    // Then the paid iron and electronics are reported to the economy.
+    ASSERT_EQ(consumed_.size(), 2U);
+    EXPECT_EQ(consumed_[0].player, kPlayer);
+    EXPECT_EQ(consumed_[0].item, model::ItemId::Iron);
+    EXPECT_EQ(consumed_[0].quantity, model::components::kTransportDroneIronCost);
+    EXPECT_EQ(consumed_[1].item, model::ItemId::Electronics);
+    EXPECT_EQ(consumed_[1].quantity, model::components::kTransportDroneElectronicsCost);
 }
 
 TEST_F(LogisticsSystemTest, DoesNotRecruitDroneWhenPlayerCannotAffordIt)

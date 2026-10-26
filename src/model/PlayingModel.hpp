@@ -7,9 +7,11 @@
 #include "model/build/ConstructionSystem.hpp"
 #include "model/combat/DamageSystem.hpp"
 #include "model/combat/ProjectileSystem.hpp"
+#include "model/economy/EconomySystem.hpp"
 #include "model/economy/InventoryPanelSystem.hpp"
 #include "model/economy/LogisticsSystem.hpp"
 #include "model/economy/ProductionSystem.hpp"
+#include "model/economy/TradeSystem.hpp"
 #include "model/units/CombatSystem.hpp"
 #include "model/units/GenealogySystem.hpp"
 #include "model/selection/SelectionSystem.hpp"
@@ -46,6 +48,7 @@ private:
     void resetWorld();
     void createLocalPlayer(const std::string& playerName);
     void publishLogisticsPanel(PlayerId player) const;
+    void publishTradePanel(PlayerId player) const;
 
     core::EventBus& bus_;
     TimeSystem time_;
@@ -54,6 +57,8 @@ private:
     PlayerId localPlayerId_ = kNoPlayer;
     std::optional<WorldMap> worldMap_;
     std::unique_ptr<ecs::Registry> world_;
+    std::unique_ptr<EconomySystem> economy_;
+    std::unique_ptr<TradeSystem> trade_;
     // Systems hold references to world_ (and units_ to buildings_); preserve declaration order.
     std::unique_ptr<BuildingSystem> buildings_;
     std::unique_ptr<UnitSystem> units_;
@@ -70,6 +75,7 @@ private:
     std::unique_ptr<InventoryPanelSystem> inventoryPanels_;
     ProductionSystem production_;
     std::unordered_map<PlayerId, ecs::Entity> logisticsPanels_;
+    std::unordered_map<PlayerId, ecs::Entity> tradePanels_;
 };
 
 } // namespace model

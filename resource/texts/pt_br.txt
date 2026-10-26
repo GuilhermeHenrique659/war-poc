@@ -27,6 +27,8 @@ hud.player=Jogador
 hud.health=Vida {0}/{1}
 hud.month_week=Mês {0} · Semana {1}
 hud.day_clock=Dia {2} · {0:02}:{1:02}
+hud.credit=Crédito: {0:.0f}
+hud.interest=Juros/semana: {0:.0f}
 
 buildbar.help.shortcuts=1-9 ou clique na barra: escolher construcao
 buildbar.help.construct=Botao esquerdo: construir (arraste para muros)
@@ -45,6 +47,7 @@ buildbar.size={0}x{1}
 buildbar.shortcut=[{0}]
 buildbar.cost_each={0} cada recurso
 buildbar.cost_entry={0} {1}
+buildbar.credit=EC {0:.0f}
 
 lock.already_built=Ja construido
 lock.requires_command_center=Requer Centro
@@ -73,6 +76,8 @@ logistics.route=Rota #{0} -> {1}
 logistics.route_items={0}  |  Drones: {1}
 logistics.assign=Atribuir
 logistics.unassign=Remover
+
+trade.row={0}  preço {1:.1f}  cota {2}/{3}  estoque {4}
 
 debug.fps=FPS: {0} ({1:.2f} ms)
 debug.scene=Cena: {0}
@@ -122,6 +127,7 @@ building.electronics_factory=Fabrica de Eletronicos
 building.tool_factory=Fabrica de Ferramentas
 building.weapon_factory=Fabrica de Armas
 building.ammo_factory=Fabrica de Municao
+building.trade_center=Centro Comercial
 building.training_dummy=Boneco de Treinamento
 
 unit.soldier=Soldado

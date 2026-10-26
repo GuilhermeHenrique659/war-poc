@@ -13,6 +13,7 @@
 
 #include <gtest/gtest.h>
 
+#include <array>
 #include <cmath>
 #include <limits>
 #include <vector>
@@ -33,6 +34,8 @@ protected:
         });
         bus_.subscribe<events::ConstructionProgressChanged>(
             [this](const events::ConstructionProgressChanged& event) { progress_.push_back(event); });
+        bus_.subscribe<events::ResourceConsumed>(
+            [this](const events::ResourceConsumed& event) { consumed_.push_back(event); });
 
         const auto playerEntity = world_.create();
         world_.emplace<model::components::PlayerProfile>(playerEntity, kPlayer, "Tester");
@@ -88,6 +91,7 @@ protected:
     std::vector<events::BuildingPlaced> placements_;
     std::vector<events::ConstructionStarted> sites_;
     std::vector<events::ConstructionProgressChanged> progress_;
+    std::vector<events::ResourceConsumed> consumed_;
     static constexpr model::PlayerId kPlayer = 1;
 };
 
@@ -254,5 +258,48 @@ TEST_F(ConstructionSystemTest, CompletesOnceAndPublishesTheBuildingPlaced)
     EXPECT_EQ(placed.type, model::BuildingType::Wall);
     EXPECT_EQ(placed.origin, (model::GridPos{10, 10}));
     EXPECT_EQ(placed.size, 1);
+    EXPECT_NE(world_.tryGet<model::components::Building>(wall), nullptr);
+}
+
+TEST_F(ConstructionSystemTest, ReportsEveryConsumedMaterialForTheOwner)
+{
+    // Given a fully supplied wall.
+    placeCommandCenter();
+    const auto wall = startSite(model::BuildingType::Wall, {10, 10});
+    deliverAll(wall, model::BuildingType::Wall);
+    consumed_.clear();
+
+    // When half of the nominal duration elapses.
+    construction_.update(1.5F);
+
+    // Then every consumed unit is reported once with the site owner.
+    EXPECT_FALSE(consumed_.empty());
+    std::array<int, model::kItemCount> total{};
+    for (const events::ResourceConsumed& event : consumed_) {
+        EXPECT_EQ(event.player, kPlayer);
+        const auto index = static_cast<std::size_t>(event.item);
+        ASSERT_LT(index, total.size());
+        total[index] += event.quantity;
+        EXPECT_GT(event.quantity, 0);
+    }
+    for (const model::ItemId item : model::kConstructionMaterials) {
+        EXPECT_EQ(total[static_cast<std::size_t>(item)], 50) << "item " << static_cast<int>(item);
+    }
+}
+
+TEST_F(ConstructionSystemTest, DebugModeDoesNotReportConsumedMaterials)
+{
+    // Given debug mode and a fully supplied wall.
+    placeCommandCenter();
+    const auto wall = startSite(model::BuildingType::Wall, {10, 10});
+    deliverAll(wall, model::BuildingType::Wall);
+    bus_.publish(events::DebugToggleRequested{});
+    consumed_.clear();
+
+    // When the wall is built.
+    construction_.update(3.0F);
+
+    // Then nothing was consumed, so nothing is reported.
+    EXPECT_TRUE(consumed_.empty());
     EXPECT_NE(world_.tryGet<model::components::Building>(wall), nullptr);
 }

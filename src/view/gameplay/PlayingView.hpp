@@ -4,6 +4,7 @@
 #include "view/build/BuildBarView.hpp"
 #include "view/economy/InventoryPanelView.hpp"
 #include "view/economy/LogisticsPanelView.hpp"
+#include "view/economy/TradePanelView.hpp"
 #include "view/gameplay/TimeHudView.hpp"
 #include "view/player/PlayerHudView.hpp"
 #include "view/units/RecruitPanelView.hpp"
@@ -26,6 +27,7 @@ private:
     std::unique_ptr<BuildBarView> buildBar_;
     std::unique_ptr<InventoryPanelView> inventoryPanel_;
     std::unique_ptr<LogisticsPanelView> logisticsPanel_;
+    std::unique_ptr<TradePanelView> tradePanel_;
     std::unique_ptr<RecruitPanelView> recruitPanel_;
 };
 

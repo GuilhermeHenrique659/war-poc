@@ -109,6 +109,11 @@ bool ConstructionDroneSystem::recruit(PlayerId player)
         (void)InventorySystem::add(*inventory, ItemId::Iron, removedIron);
         (void)InventorySystem::add(*inventory, ItemId::Electronics, removedElectronics);
     }
+    if (drone && !debugMode_) {
+        bus_.publish(events::ResourceConsumed{player, ItemId::Iron, kConstructionDroneIronCost});
+        bus_.publish(
+            events::ResourceConsumed{player, ItemId::Electronics, kConstructionDroneElectronicsCost});
+    }
     return drone.has_value();
 }
 

@@ -27,6 +27,7 @@ constexpr Color kBarBorder{70, 70, 90, 255};
 constexpr Color kSlotColor{50, 50, 62, 255};
 constexpr Color kSlotSelected{120, 70, 40, 255};
 constexpr Color kSlotDisabled{36, 36, 44, 255};
+constexpr Color kCreditColor{150, 215, 140, 255};
 constexpr int kLabelSize = 18;
 constexpr int kDetailSize = 14;
 constexpr int kCostSize = 10;
@@ -111,6 +112,13 @@ void BuildBarView::drawSlot(std::size_t index) const
     ui::Text{ui::TextStyle{kCostSize, LIGHTGRAY}}.draw(
         Rectangle{textX, detailY + static_cast<float>(kDetailSize) + 2.0F, textWidth, static_cast<float>(kCostSize)},
         ui::costText(entry.costs, entry.free));
+
+    if (!entry.free && entry.creditCost > 0.0) {
+        ui::Text{ui::TextStyle{kCostSize, kCreditColor}}.draw(
+            Rectangle{textX, detailY + static_cast<float>(kDetailSize) + static_cast<float>(kCostSize) + 4.0F,
+                textWidth, static_cast<float>(kCostSize)},
+            ui::buildCreditLabel(entry.creditCost));
+    }
 
     if (index < build_bar_layout::kMaxShortcuts) {
         ui::Text{ui::TextStyle{kDetailSize, GRAY, ui::TextAlign::Right}}.draw(

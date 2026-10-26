@@ -21,6 +21,7 @@ TEST_F(GameTextTest, TranslatesBuildingNames)
 {
     EXPECT_EQ(view::ui::buildingName(model::BuildingType::CommandCenter), "Centro de Comando");
     EXPECT_EQ(view::ui::buildingName(model::BuildingType::Wall), "Muro");
+    EXPECT_EQ(view::ui::buildingName(model::BuildingType::TradeCenter), "Centro Comercial");
     EXPECT_EQ(view::ui::buildingName(model::BuildingType::TrainingDummy), "Boneco de Treinamento");
 }
 
@@ -116,4 +117,35 @@ TEST_F(GameTextTest, CollapsesTheCommonCostIntoOneLine)
         {model::ItemId::Tools, 100}};
 
     EXPECT_EQ(view::ui::costText(costs, false), "100 cada recurso");
+}
+
+TEST_F(GameTextTest, FormatsTheCreditBalanceWithoutDecimals)
+{
+    EXPECT_EQ(view::ui::creditLabel(1000.0), "Crédito: 1000");
+    EXPECT_EQ(view::ui::creditLabel(-120.0), "Crédito: -120");
+}
+
+TEST_F(GameTextTest, FormatsTheWeeklyInterestWithoutDecimals)
+{
+    EXPECT_EQ(view::ui::weeklyInterestLabel(0.0), "Juros/semana: 0");
+    EXPECT_EQ(view::ui::weeklyInterestLabel(6.0), "Juros/semana: 6");
+}
+
+TEST_F(GameTextTest, FormatsTheEstimatedCreditOfABuild)
+{
+    EXPECT_EQ(view::ui::buildCreditLabel(3800.0), "EC 3800");
+}
+
+TEST_F(GameTextTest, FormatsATradePanelRow)
+{
+    // Given an iron row with part of the weekly quota already sold.
+    events::TradeRow row{};
+    row.item = model::ItemId::Iron;
+    row.price = 1.5;
+    row.remainingQuota = 700;
+    row.weeklyQuota = 1000;
+    row.stock = 250;
+
+    // Then the row names the item, the price, the quota and the stock.
+    EXPECT_EQ(view::ui::tradeRowText(row), "Ferro  preço 1.5  cota 700/1000  estoque 250");
 }

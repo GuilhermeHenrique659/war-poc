@@ -6,11 +6,27 @@
 #include "model/economy/InventoryComponents.hpp"
 #include "model/economy/InventorySystem.hpp"
 #include "model/economy/Item.hpp"
+#include "model/economy/Market.hpp"
 #include "model/economy/ProductionComponents.hpp"
 
 #include <algorithm>
 
 using buildingsystem_test::BuildingSystemTest;
+
+namespace {
+
+[[nodiscard]] const events::BuildBarEntry* barEntry(
+    const events::BuildBarChanged& bar, model::BuildingType type)
+{
+    for (const events::BuildBarEntry& entry : bar.entries) {
+        if (entry.type == type) {
+            return &entry;
+        }
+    }
+    return nullptr;
+}
+
+} // namespace
 
 TEST_F(BuildingSystemTest, RequiresACommandCenterBeforeWallsCanBeBuilt)
 {
@@ -329,4 +345,38 @@ TEST_F(BuildingSystemTest, DebugModeMakesConstructionFree)
              model::ItemId::Copper, model::ItemId::Electronics, model::ItemId::Tools}) {
         EXPECT_EQ(model::InventorySystem::amount(*playerInventory_, item), 0);
     }
+}
+
+TEST_F(BuildingSystemTest, BuildBarShowsTheCreditCostAtTheCurrentPrices)
+{
+    // Given a player whose build bar was published at the base prices.
+    buildings_.initializePlayer(kPlayer);
+    buildings_.select(kPlayer, model::BuildingType::Wall);
+    ASSERT_FALSE(buildBars_.empty());
+
+    // Then a wall costs 100 of each common material at its base price.
+    const events::BuildBarEntry* wall = barEntry(buildBars_.back(), model::BuildingType::Wall);
+    ASSERT_NE(wall, nullptr);
+    EXPECT_DOUBLE_EQ(wall->creditCost, 100.0 * (1.0 + 1.0 + 5.0 + 1.0 + 5.0 + 25.0));
+}
+
+TEST_F(BuildingSystemTest, BuildBarRefreshesTheCreditCostWhenPricesChange)
+{
+    // Given a player whose build bar was published at the base prices.
+    buildings_.initializePlayer(kPlayer);
+    buildings_.select(kPlayer, model::BuildingType::Wall);
+    ASSERT_FALSE(buildBars_.empty());
+
+    // When the market doubles the iron price.
+    events::MarketPricesChanged prices{};
+    for (const model::ItemId item : model::kAllItems) {
+        prices.prices[model::itemIndex(item)] = model::marketDefinition(item).basePrice;
+    }
+    prices.prices[model::itemIndex(model::ItemId::Iron)] = 2.0;
+    bus_.publish(prices);
+
+    // Then the wall estimate follows the new price.
+    const events::BuildBarEntry* wall = barEntry(buildBars_.back(), model::BuildingType::Wall);
+    ASSERT_NE(wall, nullptr);
+    EXPECT_DOUBLE_EQ(wall->creditCost, 100.0 * (2.0 + 1.0 + 5.0 + 1.0 + 5.0 + 25.0));
 }

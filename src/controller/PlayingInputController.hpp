@@ -47,6 +47,7 @@ private:
     std::vector<events::RecruitEntry> panelEntries_; // Empty while the recruit panel is closed.
     events::InventoryPanelChanged inventoryPanel_;
     events::LogisticsPanelChanged logisticsPanel_;
+    events::TradePanelChanged tradePanel_;
     std::optional<std::size_t> inventoryDragSlot_;
     bool inventoryDragFromPlayer_ = false;
     model::PlayerId localPlayerId_ = model::kNoPlayer;

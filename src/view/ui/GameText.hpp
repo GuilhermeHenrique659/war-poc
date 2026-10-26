@@ -26,6 +26,13 @@ namespace view::ui {
 [[nodiscard]] std::string dateText(const events::TimeChanged& time);
 [[nodiscard]] std::string dayClockText(const events::TimeChanged& time);
 
+// Energy credit formatting. The balance and the interest keep no decimals; the build estimate is
+// prefixed with the credit unit and the trade row joins price, quota and stock.
+[[nodiscard]] std::string creditLabel(double balance);
+[[nodiscard]] std::string weeklyInterestLabel(double interest);
+[[nodiscard]] std::string buildCreditLabel(double creditCost);
+[[nodiscard]] std::string tradeRowText(const events::TradeRow& row);
+
 // Formats a material list, or the free label when costs are waived.
 [[nodiscard]] std::string costText(const std::vector<events::CostEntry>& costs, bool free);
 

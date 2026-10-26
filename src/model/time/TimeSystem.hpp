@@ -20,9 +20,12 @@ public:
 
 private:
     void publish() const;
+    void publishWeeks();
+    [[nodiscard]] std::uint32_t absoluteWeek() const;
 
     core::EventBus& bus_;
     GameClock clock_;
+    std::uint32_t lastWeek_ = 1;
 };
 
 } // namespace model

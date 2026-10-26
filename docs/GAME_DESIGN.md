@@ -20,8 +20,8 @@ Documento vivo com as regras do jogo. Itens marcados como **TBD** ainda não for
 - **1 dia = 600 ticks** (10 minutos reais). O contador do dia vai de `00:00` a `09:59` e então vira o dia seguinte em `00:00`.
 - **1 semana = 7 dias**. **1 mês = 4 semanas = 28 dias**. Não há ano nesta etapa; depois do dia 28 o calendário volta ao dia 1 da semana 1 do mês seguinte.
 - Cada partida começa em **Mês 1, Semana 1, Dia 1, 00:00**. O relógio reinicia ao iniciar uma nova partida e ao descartar a partida atual.
-- O canto superior direito mostra a data (`Mês X · Semana Y`) e o tempo decorrido do dia (`Dia Z · MM:SS`). O painel de vida do jogador fica logo abaixo; os painéis de logística e recrutamento ficam abaixo dele.
-- O relógio ainda não altera as regras de produção, construção ou combate; essas regras continuam usando segundos.
+- O canto superior direito mostra a data (`Mês X · Semana Y`), o tempo decorrido do dia (`Dia Z · MM:SS`), o crédito e os juros da semana. O painel de vida do jogador fica logo abaixo; os painéis de logística, comércio e recrutamento ficam abaixo dele.
+- O relógio não altera as regras de produção, construção ou combate, que continuam usando segundos. A virada de semana fecha o mercado (recalcula preços e renova as cotas) e cobra os juros da dívida.
 
 ## Jogador
 - Cada partida cria a entidade ECS de identidade do jogador local, com o `PlayerId` gerado pelo Model, o nome configurado e o componente de dono. Ela ainda não tem posição, vida, combate nem representação visual.
@@ -34,7 +34,7 @@ Documento vivo com as regras do jogo. Itens marcados como **TBD** ainda não for
 - No sandbox atual há somente o jogador local. O `PlayerId` é propagado aos Controllers e Views pelo event bus, permitindo que novos jogadores sejam adicionados depois.
 
 ## Modo debug
-- `F3` liga e desliga o modo debug em qualquer cena. Quando ativo, o custo em recursos de todas as construções e unidades é zero. A construção ignora a entrega de materiais, mas mantém o tempo nominal; a interface mostra `Gratis`, e o recrutamento de drones também não exige nem desconta recursos.
+- `F3` liga e desliga o modo debug em qualquer cena. Quando ativo, o custo em recursos de todas as construções e unidades é zero. A construção ignora a entrega de materiais, mas mantém o tempo nominal; a interface mostra `Gratis`, e o recrutamento de drones também não exige nem desconta recursos. O modo debug também zera o custo em crédito energético e não registra oferta nem demanda no mercado.
 - Painel no canto superior esquerdo com FPS e tempo do frame (verde ≥ 55, amarelo ≥ 30, vermelho abaixo disso) e a cena atual. Durante a partida mostra também a quantidade de construções e tropas, a posição e o zoom da câmera, e o tile sob o mouse.
 - Em cada entidade da partida aparecem:
   - o contorno da área ocupada no chão (ciano);
@@ -67,13 +67,42 @@ Documento vivo com as regras do jogo. Itens marcados como **TBD** ainda não for
   - Fábrica de Munição: consome 1 aço/s e 1 cobre/s e produz 0,5 munição/s.
 - Construções têm custo e tempo nominal de construção. A colocação apenas cria um canteiro (verde/vermelho na prévia não depende de recursos) e não desconta nada do jogador: os materiais são entregues ao canteiro por drones de construção e consumidos proporcionalmente ao progresso. Se faltar qualquer material, o progresso pausa até a entrega; não é preciso ter todos os recursos para começar. O Centro de Comando é a exceção e fica pronto instantaneamente. O recrutamento de tropas continua instantâneo, requer Quartel e não tem custo nem limite populacional.
 - Cada Centro de Comando colocado concede 1 drone de construção grátis ao lado dele. Mais drones de construção podem ser recrutados no Centro de Comando por 50 de ferro + 50 de eletrônicos, sem limite, pagos do inventário do próprio Centro. O drone de construção é uma unidade logística sem combate: busca o material faltante no Armazém mais próximo que tenha estoque e, se nenhum Armazém tiver, no Centro de Comando mais próximo; entrega no canteiro e repete até a construção terminar. Cada viagem carrega até 10 unidades de um recurso. O tempo nominal é mantido mesmo com vários drones; mais drones só reduzem a pausa por falta de material.
-- No modo debug, a construção ignora os materiais, mas continua respeitando o tempo nominal.
+- No modo debug, a construção ignora os materiais, mas continua respeitando o tempo nominal. O modo debug também zera os custos em crédito energético e não registra oferta nem demanda no mercado.
 - Casa e Gerador permanecem como estruturas sem efeitos econômicos nesta etapa. Tropas de combate recebem um inventário de 2 slots para arma e munição.
 - O Depósito existente passa a ser chamado **Armazém**, mantém sua área 2x2 e inventário de 64 slots, custa 100 de ferro e permite recrutar drones de transporte. Cada drone é recrutado instantaneamente e custa 50 de ferro e 50 eletrônicos, sem limite.
 - Cada construção produtora cria rotas de saída para todos os Armazéns do mesmo jogador e para as construções do mesmo jogador que consomem seu produto. Ao criar um Armazém ou uma construção consumidora, também são criadas rotas de produtores existentes para ela. Cada rota tem ID único, origem, destino, item e quantidade de drones atribuídos; sua lista pertence à construção de origem.
 - Um drone de transporte é uma unidade logística com dono, sem combate nem ordens de tropa. É recrutado no Armazém e pode ser atribuído ou desatribuído de uma rota pela interface da construção de origem. Ao desatribuir um drone que carrega itens, ele retorna à origem e devolve a carga antes de ficar ocioso. O drone percorre continuamente origem → destino → origem a 2 tiles/s, usando os caminhos do mapa.
 - Cada drone tem inventário de 10 slots, com pilhas de até 100 itens. Ele carrega o produto da origem até preencher o inventário ou esgotar o estoque disponível, descarrega no destino o que couber e mantém a carga restante se o destino estiver cheio. Sem produto, aguarda na origem; se não houver espaço no destino, aguarda no destino para tentar descarregar novamente.
 - O estado visual do drone é `Unloaded` quando o inventário está vazio e `Loaded` quando contém qualquer item.
+
+## Crédito energético e mercado
+- Todo recurso tem um preço em **crédito energético (EC)**, a moeda do jogo. O crédito é **adicional** aos materiais: consumir um recurso desconta o item do inventário e cobra o preço de mercado em EC.
+- Todo jogador começa com **1.000 EC**. O saldo pode acumular ou ficar negativo; não existe falência no sandbox.
+- O consumo de materiais por produção, construção e recrutamento de drones cobra o preço vigente por unidade. A produção de itens não cobra nada: apenas registra oferta para o mercado. A cobrança da construção é proporcional ao material consumido, não à colocação do canteiro.
+- O preço fica fixo durante a semana. Quando a semana fecha:
+  - `demanda = consumo interno + vendas externas`;
+  - `oferta = produção`;
+  - `fator = clamp((demanda + profundidade) / (oferta + profundidade), 0.5, 2.0)`;
+  - `preço = preço base × fator`;
+  - os contadores de oferta e demanda zeram. Sem fluxos na semana, o preço volta ao valor base.
+- Dívida paga **5% de juros por semana**, arredondado para cima e somado ao saldo negativo. Saldo positivo não rende juros.
+- O **Centro Comercial** é do jogador e determina a demanda externa: cada centro compra automaticamente o estoque armazenado até a **cota semanal por item**, ao preço da semana. A cota renova a cada semana. Itens podem chegar por transferência manual ou pelas rotas automáticas de drones.
+- Centro Comercial: área 3x3, custo de 200 ferro, 12 s, requer Centro de Comando, 500 de vida e inventário de 64 slots. Cada centro tem a própria cota.
+- Tabela de preços (EC por unidade):
+
+| Item | Preço base | Profundidade | Cota semanal |
+|---|---:|---:|---:|
+| Ferro | 1 | 500 | 1000 |
+| Carvão | 1 | 500 | 800 |
+| Aço | 5 | 300 | 500 |
+| Cobre | 1 | 400 | 600 |
+| Eletrônicos | 5 | 150 | 250 |
+| Ferramentas | 25 | 80 | 100 |
+| Arma | 80 | 50 | 500 |
+| Munição | 2 | 500 | 3000 |
+
+- A interface mostra o crédito e os juros da semana no painel do jogador, o custo estimado em EC na barra de construção e, ao selecionar um Centro Comercial, preço, cota restante/total e estoque de cada item.
+- **TBD**: consumo de munição em combate entrar no mercado como demanda.
 
 ## Construção
 - Barra de construção no rodapé da tela: clique (ou teclas `1`-`9`) seleciona a estrutura. Clicar de novo na mesma desmarca.
@@ -102,6 +131,7 @@ Documento vivo com as regras do jogo. Itens marcados como **TBD** ainda não for
 | Fábrica de Ferramentas | 3x3 | 200 aço, 200 ferro, 100 eletrônicos | 12 s | Requer Centro de Comando; inventário de 64 slots; consome 1 aço/s e 1 eletrônico/s e produz 0,5 ferramenta/s. |
 | Fábrica de Armas | 3x3 | 200 aço, 200 ferro, 100 eletrônicos | 12 s | Requer Centro de Comando; inventário de 64 slots; consome 1 aço/s, 1 eletrônico/s e 1 ferramenta/s e produz 0,5 arma/s. |
 | Fábrica de Munição | 3x3 | 200 aço, 200 ferro, 100 cobre | 12 s | Requer Centro de Comando; inventário de 64 slots; consome 1 aço/s e 1 cobre/s e produz 0,5 munição/s. |
+| Centro Comercial | 3x3 | 200 ferro | 12 s | Requer Centro de Comando; inventário de 64 slots; vende o estoque automaticamente até a cota semanal. |
 
 - Clicar numa construção pronta abre seu inventário para consulta e transferência ao jogador.
 - Enquanto a construção não termina, o prédio aparece como um fantasma translúcido com uma barra de progresso acima; só ao concluir ele recebe o comportamento funcional (produção, arma, recrutamento etc.) e passa a ser um alvo válido como construção pronta. Um canteiro tem vida e pode ser destruído; ao ser destruído, libera a área e o progresso é perdido.

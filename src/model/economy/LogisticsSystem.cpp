@@ -71,18 +71,21 @@ void LogisticsSystem::onBuildingPlaced(const events::BuildingPlaced& event)
             if (destination == event.entity || !ownedBy(destination, owner->player)) {
                 return;
             }
-            if (target.type == BuildingType::Warehouse || matchesInput(destination, production->output)) {
+            if (target.type == BuildingType::Warehouse || target.type == BuildingType::TradeCenter
+                || matchesInput(destination, production->output)) {
                 createRoute(event.entity, destination, production->output);
             }
         });
     }
 
-    if (building->type == BuildingType::Warehouse || (production != nullptr && !production->inputs.empty())) {
+    if (building->type == BuildingType::Warehouse || building->type == BuildingType::TradeCenter
+        || (production != nullptr && !production->inputs.empty())) {
         world_.each<components::Production>([&](ecs::Entity source, const components::Production& producer) {
             if (source == event.entity || !ownedProduction(source)) {
                 return;
             }
-            const bool warehouse = building->type == BuildingType::Warehouse;
+            const bool warehouse = building->type == BuildingType::Warehouse
+                || building->type == BuildingType::TradeCenter;
             const bool matchingInput = matchesInput(event.entity, producer.output);
             if (warehouse || matchingInput) {
                 createRoute(source, event.entity, producer.output);
@@ -219,6 +222,11 @@ std::optional<ecs::Entity> LogisticsSystem::recruitDrone(PlayerId player, ecs::E
     if (!drone && !debugMode_) {
         (void)InventorySystem::add(*inventory, ItemId::Iron, removedIron);
         (void)InventorySystem::add(*inventory, ItemId::Electronics, removedElectronics);
+    }
+    if (drone && !debugMode_) {
+        bus_.publish(events::ResourceConsumed{player, ItemId::Iron, components::kTransportDroneIronCost});
+        bus_.publish(
+            events::ResourceConsumed{player, ItemId::Electronics, components::kTransportDroneElectronicsCost});
     }
     return drone;
 }

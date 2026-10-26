@@ -5,6 +5,7 @@
 #include "view/build/BuildBarLayout.hpp"
 #include "view/economy/InventoryPanelLayout.hpp"
 #include "view/economy/LogisticsPanelLayout.hpp"
+#include "view/economy/TradePanelLayout.hpp"
 #include "view/IsoProjection.hpp"
 #include "view/units/RecruitPanelLayout.hpp"
 
@@ -49,12 +50,18 @@ PlayingInputController::PlayingInputController(core::EventBus& bus)
             logisticsPanel_ = e;
         }
     });
+    bus_.subscribe<events::TradePanelChanged>([this](const events::TradePanelChanged& e) {
+        if (e.player == localPlayerId_) {
+            tradePanel_ = e;
+        }
+    });
     bus_.subscribe<events::WorldReset>([this](const events::WorldReset&) {
         lastTile_.reset();
         placing_ = false;
         panelEntries_.clear();
         inventoryPanel_ = {};
         logisticsPanel_ = {};
+        tradePanel_ = {};
         inventoryDragSlot_.reset();
     });
 }
@@ -222,6 +229,22 @@ void PlayingInputController::handlePanelMouse(Vector2 mouse)
                         localPlayerId_, logisticsPanel_.building, route.id});
                     return;
                 }
+            }
+            return;
+        }
+    }
+
+    if (tradePanel_.open) {
+        const int screenWidth = GetScreenWidth();
+        const Rectangle tradeBounds = view::trade_panel_layout::panelBounds(tradePanel_.rows.size(), screenWidth);
+        if (CheckCollisionPointRec(mouse, tradeBounds)) {
+            if (!IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
+                return;
+            }
+            const Rectangle close
+                = view::trade_panel_layout::closeBounds(tradePanel_.rows.size(), screenWidth);
+            if (CheckCollisionPointRec(mouse, close)) {
+                bus_.publish(events::SelectionClearRequested{localPlayerId_});
             }
             return;
         }

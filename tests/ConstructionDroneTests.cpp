@@ -38,6 +38,9 @@ protected:
         bus_.subscribe<events::DroneSpawned>([this](const events::DroneSpawned& event) {
             spawns_.push_back(event);
         });
+        bus_.subscribe<events::ResourceConsumed>([this](const events::ResourceConsumed& event) {
+            consumed_.push_back(event);
+        });
 
         const auto playerEntity = world_.create();
         world_.emplace<model::components::PlayerProfile>(playerEntity, kPlayer, "Tester");
@@ -105,6 +108,7 @@ protected:
     std::vector<events::BuildingPlaced> placements_;
     std::vector<events::ConstructionStarted> sites_;
     std::vector<events::DroneSpawned> spawns_;
+    std::vector<events::ResourceConsumed> consumed_;
     static constexpr model::PlayerId kPlayer = 1;
 };
 
@@ -145,6 +149,27 @@ TEST_F(ConstructionDroneTest, RecruitCostsFiftyIronAndFiftyElectronicsFromTheCom
     EXPECT_EQ(amountIn(center, model::ItemId::Iron), 450);
     EXPECT_EQ(amountIn(center, model::ItemId::Electronics), 50);
     EXPECT_EQ(droneCount(), 2);
+}
+
+TEST_F(ConstructionDroneTest, RecruitReportsTheConsumedMaterials)
+{
+    // Given a Command Center with the starting materials.
+    const auto center = place(model::BuildingType::CommandCenter, {0, 0});
+    ASSERT_NE(center, 0U);
+    consumed_.clear();
+    ASSERT_EQ(consumed_.size(), 0U);
+
+    // When the player recruits a construction drone.
+    ASSERT_TRUE(drones_.recruit(kPlayer));
+
+    // Then the iron and the electronics paid are reported to the economy.
+    ASSERT_EQ(consumed_.size(), 2U);
+    EXPECT_EQ(consumed_[0].player, kPlayer);
+    EXPECT_EQ(consumed_[0].item, model::ItemId::Iron);
+    EXPECT_EQ(consumed_[0].quantity, model::kConstructionDroneIronCost);
+    EXPECT_EQ(consumed_[1].player, kPlayer);
+    EXPECT_EQ(consumed_[1].item, model::ItemId::Electronics);
+    EXPECT_EQ(consumed_[1].quantity, model::kConstructionDroneElectronicsCost);
 }
 
 TEST_F(ConstructionDroneTest, RecruitFailsWithoutMaterials)

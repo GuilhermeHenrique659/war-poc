@@ -16,6 +16,9 @@ private:
     model::PlayerId localPlayerId_ = model::kNoPlayer;
     events::PlayerSpawned player_{};
     bool hasPlayer_ = false;
+    double credit_ = 0.0;
+    double weeklyInterest_ = 0.0;
+    bool hasCredit_ = false;
 };
 
 } // namespace view::gameplay

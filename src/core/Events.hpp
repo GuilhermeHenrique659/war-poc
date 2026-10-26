@@ -204,6 +204,65 @@ struct TimeChanged {
     std::uint32_t ticksPerDay = 0;
 };
 
+// A new week began. The counter is absolute (1 on the first week, 2 after seven days and so on),
+// so it never restarts at a month boundary.
+struct WeekStarted {
+    std::uint32_t week = 1;
+};
+
+// A player's energy credit changed. The weekly interest is what would be charged next week if the
+// balance stayed negative.
+struct CreditChanged {
+    model::PlayerId player = model::kNoPlayer;
+    double balance = 0.0;
+    double weeklyInterest = 0.0;
+};
+
+// Weekly market prices, indexed by ItemId. Every item is included.
+struct MarketPricesChanged {
+    std::array<double, static_cast<std::size_t>(model::ItemId::Count)> prices{};
+};
+
+// A system produced or consumed items for a player. The economy charges consumed items at the
+// current market price and reports production as supply.
+struct ResourceProduced {
+    model::PlayerId player = model::kNoPlayer;
+    model::ItemId item = model::ItemId::Count;
+    int quantity = 0;
+};
+
+struct ResourceConsumed {
+    model::PlayerId player = model::kNoPlayer;
+    model::ItemId item = model::ItemId::Count;
+    int quantity = 0;
+};
+
+// A player sold items to a Trade Center at the given unit price.
+struct TradeCompleted {
+    model::PlayerId player = model::kNoPlayer;
+    model::ItemId item = model::ItemId::Count;
+    int quantity = 0;
+    double unitPrice = 0.0;
+    double revenue = 0.0;
+};
+
+// One line of the Trade Center panel: the current price, the external demand still available this
+// week and how much is waiting inside the building.
+struct TradeRow {
+    model::ItemId item = model::ItemId::Count;
+    double price = 0.0;
+    int remainingQuota = 0;
+    int weeklyQuota = 0;
+    int stock = 0;
+};
+
+struct TradePanelChanged {
+    model::PlayerId player = model::kNoPlayer;
+    bool open = false;
+    model::ecs::Entity building = 0;
+    std::vector<TradeRow> rows;
+};
+
 struct PlayerSpawned {
     model::ecs::Entity entity;
     model::PlayerId player;
@@ -337,6 +396,8 @@ struct BuildBarEntry {
     BuildLockReason lockReason = BuildLockReason::None;
     std::vector<CostEntry> costs;
     bool free = false;
+    // Estimated energy credit to build at the current market prices.
+    double creditCost = 0.0;
 };
 
 struct BuildBarChanged {

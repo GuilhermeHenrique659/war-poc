@@ -67,6 +67,8 @@ void ConstructionSystem::updateSite(ecs::Entity entity, components::Construction
     float workTime = std::min(deltaSeconds, site.duration - site.elapsed);
     auto* inventory = world_.tryGet<components::Inventory>(entity);
     const BuildingCosts& costs = buildingCosts(site.type);
+    const auto* owner = world_.tryGet<components::Owner>(entity);
+    const PlayerId player = owner != nullptr ? owner->player : kNoPlayer;
 
     if (!debugMode_ && inventory != nullptr) {
         for (const BuildingCost& cost : costs) {
@@ -97,6 +99,9 @@ void ConstructionSystem::updateSite(ecs::Entity entity, components::Construction
             remainder = std::max(0.0F, total - static_cast<float>(whole));
             if (whole > 0) {
                 (void)InventorySystem::remove(*inventory, cost.item, whole);
+                if (owner != nullptr) {
+                    bus_.publish(events::ResourceConsumed{player, cost.item, whole});
+                }
             }
         }
     }

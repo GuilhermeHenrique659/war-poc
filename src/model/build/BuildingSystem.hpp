@@ -7,7 +7,9 @@
 #include "model/player/Player.hpp"
 #include "model/ecs/Registry.hpp"
 #include "model/economy/InventoryComponents.hpp"
+#include "model/economy/Item.hpp"
 
+#include <array>
 #include <functional>
 #include <optional>
 #include <string_view>
@@ -65,6 +67,7 @@ private:
     std::unordered_map<PlayerId, ecs::Entity> commandCenters_;
     std::function<bool(GridPos)> tileBlocker_;
     std::function<bool(BuildingType, GridPos, int)> placementRule_;
+    std::array<double, static_cast<std::size_t>(ItemId::Count)> prices_{};
     bool debugMode_ = false;
 };
 

@@ -14,6 +14,8 @@ PlayingModel::PlayingModel(core::EventBus& bus)
     : bus_(bus)
     , time_(bus)
     , world_(std::make_unique<ecs::Registry>())
+    , economy_(std::make_unique<EconomySystem>(bus_))
+    , trade_(std::make_unique<TradeSystem>(bus_, *world_, *economy_))
     , buildings_(std::make_unique<BuildingSystem>(bus_, *world_))
     , units_(std::make_unique<UnitSystem>(bus_, *world_, *buildings_))
     , construction_(std::make_unique<ConstructionSystem>(bus_, *world_))
@@ -27,6 +29,7 @@ PlayingModel::PlayingModel(core::EventBus& bus)
     , selection_(std::make_unique<SelectionSystem>(bus_, *world_))
     , genealogy_(std::make_unique<GenealogySystem>(*world_, *units_, *selection_))
     , inventoryPanels_(std::make_unique<InventoryPanelSystem>(bus_, *world_, *selection_, *playerAvatars_))
+    , production_(bus_)
 {
     buildings_->setTileBlocker([this](GridPos tile) { return units_->isTileTaken(tile); });
     buildings_->setPlacementRule([this](BuildingType type, GridPos origin, int size) {
@@ -54,6 +57,16 @@ PlayingModel::PlayingModel(core::EventBus& bus)
             logisticsPanels_.erase(event.player);
         }
         publishLogisticsPanel(event.player);
+
+        const auto* selectedBuilding =
+            event.building ? world_->tryGet<components::Building>(*event.building) : nullptr;
+        if (event.building && owner != nullptr && owner->player == event.player && selectedBuilding != nullptr
+            && selectedBuilding->type == BuildingType::TradeCenter) {
+            tradePanels_[event.player] = *event.building;
+        } else {
+            tradePanels_.erase(event.player);
+        }
+        publishTradePanel(event.player);
     });
     bus_.subscribe<events::TransferInventoryItemRequested>([this](const events::TransferInventoryItemRequested& e) {
         if (inMatch() && inventoryPanels_->transfer(e.player, e.building, e.slotIndex, e.fromPlayer)) {
@@ -169,9 +182,14 @@ void PlayingModel::update(float deltaSeconds)
     }
     logistics_->update();
     constructionDrones_->update();
+    trade_->update();
     for (const auto& [player, building] : logisticsPanels_) {
         (void)building;
         publishLogisticsPanel(player);
+    }
+    for (const auto& [player, building] : tradePanels_) {
+        (void)building;
+        publishTradePanel(player);
     }
     combat_->update(deltaSeconds);
     projectiles_->update(deltaSeconds);
@@ -211,8 +229,11 @@ void PlayingModel::resetWorld()
     world_->clear();
     worldMap_.reset();
     logisticsPanels_.clear();
+    tradePanels_.clear();
     inventoryPanels_->reset();
     production_.reset();
+    economy_->reset();
+    trade_->reset();
     logistics_->reset();
     construction_->reset();
     constructionDrones_->reset();
@@ -231,6 +252,7 @@ void PlayingModel::createLocalPlayer(const std::string& playerName)
 {
     localPlayerId_ = nextPlayerId_++;
     bus_.publish(events::LocalPlayerChanged{localPlayerId_});
+    economy_->initializePlayer(localPlayerId_);
     (void)playerAvatars_->create(localPlayerId_, playerName);
     buildings_->initializePlayer(localPlayerId_);
     selection_->initializePlayer(localPlayerId_);
@@ -275,6 +297,16 @@ void PlayingModel::publishLogisticsPanel(PlayerId player) const
         }
     }
     bus_.publish(event);
+}
+
+void PlayingModel::publishTradePanel(PlayerId player) const
+{
+    const auto panel = tradePanels_.find(player);
+    if (panel == tradePanels_.end()) {
+        trade_->closePanel(player);
+        return;
+    }
+    trade_->publishPanel(player, panel->second);
 }
 
 } // namespace model

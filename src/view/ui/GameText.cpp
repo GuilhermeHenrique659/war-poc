@@ -49,6 +49,7 @@ std::string_view buildingName(model::BuildingType type)
     case model::BuildingType::ToolFactory: return text(TextId::BuildingToolFactory);
     case model::BuildingType::WeaponFactory: return text(TextId::BuildingWeaponFactory);
     case model::BuildingType::AmmoFactory: return text(TextId::BuildingAmmoFactory);
+    case model::BuildingType::TradeCenter: return text(TextId::BuildingTradeCenter);
     case model::BuildingType::TrainingDummy: return text(TextId::BuildingTrainingDummy);
     }
     return text(TextId::CommonUnknown);
@@ -137,6 +138,27 @@ std::string dayClockText(const events::TimeChanged& time)
     const std::uint32_t minutes = time.tickInDay / 60U;
     const std::uint32_t seconds = time.tickInDay % 60U;
     return format(TextId::HudDayClock, minutes, seconds, time.day);
+}
+
+std::string creditLabel(double balance)
+{
+    return format(TextId::HudCredit, balance);
+}
+
+std::string weeklyInterestLabel(double interest)
+{
+    return format(TextId::HudInterest, interest);
+}
+
+std::string buildCreditLabel(double creditCost)
+{
+    return format(TextId::BuildBarCredit, creditCost);
+}
+
+std::string tradeRowText(const events::TradeRow& row)
+{
+    return format(TextId::TradeRow, itemName(row.item), row.price, row.remainingQuota,
+        row.weeklyQuota, row.stock);
 }
 
 std::string costText(const std::vector<events::CostEntry>& costs, bool free)
