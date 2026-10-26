@@ -1,6 +1,7 @@
 #pragma once
 
 #include "core/EventBus.hpp"
+#include "core/Events.hpp"
 #include "model/build/BuildingType.hpp"
 #include "model/GridPos.hpp"
 #include "model/player/Player.hpp"
@@ -45,8 +46,8 @@ private:
         std::optional<GridPos> cursor;
     };
 
-    // Empty when the player may build this type.
-    [[nodiscard]] std::string_view lockedReason(PlayerId player, BuildingType type) const;
+    // None when the player may build this type.
+    [[nodiscard]] events::BuildLockReason lockReason(PlayerId player, BuildingType type) const;
     [[nodiscard]] bool isUnlocked(PlayerId player, BuildingType type) const;
     [[nodiscard]] bool isAreaFree(GridPos origin, int size) const;
     [[nodiscard]] bool canPlace(PlayerId player, BuildingType type, GridPos origin) const;

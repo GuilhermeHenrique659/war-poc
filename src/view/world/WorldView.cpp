@@ -3,6 +3,7 @@
 #include "view/build/BuildingRenderer.hpp"
 #include "view/IsoProjection.hpp"
 #include "view/IsoShapes.hpp"
+#include "view/ui/Shapes.hpp"
 
 #include <array>
 #include <climits>
@@ -57,7 +58,8 @@ WorldView::WorldView(core::EventBus& bus)
 
 void WorldView::draw()
 {
-    DrawRectangle(0, 0, GetScreenWidth(), GetScreenHeight(), worldMap_ ? kOutsideMapColor : kGroundColor);
+    ui::fill(Rectangle{0.0F, 0.0F, static_cast<float>(GetScreenWidth()), static_cast<float>(GetScreenHeight())},
+        worldMap_ ? kOutsideMapColor : kGroundColor);
 
     const Camera2D cam = camera();
     BeginMode2D(cam);
@@ -159,8 +161,8 @@ void WorldView::drawSelectionBox() const
     }
     const Rectangle box{std::min(selectionBox_.x0, selectionBox_.x1), std::min(selectionBox_.y0, selectionBox_.y1),
         std::abs(selectionBox_.x1 - selectionBox_.x0), std::abs(selectionBox_.y1 - selectionBox_.y0)};
-    DrawRectangleRec(box, kSelectedFill);
-    DrawRectangleLinesEx(box, 1.0f, kSelectedOutline);
+    ui::fill(box, kSelectedFill);
+    ui::outline(box, kSelectedOutline);
 }
 
 void WorldView::drawPreview() const

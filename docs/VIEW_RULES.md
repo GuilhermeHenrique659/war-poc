@@ -11,6 +11,17 @@ Este documento descreve como implementar e integrar a apresentação visual do j
 - A View pode usar raylib para desenhar e para operações visuais. Não deixe `Texture2D`, coordenadas de tela ou chamadas raylib vazarem para o Model.
 - Separe responsabilidades em componentes pequenos: a View de cena coordena seus painéis e elementos; ViewModels específicos desenham objetos ou grupos de dados. Siga a composição existente em `src/view/Renderer.cpp` e `src/view/gameplay/PlayingView.cpp`.
 
+## Componentes de UI e textos
+
+- Todo texto de interface vem do catálogo externo `resource/texts/<idioma>.txt`, carregado uma vez na inicialização (`core::Game`) por `view::ui::TextCatalog`. A View nunca embute frases prontas em `constexpr const char*`, arrays de labels ou chamadas de desenho.
+- O Model publica **dados semânticos**, não texto: enums (`BuildingType`, `UnitType`, `ItemId`, `MenuAction`, `BuildLockReason`), números, custos e flags. A tradução de enum para frase é responsabilidade da View, em `view/ui/GameText.*`.
+- Desenhe texto só com `view::ui::Text` (`TextStyle` define tamanho, cor e alinhamento). Não chame `DrawText`, `DrawTextEx`, `MeasureText` ou `TextFormat` fora de `src/view/ui/`; para medir, use `Text::width`.
+- Desenhe retângulos e contornos de UI com `view::ui::Shapes` (`ui::fill`, `ui::line`, `ui::outline`). `DrawRectangle*` fica restrito a `src/view/ui/`. Marcadores de mundo (por exemplo `DrawCircleV` do overlay) continuam permitidos.
+- Use os componentes reutilizáveis em vez de repetir desenho: `Button` (hover/seleção/desabilitado), `Card` (fundo com borda), `Bar` (barra de progresso/vida), `Swatch` (amostra de cor) e `TextBlock` (bloco multilinha com fundo).
+- Ao adicionar um texto novo, declare o ID em `WAR_TEXT_IDS` (`TextCatalog.hpp`) e adicione a chave correspondente em **todos** os catálogos de idioma. O loader falha explicitamente para arquivo ausente, linha malformada, chave desconhecida, duplicada ou faltante — não mascare o erro com fallback.
+- Interpole valores com `ui::format(TextId, args...)` (placeholders `{0}`, `{1}`...). Para custos, use `ui::costText`, que colapsa materiais iguais e trata modo debug como "grátis".
+- Componentes de UI são header-only e não dependem de estado global além do catálogo; mantenha-os puros o bastante para serem testados sem abrir janela quando possível.
+
 ## Coordenadas e desenho isométrico
 
 - O Model e os eventos de gameplay usam coordenadas lógicas do grid. Não grave pixels nem valores projetados no estado de gameplay da View.

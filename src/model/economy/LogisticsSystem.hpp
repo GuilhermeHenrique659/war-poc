@@ -24,6 +24,7 @@ public:
     [[nodiscard]] bool unassignDrone(PlayerId player, ecs::Entity source, components::LogisticsRouteId routeId);
     [[nodiscard]] int idleDroneCount(PlayerId player) const;
     [[nodiscard]] bool supportsBuilding(ecs::Entity building) const;
+    [[nodiscard]] bool debugMode() const { return debugMode_; }
 
 private:
     void onBuildingPlaced(const events::BuildingPlaced& event);

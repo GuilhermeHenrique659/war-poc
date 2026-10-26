@@ -1,5 +1,7 @@
 #pragma once
 
+#include "view/ui/Shapes.hpp"
+
 #include <raylib.h>
 
 namespace view::ui {
@@ -10,6 +12,7 @@ struct CardStyle {
     float borderWidth = 2.0F;
 };
 
+// Standard panel background used by menus, HUD and side panels.
 class Card {
 public:
     explicit Card(CardStyle style = {})
@@ -19,8 +22,8 @@ public:
 
     void draw(Rectangle bounds) const
     {
-        DrawRectangleRec(bounds, style_.background);
-        DrawRectangleLinesEx(bounds, style_.borderWidth, style_.border);
+        fill(bounds, style_.background);
+        outline(bounds, style_.border, style_.borderWidth);
     }
 
 private:

@@ -2,6 +2,7 @@
 
 #include "core/Events.hpp"
 #include "view/TextureManager.hpp"
+#include "view/ui/TextCatalog.hpp"
 
 #include <raylib.h>
 
@@ -26,6 +27,8 @@ Game::Game()
     bus_->subscribe<events::WindowConfigurationRequested>([this](const events::WindowConfigurationRequested& e) {
         window_->applyDisplayConfiguration(e.width, e.height, e.fullscreen);
     });
+    // Every View string comes from the external catalog, so load it before any View draws.
+    view::ui::TextCatalog::instance().load("pt_br");
     model_->initialize();
 }
 

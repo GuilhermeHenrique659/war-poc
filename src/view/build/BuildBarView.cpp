@@ -5,11 +5,18 @@
 #include "view/build/BuildingRenderer.hpp"
 #include "view/IsoShapes.hpp"
 #include "view/ui/Card.hpp"
+#include "view/ui/GameText.hpp"
+#include "view/ui/Shapes.hpp"
+#include "view/ui/Swatch.hpp"
+#include "view/ui/Text.hpp"
+#include "view/ui/TextBlock.hpp"
+#include "view/ui/TextCatalog.hpp"
 
 #include <raylib.h>
 
-#include <algorithm>
 #include <array>
+#include <string>
+#include <string_view>
 
 namespace view::gameplay {
 
@@ -20,25 +27,25 @@ constexpr Color kBarBorder{70, 70, 90, 255};
 constexpr Color kSlotColor{50, 50, 62, 255};
 constexpr Color kSlotSelected{120, 70, 40, 255};
 constexpr Color kSlotDisabled{36, 36, 44, 255};
-constexpr Color kHelpBackground{0, 0, 0, 120};
 constexpr int kLabelSize = 18;
 constexpr int kDetailSize = 14;
+constexpr int kCostSize = 10;
 constexpr float kSwatchSize = 40.0f;
 
-constexpr std::array kHelpLines{
-    "1-9 ou clique na barra: escolher construcao",
-    "Botao esquerdo: construir (arraste para muros)",
-    "Botao direito / ESC: cancelar construcao",
-    "Clique no Centro de Comando: recrutar tropas",
-    "I: abrir inventario do jogador",
-    "Selecione construcao: inventario; arraste para transferir",
-    "Selecione tropas: painel mostra arma e municao",
-    "Clique / arraste: selecionar tropas (Shift soma)",
-    "Botao direito: mover / atacar tropa, construcao ou Boneco",
-    "Tropas precisam de arma e municao (Centro/Armazem)",
-    "Botao direito no Cruzador: enviar 2 tropas para cruzamento",
-    "WASD: mover jogador",
-    "Zoom fixo   |   ESC: limpar selecao / menu",
+constexpr std::array<ui::TextId, 13> kHelpTexts{
+    ui::TextId::BuildBarHelpShortcuts,
+    ui::TextId::BuildBarHelpConstruct,
+    ui::TextId::BuildBarHelpCancel,
+    ui::TextId::BuildBarHelpRecruit,
+    ui::TextId::BuildBarHelpInventory,
+    ui::TextId::BuildBarHelpSelectBuilding,
+    ui::TextId::BuildBarHelpSelectUnits,
+    ui::TextId::BuildBarHelpSelectUnitsAction,
+    ui::TextId::BuildBarHelpMoveAttack,
+    ui::TextId::BuildBarHelpSupplies,
+    ui::TextId::BuildBarHelpCruzador,
+    ui::TextId::BuildBarHelpMovePlayer,
+    ui::TextId::BuildBarHelpZoom,
 };
 
 } // namespace
@@ -58,8 +65,8 @@ BuildBarView::BuildBarView(core::EventBus& bus)
 void BuildBarView::draw() const
 {
     const Rectangle bar = build_bar_layout::barBounds(GetScreenWidth(), GetScreenHeight(), entries_.size());
-    DrawRectangleRec(bar, kBarColor);
-    DrawLineEx(Vector2{bar.x, bar.y}, Vector2{bar.x + bar.width, bar.y}, 2.0f, kBarBorder);
+    ui::fill(bar, kBarColor);
+    ui::line(Vector2{bar.x, bar.y}, Vector2{bar.x + bar.width, bar.y}, kBarBorder, 2.0f);
 
     for (std::size_t i = 0; i < entries_.size(); ++i) {
         drawSlot(i);
@@ -79,48 +86,48 @@ void BuildBarView::drawSlot(std::size_t index) const
     ui::Card{slotStyle}.draw(bounds);
 
     const float margin = (bounds.height - kSwatchSize) / 2.0f;
-    const Rectangle swatch{bounds.x + margin, bounds.y + margin, kSwatchSize, kSwatchSize};
+    const Rectangle swatchBounds{bounds.x + margin, bounds.y + margin, kSwatchSize, kSwatchSize};
     const Color color = buildingColor(entry.type);
-    DrawRectangleRec(swatch, entry.enabled ? color : iso::shade(color, 0.4f));
-    DrawRectangleLinesEx(swatch, 1.0f, BLACK);
+    ui::Swatch{}.draw(swatchBounds, entry.enabled ? color : iso::shade(color, 0.4f));
 
-    const int textX = static_cast<int>(swatch.x + swatch.width + margin);
-    const int labelY = static_cast<int>(bounds.y + 8.0f);
-    const int detailY = labelY + kLabelSize + 2;
-    DrawText(entry.label.c_str(), textX, labelY, kLabelSize, entry.enabled ? RAYWHITE : GRAY);
+    const float textX = swatchBounds.x + swatchBounds.width + margin;
+    const float textWidth = bounds.x + bounds.width - textX;
+    const float labelY = bounds.y + 8.0f;
+    const float detailY = labelY + static_cast<float>(kLabelSize) + 2.0F;
+    ui::Text{ui::TextStyle{kLabelSize, entry.enabled ? RAYWHITE : GRAY}}.draw(
+        Rectangle{textX, labelY, textWidth, static_cast<float>(kLabelSize)},
+        ui::buildingName(entry.type));
 
     if (entry.enabled) {
-        DrawText(TextFormat("%dx%d", entry.size, entry.size), textX, detailY, kDetailSize, LIGHTGRAY);
+        ui::Text{ui::TextStyle{kDetailSize, LIGHTGRAY}}.draw(
+            Rectangle{textX, detailY, textWidth, static_cast<float>(kDetailSize)},
+            ui::format(ui::TextId::BuildBarSize, entry.size, entry.size));
     } else {
-        DrawText(entry.lockedReason.c_str(), textX, detailY, kDetailSize, Color{200, 120, 100, 255});
+        ui::Text{ui::TextStyle{kDetailSize, Color{200, 120, 100, 255}}}.draw(
+            Rectangle{textX, detailY, textWidth, static_cast<float>(kDetailSize)},
+            ui::lockReason(entry.lockReason));
     }
-    DrawText(entry.cost.c_str(), textX, detailY + kDetailSize + 2, 10, LIGHTGRAY);
+
+    ui::Text{ui::TextStyle{kCostSize, LIGHTGRAY}}.draw(
+        Rectangle{textX, detailY + static_cast<float>(kDetailSize) + 2.0F, textWidth, static_cast<float>(kCostSize)},
+        ui::costText(entry.costs, entry.free));
 
     if (index < build_bar_layout::kMaxShortcuts) {
-        const char* shortcut = TextFormat("[%d]", static_cast<int>(index) + 1);
-        const int shortcutX = static_cast<int>(bounds.x + bounds.width) - MeasureText(shortcut, kDetailSize) - 6;
-        DrawText(shortcut, shortcutX, detailY, kDetailSize, GRAY);
+        ui::Text{ui::TextStyle{kDetailSize, GRAY, ui::TextAlign::Right}}.draw(
+            Rectangle{bounds.x, detailY, bounds.width - 6.0F, static_cast<float>(kDetailSize)},
+            ui::format(ui::TextId::BuildBarShortcut, static_cast<int>(index) + 1));
     }
 }
 
 void BuildBarView::drawHelp() const
 {
-    constexpr int kLineHeight = 18;
-    constexpr int kPadding = 8;
-    constexpr int kFontSize = 14;
-
-    int width = 0;
-    for (const char* line : kHelpLines) {
-        width = std::max(width, MeasureText(line, kFontSize));
+    std::array<std::string_view, kHelpTexts.size()> lines{};
+    for (std::size_t i = 0; i < kHelpTexts.size(); ++i) {
+        lines[i] = ui::text(kHelpTexts[i]);
     }
-    const int height = static_cast<int>(kHelpLines.size()) * kLineHeight;
-    DrawRectangle(10, 10, width + 2 * kPadding, height + 2 * kPadding, kHelpBackground);
 
-    int y = 10 + kPadding;
-    for (const char* line : kHelpLines) {
-        DrawText(line, 10 + kPadding, y, kFontSize, RAYWHITE);
-        y += kLineHeight;
-    }
+    const ui::TextBlock block{ui::TextBlockStyle{ui::TextStyle{14, RAYWHITE}, 18, 8, Color{0, 0, 0, 120}, true}};
+    block.draw(Vector2{10.0F, 10.0F}, lines);
 }
 
 } // namespace view::gameplay

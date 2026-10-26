@@ -1,6 +1,7 @@
 #include "view/units/UnitRenderer.hpp"
 
 #include "view/IsoShapes.hpp"
+#include "view/ui/Bar.hpp"
 #include "view/units/MechRenderer.hpp"
 #include "view/units/UnitLayout.hpp"
 
@@ -126,9 +127,8 @@ void drawUnitHealthBar(float gx, float gy, int size, float ratio)
 
     const Vector2 ground = unit_layout::groundPoint(gx, gy);
     const Rectangle back{ground.x - width / 2.0f, ground.y - unit_layout::spriteHeight(size) - 6.0f, width, kHeight};
-    DrawRectangleRec(back, Color{20, 20, 20, 200});
-    DrawRectangleRec(Rectangle{back.x, back.y, width * std::clamp(ratio, 0.0f, 1.0f), kHeight}, kRingColor);
-    DrawRectangleLinesEx(back, 1.0f, BLACK);
+    const ui::BarStyle style{Color{20, 20, 20, 200}, kRingColor, BLACK, Color{0, 0, 0, 0}, 1.0F, 0.0F};
+    ui::Bar{style}.draw(back, ratio);
 }
 
 } // namespace view

@@ -5,8 +5,14 @@
 #include "view/units/UnitRenderer.hpp"
 #include "view/ui/Button.hpp"
 #include "view/ui/Card.hpp"
+#include "view/ui/GameText.hpp"
+#include "view/ui/Swatch.hpp"
+#include "view/ui/Text.hpp"
+#include "view/ui/TextCatalog.hpp"
 
 #include <raylib.h>
+
+#include <string>
 
 namespace view::gameplay {
 
@@ -55,9 +61,10 @@ void RecruitPanelView::draw() const
 void RecruitPanelView::drawHeader() const
 {
     const Rectangle panel = recruit_panel_layout::panelBounds(entries_.size(), GetScreenWidth());
-    const int x = static_cast<int>(panel.x + recruit_panel_layout::kPadding);
-    const int y = static_cast<int>(panel.y + recruit_panel_layout::kPadding + 4.0f);
-    DrawText("Centro de Comando: recrutar", x, y, kTitleSize, RAYWHITE);
+    const Rectangle titleBounds{panel.x + recruit_panel_layout::kPadding,
+        panel.y + recruit_panel_layout::kPadding + 4.0f, panel.width - 2.0f * recruit_panel_layout::kPadding,
+        static_cast<float>(kTitleSize)};
+    ui::Text{ui::TextStyle{kTitleSize, RAYWHITE}}.draw(titleBounds, ui::text(ui::TextId::RecruitTitle));
 
     const Rectangle close = recruit_panel_layout::closeBounds(entries_.size(), GetScreenWidth());
     const bool hovered = CheckCollisionPointRec(GetMousePosition(), close);
@@ -70,7 +77,8 @@ void RecruitPanelView::drawHeader() const
         RAYWHITE,
         1,
     };
-    ui::Button{closeStyle}.draw(close, "X", hovered ? ui::ButtonState::Selected : ui::ButtonState::Normal, kLabelSize);
+    ui::Button{closeStyle}.draw(close, ui::text(ui::TextId::CommonClose),
+        hovered ? ui::ButtonState::Selected : ui::ButtonState::Normal, kLabelSize);
 }
 
 void RecruitPanelView::drawSlot(std::size_t index) const
@@ -87,24 +95,36 @@ void RecruitPanelView::drawSlot(std::size_t index) const
     ui::Card{slotStyle}.draw(bounds);
 
     const float margin = (bounds.height - kSwatchSize) / 2.0f;
-    const Rectangle swatch{bounds.x + margin, bounds.y + margin, kSwatchSize, kSwatchSize};
+    const Rectangle swatchBounds{bounds.x + margin, bounds.y + margin, kSwatchSize, kSwatchSize};
     const bool drone = entry.kind == events::RecruitEntryKind::ConstructionDrone;
-    DrawRectangleRec(swatch, drone ? kDroneSwatch : unitColor(entry.type));
-    DrawRectangleLinesEx(swatch, 1.0f, BLACK);
+    ui::Swatch{}.draw(swatchBounds, drone ? kDroneSwatch : unitColor(entry.type));
 
-    const int textX = static_cast<int>(swatch.x + swatch.width + margin);
-    const int labelY = static_cast<int>(bounds.y + 8.0f);
-    DrawText(entry.label.c_str(), textX, labelY, kLabelSize, RAYWHITE);
+    const float textX = swatchBounds.x + swatchBounds.width + margin;
+    const float textWidth = bounds.x + bounds.width - textX;
+    const float labelY = bounds.y + 8.0f;
+    ui::Text{ui::TextStyle{kLabelSize, RAYWHITE}}.draw(
+        Rectangle{textX, labelY, textWidth, static_cast<float>(kLabelSize)},
+        drone ? ui::text(ui::TextId::DroneConstruction) : ui::unitName(entry.type));
 
-    const int statsY = labelY + kLabelSize + 6;
+    const float statsY = labelY + static_cast<float>(kLabelSize) + 6.0F;
     if (drone) {
-        DrawText(entry.detail.c_str(), textX, statsY, kDetailSize, LIGHTGRAY);
-        DrawText(entry.cost.c_str(), textX, statsY + kDetailSize + 4, kDetailSize, LIGHTGRAY);
+        ui::Text{ui::TextStyle{kDetailSize, LIGHTGRAY}}.draw(
+            Rectangle{textX, statsY, textWidth, static_cast<float>(kDetailSize)},
+            ui::format(ui::TextId::RecruitDroneCapacity, entry.capacity));
+        ui::Text{ui::TextStyle{kDetailSize, LIGHTGRAY}}.draw(
+            Rectangle{textX, statsY + static_cast<float>(kDetailSize) + 4.0F, textWidth,
+                static_cast<float>(kDetailSize)},
+            ui::costText(entry.costs, entry.free));
         return;
     }
-    DrawText(TextFormat("Vida %d   Dano %d", entry.maxHealth, entry.damage), textX, statsY, kDetailSize, LIGHTGRAY);
-    DrawText(TextFormat("Alcance %.0f   Vel %.1f", static_cast<double>(entry.range), static_cast<double>(entry.speed)),
-        textX, statsY + kDetailSize + 4, kDetailSize, LIGHTGRAY);
+
+    ui::Text{ui::TextStyle{kDetailSize, LIGHTGRAY}}.draw(
+        Rectangle{textX, statsY, textWidth, static_cast<float>(kDetailSize)},
+        ui::format(ui::TextId::RecruitStats, entry.maxHealth, entry.damage));
+    ui::Text{ui::TextStyle{kDetailSize, LIGHTGRAY}}.draw(
+        Rectangle{textX, statsY + static_cast<float>(kDetailSize) + 4.0F, textWidth, static_cast<float>(kDetailSize)},
+        ui::format(ui::TextId::RecruitRangeSpeed, static_cast<double>(entry.range),
+            static_cast<double>(entry.speed)));
 }
 
 } // namespace view::gameplay

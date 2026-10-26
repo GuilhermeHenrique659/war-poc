@@ -4,6 +4,7 @@
 #include "model/combat/WeaponType.hpp"
 #include "model/economy/Item.hpp"
 #include "model/GridPos.hpp"
+#include "model/menu/MenuAction.hpp"
 #include "model/player/Player.hpp"
 #include "model/WorldMap.hpp"
 #include "model/Scene.hpp"
@@ -223,7 +224,7 @@ struct InventorySlotState {
 // Inventory of one selected unit, shown in the same panel used for buildings.
 struct UnitInventoryState {
     model::ecs::Entity entity = 0;
-    std::string label;
+    model::UnitType type = model::UnitType::Soldier;
     int health = 0;
     int maxHealth = 0;
     std::vector<InventorySlotState> slots;
@@ -238,7 +239,7 @@ struct InventoryPaneState {
     InventoryPaneRole role = InventoryPaneRole::Player;
     InventoryPaneLayout layout = InventoryPaneLayout::Slots;
     model::ecs::Entity entity = 0; // Container for slot panes (player avatar or building).
-    std::string title;
+    std::optional<model::BuildingType> buildingType;
     bool showSummary = false;
     bool showTransferHint = false;
     std::vector<InventorySlotState> slots;
@@ -282,7 +283,7 @@ struct InventoryDragChanged {
 };
 
 struct MenuStateChanged {
-    std::vector<std::string> labels;
+    std::vector<model::MenuAction> actions;
     std::size_t selectedIndex;
 };
 
@@ -306,13 +307,26 @@ struct MapGenerated {
     std::vector<model::ResourceDeposit> deposits;
 };
 
+// One material required by a build or recruit action. The View formats the text.
+struct CostEntry {
+    model::ItemId item = model::ItemId::Count;
+    int quantity = 0;
+};
+
+// Why a build bar entry cannot be selected. The View translates the reason.
+enum class BuildLockReason {
+    None,
+    AlreadyBuilt,
+    RequiresCommandCenter,
+};
+
 struct BuildBarEntry {
     model::BuildingType type;
-    std::string label;
     int size;
     bool enabled;
-    std::string lockedReason;
-    std::string cost;
+    BuildLockReason lockReason = BuildLockReason::None;
+    std::vector<CostEntry> costs;
+    bool free = false;
 };
 
 struct BuildBarChanged {
@@ -463,14 +477,14 @@ enum class RecruitEntryKind { Unit, ConstructionDrone };
 
 struct RecruitEntry {
     model::UnitType type;
-    std::string label;
     int maxHealth;
     int damage;
     float range;
     float speed;
     RecruitEntryKind kind = RecruitEntryKind::Unit;
-    std::string detail;
-    std::string cost;
+    int capacity = 0;
+    std::vector<CostEntry> costs;
+    bool free = false;
 };
 
 // Open while the player has their Command Center selected.
@@ -483,7 +497,7 @@ struct RecruitPanelChanged {
 struct LogisticsRouteEntry {
     std::uint64_t id = 0;
     model::ecs::Entity destination = 0;
-    std::string destinationName;
+    model::BuildingType destinationType = model::BuildingType::Wall;
     model::ItemId item = model::ItemId::Count;
     int assignedDrones = 0;
 };
@@ -492,7 +506,8 @@ struct LogisticsPanelChanged {
     model::PlayerId player = model::kNoPlayer;
     bool open = false;
     model::ecs::Entity building = 0;
-    std::string buildingName;
+    model::BuildingType buildingType = model::BuildingType::Wall;
+    bool free = false;
     bool warehouse = false;
     int idleDrones = 0;
     std::vector<LogisticsRouteEntry> routes;

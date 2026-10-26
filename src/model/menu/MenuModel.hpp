@@ -3,19 +3,13 @@
 #include "core/EventBus.hpp"
 #include "core/Events.hpp"
 #include "model/Scene.hpp"
+#include "model/menu/MenuAction.hpp"
 
 #include <cstddef>
 #include <string>
 #include <vector>
 
 namespace model {
-
-enum class MenuAction { StartGame, Settings, Quit };
-
-struct MenuItem {
-    std::string label;
-    MenuAction action;
-};
 
 // Owns menu and settings state. Match state belongs to PlayingModel.
 class MenuModel {
@@ -43,7 +37,7 @@ private:
 
     core::EventBus& bus_;
     Scene scene_ = Scene::MainMenu;
-    std::vector<MenuItem> menuItems_;
+    std::vector<MenuAction> menuItems_;
     std::size_t selectedIndex_ = 0;
     std::size_t selectedSettingsIndex_ = 0;
     std::size_t resolutionIndex_ = 1;

@@ -14,7 +14,7 @@ InputController::InputController(core::EventBus& bus)
 {
     bus_.subscribe<events::SceneChanged>([this](const events::SceneChanged& e) { scene_ = e.scene; });
     bus_.subscribe<events::MenuStateChanged>(
-        [this](const events::MenuStateChanged& e) { menuItemCount_ = e.labels.size(); });
+        [this](const events::MenuStateChanged& e) { menuItemCount_ = e.actions.size(); });
     bus_.subscribe<events::SettingsStateChanged>(
         [this](const events::SettingsStateChanged& e) { selectedSettingsRow_ = e.selectedIndex; });
 }

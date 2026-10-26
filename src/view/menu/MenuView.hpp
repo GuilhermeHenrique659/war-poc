@@ -1,9 +1,9 @@
 #pragma once
 
 #include "core/EventBus.hpp"
+#include "model/menu/MenuAction.hpp"
 
 #include <cstddef>
-#include <string>
 #include <vector>
 
 namespace view::menu {
@@ -18,7 +18,7 @@ private:
     void drawTitle() const;
     void drawItem(std::size_t index) const;
 
-    std::vector<std::string> labels_;
+    std::vector<model::MenuAction> actions_;
     std::size_t selectedIndex_ = 0;
 };
 

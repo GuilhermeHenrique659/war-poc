@@ -43,10 +43,12 @@ TEST(InventoryPanelSystemTests, PublishesThePlayersInventoryAndTheSelectedUnitsW
     const auto* unitsPane = events::findPane(published, events::InventoryPaneRole::Units);
     ASSERT_NE(playerPane, nullptr);
     ASSERT_NE(unitsPane, nullptr);
+    EXPECT_FALSE(playerPane->buildingType.has_value());
     EXPECT_EQ(playerPane->layout, events::InventoryPaneLayout::Slots);
     EXPECT_EQ(unitsPane->layout, events::InventoryPaneLayout::Rows);
     ASSERT_EQ(unitsPane->units.size(), 1U);
-    EXPECT_EQ(unitsPane->units[0].label, "Soldado");
+    EXPECT_EQ(unitsPane->units[0].type, model::UnitType::Soldier);
+    EXPECT_FALSE(unitsPane->buildingType.has_value());
     int ammo = 0;
     for (const auto& slot : unitsPane->units[0].slots) {
         if (slot.occupied && slot.item == model::ItemId::Ammo) {
@@ -86,6 +88,7 @@ TEST(InventoryPanelSystemTests, PublishesASelectedBuildingAsTheTransferablePane)
     ASSERT_NE(buildingPane, nullptr);
     EXPECT_EQ(buildingPane->entity, building);
     EXPECT_EQ(buildingPane->layout, events::InventoryPaneLayout::Slots);
+    EXPECT_EQ(buildingPane->buildingType, model::BuildingType::Warehouse);
     EXPECT_EQ(buildingPane->slots.size(), 64U);
     EXPECT_TRUE(buildingPane->showTransferHint);
 }

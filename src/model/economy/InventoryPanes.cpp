@@ -20,13 +20,13 @@ std::vector<events::InventorySlotState> slotStates(const components::Inventory& 
 }
 
 events::InventoryPaneState slots(events::InventoryPaneRole role, ecs::Entity entity,
-    std::string title, const components::Inventory& inventory)
+    std::optional<BuildingType> buildingType, const components::Inventory& inventory)
 {
     events::InventoryPaneState pane{};
     pane.role = role;
     pane.layout = events::InventoryPaneLayout::Slots;
     pane.entity = entity;
-    pane.title = std::move(title);
+    pane.buildingType = buildingType;
     pane.showSummary = role == events::InventoryPaneRole::Player;
     pane.showTransferHint = role == events::InventoryPaneRole::Player
         || role == events::InventoryPaneRole::TransferTarget;
@@ -39,7 +39,6 @@ events::InventoryPaneState units(std::vector<events::UnitInventoryState> selecte
     events::InventoryPaneState pane{};
     pane.role = events::InventoryPaneRole::Units;
     pane.layout = events::InventoryPaneLayout::Rows;
-    pane.title = "Tropas selecionadas";
     pane.units = std::move(selectedUnits);
     return pane;
 }

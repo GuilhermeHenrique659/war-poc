@@ -1,5 +1,8 @@
 #pragma once
 
+#include "view/ui/Shapes.hpp"
+#include "view/ui/Text.hpp"
+
 #include <raylib.h>
 
 #include <string>
@@ -38,13 +41,9 @@ public:
         const Color border = selected ? style_.selectedBorder : style_.border;
         const Color text = state == ButtonState::Disabled ? Color{128, 128, 128, 255} : style_.text;
 
-        DrawRectangleRec(bounds, background);
-        DrawRectangleLinesEx(bounds, static_cast<float>(style_.borderWidth), border);
-
-        const int textWidth = MeasureText(label.c_str(), fontSize);
-        const int x = static_cast<int>(bounds.x + (bounds.width - static_cast<float>(textWidth)) / 2.0F);
-        const int y = static_cast<int>(bounds.y + (bounds.height - static_cast<float>(fontSize)) / 2.0F);
-        DrawText(label.c_str(), x, y, fontSize, text);
+        fill(bounds, background);
+        outline(bounds, border, static_cast<float>(style_.borderWidth));
+        Text{TextStyle{fontSize, text, TextAlign::Center, TextVerticalAlign::Middle}}.draw(bounds, label);
     }
 
 private:

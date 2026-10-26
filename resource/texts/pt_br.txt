@@ -1,0 +1,128 @@
+# Portuguese (Brazil) interface catalog.
+# Format: key=value, one entry per line. Lines starting with '#' are comments.
+# Placeholders use the std::format syntax: {0}, {1}, {0:.1f}.
+
+common.close=X
+common.free=Gratis
+common.unknown=?
+
+menu.title=WAR
+menu.start=Iniciar
+menu.settings=Configurações
+menu.quit=Sair
+
+settings.title=Configurações
+settings.resolution=Resolução
+settings.display_mode=Modo de tela
+settings.player_name=Nome do jogador
+settings.apply=Aplicar
+settings.back=Voltar
+settings.fullscreen=Tela cheia
+settings.windowed=Janela
+settings.resolution_value={0} x {1}
+settings.hint=Setas: navegar/alterar  |  Digite o nome quando selecionado  |  Esc: voltar
+settings.default_player=Jogador
+
+hud.player=Jogador
+hud.health=Vida {0}/{1}
+
+buildbar.help.shortcuts=1-9 ou clique na barra: escolher construcao
+buildbar.help.construct=Botao esquerdo: construir (arraste para muros)
+buildbar.help.cancel=Botao direito / ESC: cancelar construcao
+buildbar.help.recruit=Clique no Centro de Comando: recrutar tropas
+buildbar.help.inventory=I: abrir inventario do jogador
+buildbar.help.select_building=Selecione construcao: inventario; arraste para transferir
+buildbar.help.select_units=Selecione tropas: painel mostra arma e municao
+buildbar.help.select_units_action=Clique / arraste: selecionar tropas (Shift soma)
+buildbar.help.move_attack=Botao direito: mover / atacar tropa, construcao ou Boneco
+buildbar.help.supplies=Tropas precisam de arma e municao (Centro/Armazem)
+buildbar.help.cruzador=Botao direito no Cruzador: enviar 2 tropas para cruzamento
+buildbar.help.move_player=WASD: mover jogador
+buildbar.help.zoom=Zoom fixo   |   ESC: limpar selecao / menu
+buildbar.size={0}x{1}
+buildbar.shortcut=[{0}]
+buildbar.cost_each={0} cada recurso
+buildbar.cost_entry={0} {1}
+
+lock.already_built=Ja construido
+lock.requires_command_center=Requer Centro
+
+recruit.title=Centro de Comando: recrutar
+recruit.stats=Vida {0}   Dano {1}
+recruit.range_speed=Alcance {0:.0f}   Vel {1:.1f}
+recruit.drone_capacity=Carga {0}
+
+inventory.title=Inventario
+inventory.player=Jogador
+inventory.units=Tropas selecionadas
+inventory.pane_count={0} ({1}/{2})
+inventory.units_count={0} ({1})
+inventory.transfer_hint=Arraste itens para transferir
+inventory.units_hint=Arma e municao por tropa
+inventory.units_hint_more=Arma e municao por tropa (+{0})
+inventory.unit_health=Vida {0}/{1}
+inventory.item_quantity={0} {1}
+
+logistics.recruit_free=Drone: Gratis (ociosos: {0})
+logistics.recruit_cost=Drone: {0} ferro + {1} eletr. (ociosos: {2})
+logistics.empty_warehouse=Nenhuma rota para este armazem.
+logistics.empty_source=Nenhuma rota de saida.
+logistics.route=Rota #{0} -> {1}
+logistics.route_items={0}  |  Drones: {1}
+logistics.assign=Atribuir
+logistics.unassign=Remover
+
+debug.fps=FPS: {0} ({1:.2f} ms)
+debug.scene=Cena: {0}
+debug.counts=Construcoes: {0}  Tropas: {1}
+debug.camera=Camera: ({0:.0f}, {1:.0f}) zoom {2:.2f}
+debug.mouse=Mouse: tile ({0}, {1})
+debug.building=#{0} {1} ({2}, {3}) {4}x{5}
+debug.unit=#{0} {1} ({2:.2f}, {3:.2f})
+
+scene.menu=Menu
+scene.settings=Configurações
+scene.playing=Partida
+
+drone.construction=Drone de Construcao
+
+item.iron=Ferro
+item.coal=Carvao
+item.steel=Aco
+item.copper=Cobre
+item.electronics=Eletronicos
+item.tools=Ferramentas
+item.weapon=Arma
+item.ammo=Municao
+
+item.short.iron=Fe
+item.short.coal=Carv
+item.short.steel=Aco
+item.short.copper=Cob
+item.short.electronics=Ele
+item.short.tools=Ferr
+item.short.weapon=Arma
+item.short.ammo=Mun
+
+building.command_center=Centro de Comando
+building.wall=Muro
+building.house=Casa
+building.generator=Gerador
+building.warehouse=Armazem
+building.barracks=Quartel
+building.cruzador=Cruzador
+building.tower=Torre
+building.iron_mine=Mina de Ferro
+building.coal_mine=Mina de Carvao
+building.steelworks=Siderurgia
+building.copper_mine=Mina de Cobre
+building.electronics_factory=Fabrica de Eletronicos
+building.tool_factory=Fabrica de Ferramentas
+building.weapon_factory=Fabrica de Armas
+building.ammo_factory=Fabrica de Municao
+building.training_dummy=Boneco de Treinamento
+
+unit.soldier=Soldado
+unit.bat=Morcego
+unit.goat=Bode
+unit.combined=Combinado

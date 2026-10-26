@@ -136,11 +136,11 @@ void InventoryPanelSystem::publish(PlayerId player) const
     event.player = player;
     event.open = true;
     event.playerInventoryOpen = playerInventoryOpen;
-    event.panes.push_back(
-        inventory_panes::slots(events::InventoryPaneRole::Player, *playerEntity, "Jogador", *playerInventory));
+    event.panes.push_back(inventory_panes::slots(
+        events::InventoryPaneRole::Player, *playerEntity, std::nullopt, *playerInventory));
     if (hasBuilding) {
         event.panes.push_back(inventory_panes::slots(events::InventoryPaneRole::TransferTarget,
-            buildingPanel->second, building->name, *buildingInventory));
+            buildingPanel->second, building->type, *buildingInventory));
     }
     if (hasUnits) {
         event.panes.push_back(

@@ -28,7 +28,7 @@ std::vector<events::UnitInventoryState> selectedUnitInventories(
 
         events::UnitInventoryState entry{};
         entry.entity = entity;
-        entry.label = std::string(unitSpec(unit->type).label);
+        entry.type = unit->type;
         if (health != nullptr) {
             entry.health = health->current;
             entry.maxHealth = health->max;

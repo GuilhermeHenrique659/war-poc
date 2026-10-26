@@ -19,12 +19,16 @@ protected:
         bus_.subscribe<events::StartMatchRequested>([this](const auto& event) {
             starts_.push_back(event);
         });
+        bus_.subscribe<events::MenuStateChanged>([this](const auto& event) {
+            menuStates_.push_back(event);
+        });
     }
 
     core::EventBus bus_;
     model::MenuModel menu_;
     std::vector<events::WindowConfigurationRequested> configurations_;
     std::vector<events::StartMatchRequested> starts_;
+    std::vector<events::MenuStateChanged> menuStates_;
 };
 
 } // namespace
@@ -63,4 +67,18 @@ TEST_F(MenuModelTest, StartsAMatchWithTheDefaultPlayerName)
     // Then the match starts with the configured default player name.
     ASSERT_EQ(starts_.size(), 1U);
     EXPECT_EQ(starts_.front().playerName, "Jogador");
+}
+
+TEST_F(MenuModelTest, PublishesMenuActionsInsteadOfReadyMadeLabels)
+{
+    // Given the main menu.
+    menu_.initialize();
+
+    // Then the state carries the actions the View must translate.
+    ASSERT_FALSE(menuStates_.empty());
+    const events::MenuStateChanged& state = menuStates_.back();
+    ASSERT_EQ(state.actions.size(), 3U);
+    EXPECT_EQ(state.actions[0], model::MenuAction::StartGame);
+    EXPECT_EQ(state.actions[1], model::MenuAction::Settings);
+    EXPECT_EQ(state.actions[2], model::MenuAction::Quit);
 }

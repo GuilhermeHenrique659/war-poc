@@ -2,8 +2,14 @@
 
 #include "view/IsoProjection.hpp"
 #include "view/units/UnitLayout.hpp"
+#include "view/ui/GameText.hpp"
+#include "view/ui/Shapes.hpp"
+#include "view/ui/Text.hpp"
+#include "view/ui/TextCatalog.hpp"
 
 #include <array>
+#include <string>
+#include <string_view>
 
 namespace view {
 
@@ -18,13 +24,14 @@ constexpr Color kHitBoxColor{255, 220, 0, 255};
 constexpr Color kPositionColor{255, 60, 200, 255};
 
 // Text over a dark backdrop, centered horizontally on `x` with its bottom at `bottom`.
-void drawLabel(const char* text, float x, float bottom)
+void drawLabel(std::string_view value, float x, float bottom)
 {
-    const int width = MeasureText(text, kFontSize);
-    const int left = static_cast<int>(x) - width / 2;
-    const int top = static_cast<int>(bottom) - kFontSize - kPadding;
-    DrawRectangle(left - 2, top - 1, width + 4, kFontSize + 2, kPanelColor);
-    DrawText(text, left, top, kFontSize, RAYWHITE);
+    const ui::Text text{ui::TextStyle{kFontSize, RAYWHITE}};
+    const float width = static_cast<float>(text.width(value));
+    const float left = x - width / 2.0F;
+    const float top = bottom - static_cast<float>(kFontSize) - static_cast<float>(kPadding);
+    ui::fill(Rectangle{left - 2.0F, top - 1.0F, width + 4.0F, static_cast<float>(kFontSize) + 2.0F}, kPanelColor);
+    text.draw(Rectangle{left, top, width, static_cast<float>(kFontSize)}, value);
 }
 
 // Outline of a footprint on the ground, drawn in screen space so it stays 1 px at any zoom.
@@ -37,7 +44,7 @@ void drawFootprintOutline(const Camera2D& camera, float x, float y, float size)
         GetWorldToScreen2D(iso::gridToWorld(x, y + size), camera),
     };
     for (std::size_t i = 0; i < corners.size(); ++i) {
-        DrawLineV(corners[i], corners[(i + 1) % corners.size()], kFootprintColor);
+        ui::line(corners[i], corners[(i + 1) % corners.size()], kFootprintColor);
     }
 }
 
@@ -47,19 +54,6 @@ void drawFootprintOutline(const Camera2D& camera, float x, float y, float size)
         return GREEN;
     }
     return fps >= 30 ? YELLOW : RED;
-}
-
-[[nodiscard]] const char* sceneLabel(model::Scene scene)
-{
-    switch (scene) {
-    case model::Scene::MainMenu:
-        return "Menu";
-    case model::Scene::Settings:
-        return "Settings";
-    case model::Scene::Playing:
-        return "Partida";
-    }
-    return "?";
 }
 
 } // namespace
@@ -128,28 +122,41 @@ void DebugOverlay::drawStats(const Camera2D& cam) const
 
     const bool playing = scene_ == model::Scene::Playing;
     const int lines = playing ? 5 : 2;
-    DrawRectangle(kLeft - kPadding, kTop - kPadding, kWidth, lines * kLineHeight + kPadding, kPanelColor);
+    ui::fill(Rectangle{static_cast<float>(kLeft - kPadding), static_cast<float>(kTop - kPadding),
+                 static_cast<float>(kWidth), static_cast<float>(lines * kLineHeight + kPadding)},
+        kPanelColor);
+
+    const auto drawLine = [](int line, const std::string& value, Color color) {
+        ui::Text{ui::TextStyle{kStatsFontSize, color}}.draw(
+            Rectangle{static_cast<float>(kLeft), static_cast<float>(kTop + line * kLineHeight),
+                static_cast<float>(kWidth), static_cast<float>(kStatsFontSize)},
+            value);
+    };
 
     const int fps = GetFPS();
-    int y = kTop;
-    DrawText(TextFormat("FPS: %d (%.2f ms)", fps, static_cast<double>(GetFrameTime() * 1000.0f)), kLeft, y,
-        kStatsFontSize, fpsColor(fps));
-    y += kLineHeight;
-    DrawText(TextFormat("Cena: %s", sceneLabel(scene_)), kLeft, y, kStatsFontSize, RAYWHITE);
+    const ui::Text fpsText{ui::TextStyle{kStatsFontSize, fpsColor(fps)}};
+    fpsText.draw(Rectangle{static_cast<float>(kLeft), static_cast<float>(kTop), static_cast<float>(kWidth),
+                    static_cast<float>(kStatsFontSize)},
+        ui::format(ui::TextId::DebugFps, fps, static_cast<double>(GetFrameTime() * 1000.0F)));
+
+    int line = 1;
+    drawLine(line, ui::format(ui::TextId::DebugScene, ui::sceneName(scene_)), RAYWHITE);
     if (!playing) {
         return;
     }
 
-    y += kLineHeight;
-    DrawText(TextFormat("Construcoes: %zu  Tropas: %zu", buildings_.size(), units_.size()), kLeft, y,
-        kStatsFontSize, RAYWHITE);
-    y += kLineHeight;
-    DrawText(TextFormat("Camera: (%.0f, %.0f) zoom %.2f", static_cast<double>(cameraTarget_.x),
-                 static_cast<double>(cameraTarget_.y), static_cast<double>(cameraZoom_)),
-        kLeft, y, kStatsFontSize, RAYWHITE);
-    y += kLineHeight;
+    ++line;
+    drawLine(line,
+        ui::format(ui::TextId::DebugCounts, static_cast<int>(buildings_.size()), static_cast<int>(units_.size())),
+        RAYWHITE);
+    ++line;
+    drawLine(line,
+        ui::format(ui::TextId::DebugCamera, static_cast<double>(cameraTarget_.x),
+            static_cast<double>(cameraTarget_.y), static_cast<double>(cameraZoom_)),
+        RAYWHITE);
+    ++line;
     const model::GridPos tile = iso::screenToGrid(GetMousePosition(), cam);
-    DrawText(TextFormat("Mouse: tile (%d, %d)", tile.x, tile.y), kLeft, y, kStatsFontSize, RAYWHITE);
+    drawLine(line, ui::format(ui::TextId::DebugMouse, tile.x, tile.y), RAYWHITE);
 }
 
 void DebugOverlay::drawBuildings(const Camera2D& cam) const
@@ -162,9 +169,9 @@ void DebugOverlay::drawBuildings(const Camera2D& cam) const
 
         const Vector2 center = GetWorldToScreen2D(iso::gridToWorld(x + size / 2.0f, y + size / 2.0f), cam);
         DrawCircleV(center, 2.0f, kPositionColor);
-        drawLabel(TextFormat("#%u %s (%d, %d) %dx%d", static_cast<unsigned>(entity),
-                      model::buildingSpec(building.type).label.data(), building.origin.x, building.origin.y,
-                      building.size, building.size),
+        drawLabel(ui::format(ui::TextId::DebugBuilding, static_cast<unsigned>(entity),
+                      ui::buildingName(building.type), building.origin.x, building.origin.y, building.size,
+                      building.size),
             center.x, center.y);
     }
 }
@@ -178,13 +185,12 @@ void DebugOverlay::drawUnits(const Camera2D& cam) const
         const Rectangle hit = unit_layout::hitBounds(unit.x, unit.y, unit.size);
         const Vector2 topLeft = GetWorldToScreen2D(Vector2{hit.x, hit.y}, cam);
         const Rectangle screenHit{topLeft.x, topLeft.y, hit.width * cam.zoom, hit.height * cam.zoom};
-        DrawRectangleLinesEx(screenHit, 1.0f, kHitBoxColor);
+        ui::outline(screenHit, kHitBoxColor);
 
         const Vector2 ground = GetWorldToScreen2D(unit_layout::groundPoint(unit.x, unit.y), cam);
         DrawCircleV(ground, 2.0f, kPositionColor);
-        drawLabel(TextFormat("#%u %s (%.2f, %.2f)", static_cast<unsigned>(entity),
-                      model::unitSpec(unit.type).label.data(), static_cast<double>(unit.x),
-                      static_cast<double>(unit.y)),
+        drawLabel(ui::format(ui::TextId::DebugUnit, static_cast<unsigned>(entity), ui::unitName(unit.type),
+                      static_cast<double>(unit.x), static_cast<double>(unit.y)),
             screenHit.x + screenHit.width / 2.0f, screenHit.y);
     }
 }

@@ -138,15 +138,14 @@ void SelectionSystem::publish(PlayerId player) const
         for (const UnitType type : kRecruitableUnitTypes) {
             const UnitSpec spec = unitSpec(type);
             const WeaponSpec weapon = weaponSpec(spec.weapon);
-            panel.entries.push_back(events::RecruitEntry{type, std::string(spec.label), spec.maxHealth,
-                weapon.damage, weapon.range, spec.speed, events::RecruitEntryKind::Unit, {}, {}});
+            panel.entries.push_back(events::RecruitEntry{type, spec.maxHealth, weapon.damage, weapon.range,
+                spec.speed, events::RecruitEntryKind::Unit, 0, {}, false});
         }
-        const std::string cost = debugMode_ ? "Gratis"
-            : std::to_string(kConstructionDroneIronCost) + " Fe + "
-                + std::to_string(kConstructionDroneElectronicsCost) + " Ele";
-        panel.entries.push_back(events::RecruitEntry{UnitType::Soldier, "Drone de Construcao", 0, 0, 0.0F,
-            0.0F, events::RecruitEntryKind::ConstructionDrone,
-            "Carga " + std::to_string(kConstructionDroneCapacity), cost});
+        panel.entries.push_back(events::RecruitEntry{UnitType::Soldier, 0, 0, 0.0F, 0.0F,
+            events::RecruitEntryKind::ConstructionDrone, kConstructionDroneCapacity,
+            std::vector<events::CostEntry>{{ItemId::Iron, kConstructionDroneIronCost},
+                {ItemId::Electronics, kConstructionDroneElectronicsCost}},
+            debugMode_});
     }
     bus_.publish(panel);
 }

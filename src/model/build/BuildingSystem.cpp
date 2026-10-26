@@ -20,46 +20,16 @@
 namespace model {
 namespace {
 
-[[nodiscard]] std::string_view shortItemName(ItemId item)
+[[nodiscard]] std::vector<events::CostEntry> costEntries(BuildingType type)
 {
-    switch (item) {
-    case ItemId::Iron: return "Fe";
-    case ItemId::Coal: return "Carv";
-    case ItemId::Steel: return "Aco";
-    case ItemId::Copper: return "Cob";
-    case ItemId::Electronics: return "Ele";
-    case ItemId::Tools: return "Ferr";
-    case ItemId::Weapon: return "Arma";
-    case ItemId::Ammo: return "Mun";
-    case ItemId::Count: break;
-    }
-    return "?";
-}
-
-[[nodiscard]] std::string costLabel(BuildingType type)
-{
-    const BuildingCosts& costs = buildingCosts(type);
-    const bool free = std::ranges::all_of(costs, [](const BuildingCost& cost) { return cost.quantity <= 0; });
-    if (free) {
-        return "Gratis";
-    }
-    if (&costs == &kCommonBuildingCost) {
-        return "100 cada recurso";
-    }
-
-    std::string label;
-    for (const BuildingCost& cost : costs) {
-        if (cost.quantity <= 0) {
+    std::vector<events::CostEntry> entries;
+    for (const BuildingCost& cost : buildingCosts(type)) {
+        if (cost.item == ItemId::Count || cost.quantity <= 0) {
             continue;
         }
-        if (!label.empty()) {
-            label += " ";
-        }
-        label += shortItemName(cost.item);
-        label += " ";
-        label += std::to_string(cost.quantity);
+        entries.push_back(events::CostEntry{cost.item, cost.quantity});
     }
-    return label;
+    return entries;
 }
 
 } // namespace
@@ -216,17 +186,19 @@ void BuildingSystem::refreshPreviews() const
     }
 }
 
-std::string_view BuildingSystem::lockedReason(PlayerId player, BuildingType type) const
+events::BuildLockReason BuildingSystem::lockReason(PlayerId player, BuildingType type) const
 {
     if (type == BuildingType::CommandCenter) {
-        return hasCommandCenter(player) ? "Ja construido" : "";
+        return hasCommandCenter(player) ? events::BuildLockReason::AlreadyBuilt
+                                        : events::BuildLockReason::None;
     }
-    return hasCommandCenter(player) ? "" : "Requer Centro";
+    return hasCommandCenter(player) ? events::BuildLockReason::None
+                                    : events::BuildLockReason::RequiresCommandCenter;
 }
 
 bool BuildingSystem::isUnlocked(PlayerId player, BuildingType type) const
 {
-    return lockedReason(player, type).empty();
+    return lockReason(player, type) == events::BuildLockReason::None;
 }
 
 bool BuildingSystem::isAreaFree(GridPos origin, int size) const
@@ -291,10 +263,9 @@ void BuildingSystem::publishBar(PlayerId player) const
     bar.entries.reserve(kBuildingTypes.size());
     for (const BuildingType type : kBuildingTypes) {
         const BuildingSpec spec = buildingSpec(type);
-        const std::string_view reason = lockedReason(player, type);
+        const events::BuildLockReason reason = lockReason(player, type);
         bar.entries.push_back(events::BuildBarEntry{
-            type, std::string(spec.label), spec.size, reason.empty(), std::string(reason),
-            debugMode_ ? "Gratis" : costLabel(type)});
+            type, spec.size, reason == events::BuildLockReason::None, reason, costEntries(type), debugMode_});
     }
     bus_.publish(bar);
 }

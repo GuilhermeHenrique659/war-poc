@@ -47,10 +47,10 @@ TEST(SelectedUnitInventoryTests, ReportsWeaponAndAmmoForEachSelectedUnit)
     // When the inventories of the selected units are collected.
     const auto inventories = model::selectedUnitInventories(world, {soldier});
 
-    // Then the unit's label, health and inventory slots are reported.
+    // Then the unit's type, health and inventory slots are reported.
     ASSERT_EQ(inventories.size(), 1U);
     EXPECT_EQ(inventories[0].entity, soldier);
-    EXPECT_EQ(inventories[0].label, "Soldado");
+    EXPECT_EQ(inventories[0].type, model::UnitType::Soldier);
     EXPECT_EQ(inventories[0].health, 80);
     EXPECT_EQ(inventories[0].maxHealth, 100);
     ASSERT_EQ(inventories[0].slots.size(), model::kUnitInventorySlots);
@@ -69,7 +69,7 @@ TEST(SelectedUnitInventoryTests, ReportsMissingWeaponAndAmmo)
 
     // Then the empty slots are explicit instead of being hidden.
     ASSERT_EQ(inventories.size(), 1U);
-    EXPECT_EQ(inventories[0].label, "Bode");
+    EXPECT_EQ(inventories[0].type, model::UnitType::Goat);
     EXPECT_EQ(amountOf(inventories[0], model::ItemId::Weapon), 0);
     EXPECT_EQ(amountOf(inventories[0], model::ItemId::Ammo), 0);
 }

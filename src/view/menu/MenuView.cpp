@@ -3,6 +3,9 @@
 #include "core/Events.hpp"
 #include "view/menu/MenuLayout.hpp"
 #include "view/ui/Button.hpp"
+#include "view/ui/GameText.hpp"
+#include "view/ui/Text.hpp"
+#include "view/ui/TextCatalog.hpp"
 
 #include <raylib.h>
 
@@ -10,7 +13,6 @@ namespace view::menu {
 
 namespace {
 
-constexpr const char* kTitle = "WAR";
 constexpr int kTitleFontSize = 72;
 constexpr int kItemFontSize = 28;
 constexpr ui::ButtonStyle kMenuButtonStyle{
@@ -28,7 +30,7 @@ constexpr ui::ButtonStyle kMenuButtonStyle{
 MenuView::MenuView(core::EventBus& bus)
 {
     bus.subscribe<events::MenuStateChanged>([this](const events::MenuStateChanged& state) {
-        labels_ = state.labels;
+        actions_ = state.actions;
         selectedIndex_ = state.selectedIndex;
     });
 }
@@ -36,25 +38,25 @@ MenuView::MenuView(core::EventBus& bus)
 void MenuView::draw() const
 {
     drawTitle();
-    for (std::size_t i = 0; i < labels_.size(); ++i) {
+    for (std::size_t i = 0; i < actions_.size(); ++i) {
         drawItem(i);
     }
 }
 
 void MenuView::drawTitle() const
 {
-    const Rectangle first = menu_layout::itemBounds(0, labels_.size(), GetScreenWidth(), GetScreenHeight());
-    const int width = MeasureText(kTitle, kTitleFontSize);
-    const int x = (GetScreenWidth() - width) / 2;
-    const int y = static_cast<int>(first.y - menu_layout::kTitleOffsetY);
-    DrawText(kTitle, x, y, kTitleFontSize, RAYWHITE);
+    const Rectangle first = menu_layout::itemBounds(0, actions_.size(), GetScreenWidth(), GetScreenHeight());
+    const float y = first.y - menu_layout::kTitleOffsetY;
+    const Rectangle titleBounds{0.0F, y, static_cast<float>(GetScreenWidth()), static_cast<float>(kTitleFontSize)};
+    ui::Text{ui::TextStyle{kTitleFontSize, RAYWHITE, ui::TextAlign::Center}}.draw(
+        titleBounds, ui::text(ui::TextId::MenuTitle));
 }
 
 void MenuView::drawItem(std::size_t index) const
 {
-    const Rectangle bounds = menu_layout::itemBounds(index, labels_.size(), GetScreenWidth(), GetScreenHeight());
+    const Rectangle bounds = menu_layout::itemBounds(index, actions_.size(), GetScreenWidth(), GetScreenHeight());
     const auto state = index == selectedIndex_ ? ui::ButtonState::Selected : ui::ButtonState::Normal;
-    ui::Button{kMenuButtonStyle}.draw(bounds, labels_[index], state, kItemFontSize);
+    ui::Button{kMenuButtonStyle}.draw(bounds, std::string{ui::menuLabel(actions_[index])}, state, kItemFontSize);
 }
 
 } // namespace view::menu

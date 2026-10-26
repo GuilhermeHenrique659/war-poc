@@ -255,6 +255,49 @@ TEST_F(BuildingSystemTest, CommonBuildingsCostOneHundredOfEveryItem)
     }
 }
 
+TEST_F(BuildingSystemTest, BuildBarPublishesSemanticLockReasonsAndCosts)
+{
+    // Given a player who has not placed a Command Center yet.
+    buildings_.initializePlayer(kPlayer);
+
+    // Then the bar exposes why each entry is locked instead of a ready-made sentence.
+    const auto wallEntry = std::find_if(buildBars_.back().entries.begin(), buildBars_.back().entries.end(),
+        [](const events::BuildBarEntry& entry) { return entry.type == model::BuildingType::Wall; });
+    ASSERT_NE(wallEntry, buildBars_.back().entries.end());
+    EXPECT_FALSE(wallEntry->enabled);
+    EXPECT_EQ(wallEntry->lockReason, events::BuildLockReason::RequiresCommandCenter);
+    EXPECT_FALSE(wallEntry->free);
+
+    // And the material list is data, not text.
+    ASSERT_EQ(wallEntry->costs.size(), 6U);
+    EXPECT_EQ(wallEntry->costs[0].item, model::ItemId::Iron);
+    EXPECT_EQ(wallEntry->costs[0].quantity, 100);
+
+    const auto commandCenterEntry = std::find_if(buildBars_.back().entries.begin(), buildBars_.back().entries.end(),
+        [](const events::BuildBarEntry& entry) { return entry.type == model::BuildingType::CommandCenter; });
+    ASSERT_NE(commandCenterEntry, buildBars_.back().entries.end());
+    EXPECT_TRUE(commandCenterEntry->enabled);
+    EXPECT_EQ(commandCenterEntry->lockReason, events::BuildLockReason::None);
+    EXPECT_TRUE(commandCenterEntry->costs.empty());
+}
+
+TEST_F(BuildingSystemTest, BuildBarReportsAnAlreadyBuiltCommandCenter)
+{
+    // Given a player who already owns a Command Center.
+    buildings_.initializePlayer(kPlayer);
+    buildings_.select(kPlayer, model::BuildingType::CommandCenter);
+    buildings_.place(kPlayer, {0, 0});
+
+    // Then the Command Center entry is locked with the semantic reason.
+    const auto entry = std::find_if(buildBars_.back().entries.begin(), buildBars_.back().entries.end(),
+        [](const events::BuildBarEntry& barEntry) {
+            return barEntry.type == model::BuildingType::CommandCenter;
+        });
+    ASSERT_NE(entry, buildBars_.back().entries.end());
+    EXPECT_FALSE(entry->enabled);
+    EXPECT_EQ(entry->lockReason, events::BuildLockReason::AlreadyBuilt);
+}
+
 TEST_F(BuildingSystemTest, DebugModeMakesConstructionFree)
 {
     // Given a player with no resources and an initialized build bar.
@@ -271,7 +314,7 @@ TEST_F(BuildingSystemTest, DebugModeMakesConstructionFree)
     const auto wallEntry = std::find_if(buildBars_.back().entries.begin(), buildBars_.back().entries.end(),
         [](const events::BuildBarEntry& entry) { return entry.type == model::BuildingType::Wall; });
     ASSERT_NE(wallEntry, buildBars_.back().entries.end());
-    EXPECT_EQ(wallEntry->cost, "Gratis");
+    EXPECT_TRUE(wallEntry->free);
 
     // Then the player can start construction without materials and nothing is deducted.
     buildings_.select(kPlayer, model::BuildingType::CommandCenter);

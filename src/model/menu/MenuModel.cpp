@@ -23,7 +23,7 @@ constexpr const char* kDefaultPlayerName = "Jogador";
 
 MenuModel::MenuModel(core::EventBus& bus)
     : bus_(bus)
-    , menuItems_{{"Iniciar", MenuAction::StartGame}, {"Configurações", MenuAction::Settings}, {"Sair", MenuAction::Quit}}
+    , menuItems_{MenuAction::StartGame, MenuAction::Settings, MenuAction::Quit}
 {
     bus_.subscribe<events::SceneChanged>([this](const auto& e) { onSceneChanged(e); });
     bus_.subscribe<events::MenuNavigateRequested>([this](const auto& e) { onMenuNavigate(e); });
@@ -77,7 +77,7 @@ void MenuModel::onMenuConfirm(const events::MenuConfirmRequested& /*event*/)
     if (scene_ != Scene::MainMenu || selectedIndex_ >= menuItems_.size()) {
         return;
     }
-    switch (menuItems_[selectedIndex_].action) {
+    switch (menuItems_[selectedIndex_]) {
     case MenuAction::StartGame:
         bus_.publish(events::StartMatchRequested{playerName_.empty() ? kDefaultPlayerName : playerName_});
         return;
@@ -181,11 +181,9 @@ void MenuModel::changeScene(Scene scene)
 
 void MenuModel::publishMenuState() const
 {
-    events::MenuStateChanged state{{}, selectedIndex_};
-    state.labels.reserve(menuItems_.size());
-    for (const auto& item : menuItems_) {
-        state.labels.push_back(item.label);
-    }
+    events::MenuStateChanged state{};
+    state.selectedIndex = selectedIndex_;
+    state.actions = menuItems_;
     bus_.publish(state);
 }
 

@@ -257,7 +257,8 @@ void PlayingModel::publishLogisticsPanel(PlayerId player) const
     event.player = player;
     event.open = true;
     event.building = buildingEntity;
-    event.buildingName = building->name;
+    event.buildingType = building->type;
+    event.free = logistics_->debugMode();
     event.warehouse = building->type == BuildingType::Warehouse;
     event.idleDrones = logistics_->idleDroneCount(player);
     if (const auto* routes = world_->tryGet<components::LogisticsRoutes>(buildingEntity)) {
@@ -267,7 +268,7 @@ void PlayingModel::publishLogisticsPanel(PlayerId player) const
                 continue;
             }
             event.routes.push_back(events::LogisticsRouteEntry{
-                route.id, route.destination, destination->name, route.item, route.assignedDrones});
+                route.id, route.destination, destination->type, route.item, route.assignedDrones});
         }
     }
     bus_.publish(event);

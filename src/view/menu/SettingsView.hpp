@@ -17,7 +17,7 @@ private:
     int width_ = 1280;
     int height_ = 720;
     bool fullscreen_ = false;
-    std::string playerName_ = "Jogador";
+    std::string playerName_;
 };
 
 } // namespace view::menu

@@ -2,6 +2,7 @@
 
 #include "view/IsoProjection.hpp"
 #include "view/IsoShapes.hpp"
+#include "view/ui/Bar.hpp"
 
 #include <algorithm>
 
@@ -180,10 +181,9 @@ void drawConstructionProgressBar(model::GridPos origin, int size, float progress
     const float left = center.x - kBarWidth / 2.0F;
     const float top = center.y - 40.0F - static_cast<float>(size) * 12.0F;
     const float ratio = std::clamp(progress, 0.0F, 1.0F);
-
-    DrawRectangleRec(Rectangle{left - 2.0F, top - 2.0F, kBarWidth + 4.0F, kBarHeight + 4.0F}, BLACK);
-    DrawRectangleRec(Rectangle{left, top, kBarWidth, kBarHeight}, Color{45, 45, 55, 255});
-    DrawRectangleRec(Rectangle{left, top, kBarWidth * ratio, kBarHeight}, Color{230, 190, 70, 255});
+    const ui::BarStyle style{Color{45, 45, 55, 255}, Color{230, 190, 70, 255}, Color{0, 0, 0, 0},
+        BLACK, 0.0F, 2.0F};
+    ui::Bar{style}.draw(Rectangle{left, top, kBarWidth, kBarHeight}, ratio);
 }
 
 } // namespace view
