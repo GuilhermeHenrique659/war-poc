@@ -55,6 +55,43 @@ TEST_F(GameTextTest, TranslatesBuildLockReasons)
     EXPECT_EQ(view::ui::lockReason(events::BuildLockReason::RequiresCommandCenter), "Requer Centro");
 }
 
+TEST_F(GameTextTest, FormatsTheCalendarDateLine)
+{
+    // Given month 2, week 3.
+    events::TimeChanged time{};
+    time.month = 2;
+    time.week = 3;
+    time.day = 4;
+    time.tickInDay = 270;
+
+    // Then the date line names the month and week.
+    EXPECT_EQ(view::ui::dateText(time), "Mês 2 · Semana 3");
+}
+
+TEST_F(GameTextTest, FormatsTheElapsedTimeInsideTheDay)
+{
+    // Given 270 ticks into the fourth day.
+    events::TimeChanged time{};
+    time.month = 1;
+    time.week = 1;
+    time.day = 4;
+    time.tickInDay = 270;
+
+    // Then the clock line shows 4 minutes and 30 seconds.
+    EXPECT_EQ(view::ui::dayClockText(time), "Dia 4 · 04:30");
+}
+
+TEST_F(GameTextTest, FormatsTheLastSecondOfTheDay)
+{
+    // Given the final tick of the first day.
+    events::TimeChanged time{};
+    time.day = 1;
+    time.tickInDay = 599;
+
+    // Then the clock stops just before ten minutes.
+    EXPECT_EQ(view::ui::dayClockText(time), "Dia 1 · 09:59");
+}
+
 TEST_F(GameTextTest, FreeCostsUseTheFreeLabel)
 {
     EXPECT_EQ(view::ui::costText({}, true), "Gratis");

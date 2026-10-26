@@ -15,6 +15,14 @@ Documento vivo com as regras do jogo. Itens marcados como **TBD** ainda não for
 2. **Configurações**: permite escolher uma resolução entre 1024x576, 1280x720, 1600x900 e 1920x1080, alternar entre janela e tela cheia e editar o nome do jogador. A resolução e o modo de tela só são aplicados ao confirmar `Aplicar`; `Voltar` ou `ESC` retorna ao menu. Se o nome estiver vazio, o jogador usa `Jogador`.
 3. **Partida**: o mundo é criado vazio ao iniciar. `ESC` cancela a construção selecionada ou limpa a seleção de tropas/construção; sem nada selecionado, volta ao menu e descarta a partida atual.
 
+## Tempo
+- **1 tick = 1 segundo** de gameplay. O relógio só avança na cena `Partida`; menus não contam tempo.
+- **1 dia = 600 ticks** (10 minutos reais). O contador do dia vai de `00:00` a `09:59` e então vira o dia seguinte em `00:00`.
+- **1 semana = 7 dias**. **1 mês = 4 semanas = 28 dias**. Não há ano nesta etapa; depois do dia 28 o calendário volta ao dia 1 da semana 1 do mês seguinte.
+- Cada partida começa em **Mês 1, Semana 1, Dia 1, 00:00**. O relógio reinicia ao iniciar uma nova partida e ao descartar a partida atual.
+- O canto superior direito mostra a data (`Mês X · Semana Y`) e o tempo decorrido do dia (`Dia Z · MM:SS`). O painel de vida do jogador fica logo abaixo; os painéis de logística e recrutamento ficam abaixo dele.
+- O relógio ainda não altera as regras de produção, construção ou combate; essas regras continuam usando segundos.
+
 ## Jogador
 - Cada partida cria a entidade ECS de identidade do jogador local, com o `PlayerId` gerado pelo Model, o nome configurado e o componente de dono. Ela ainda não tem posição, vida, combate nem representação visual.
 - O avatar só spawna quando o jogador coloca o Centro de Comando: nesse momento recebe `Position`, vida e atributos de combate e passa a ser representado no mundo.

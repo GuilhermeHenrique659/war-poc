@@ -25,6 +25,8 @@ settings.default_player=Jogador
 
 hud.player=Jogador
 hud.health=Vida {0}/{1}
+hud.month_week=Mês {0} · Semana {1}
+hud.day_clock=Dia {2} · {0:02}:{1:02}
 
 buildbar.help.shortcuts=1-9 ou clique na barra: escolher construcao
 buildbar.help.construct=Botao esquerdo: construir (arraste para muros)

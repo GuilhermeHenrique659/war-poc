@@ -1,5 +1,7 @@
 #pragma once
 
+#include "view/player/PlayerHudLayout.hpp"
+
 #include <raylib.h>
 
 #include <cstddef>
@@ -8,7 +10,8 @@ namespace view::logistics_panel_layout {
 
 inline constexpr float kWidth = 350.0F;
 inline constexpr float kMargin = 10.0F;
-inline constexpr float kTop = 92.0F;
+inline constexpr float kTop =
+    player_hud_layout::kTop + player_hud_layout::kHeight + player_hud_layout::kGap;
 inline constexpr float kPadding = 10.0F;
 inline constexpr float kHeaderHeight = 34.0F;
 inline constexpr float kRecruitHeight = 48.0F;

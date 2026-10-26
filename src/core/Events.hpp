@@ -194,6 +194,16 @@ struct LocalPlayerChanged {
     model::PlayerId player;
 };
 
+// Game calendar state. Days are 1-based within the month and weeks 1-based within the month.
+struct TimeChanged {
+    std::uint64_t totalTicks = 0;
+    std::uint32_t tickInDay = 0;
+    std::uint32_t day = 1;
+    std::uint32_t week = 1;
+    std::uint32_t month = 1;
+    std::uint32_t ticksPerDay = 0;
+};
+
 struct PlayerSpawned {
     model::ecs::Entity entity;
     model::PlayerId player;

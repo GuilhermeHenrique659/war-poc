@@ -3,6 +3,7 @@
 #include "view/ui/TextCatalog.hpp"
 
 #include <cstddef>
+#include <cstdint>
 #include <string>
 #include <string_view>
 #include <vector>
@@ -124,6 +125,18 @@ std::string_view lockReason(events::BuildLockReason reason)
     case events::BuildLockReason::RequiresCommandCenter: return text(TextId::LockRequiresCommandCenter);
     }
     return {};
+}
+
+std::string dateText(const events::TimeChanged& time)
+{
+    return format(TextId::HudMonthWeek, time.month, time.week);
+}
+
+std::string dayClockText(const events::TimeChanged& time)
+{
+    const std::uint32_t minutes = time.tickInDay / 60U;
+    const std::uint32_t seconds = time.tickInDay % 60U;
+    return format(TextId::HudDayClock, minutes, seconds, time.day);
 }
 
 std::string costText(const std::vector<events::CostEntry>& costs, bool free)

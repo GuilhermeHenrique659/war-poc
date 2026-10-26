@@ -12,6 +12,7 @@ namespace model {
 
 PlayingModel::PlayingModel(core::EventBus& bus)
     : bus_(bus)
+    , time_(bus)
     , world_(std::make_unique<ecs::Registry>())
     , buildings_(std::make_unique<BuildingSystem>(bus_, *world_))
     , units_(std::make_unique<UnitSystem>(bus_, *world_, *buildings_))
@@ -156,6 +157,7 @@ void PlayingModel::update(float deltaSeconds)
     if (!inMatch()) {
         return;
     }
+    time_.update(deltaSeconds);
     production_.update(*world_, deltaSeconds);
     construction_->update(deltaSeconds);
     inventoryPanels_->update();
@@ -222,6 +224,7 @@ void PlayingModel::resetWorld()
     projectiles_->reset();
     selection_->reset();
     genealogy_->reset();
+    time_.reset();
 }
 
 void PlayingModel::createLocalPlayer(const std::string& playerName)

@@ -16,6 +16,7 @@
 #include "model/player/Player.hpp"
 #include "model/player/PlayerAvatarSystem.hpp"
 #include "model/Scene.hpp"
+#include "model/time/TimeSystem.hpp"
 #include "model/WorldMap.hpp"
 #include "model/units/UnitSupplySystem.hpp"
 #include "model/units/UnitSystem.hpp"
@@ -47,6 +48,7 @@ private:
     void publishLogisticsPanel(PlayerId player) const;
 
     core::EventBus& bus_;
+    TimeSystem time_;
     Scene scene_ = Scene::MainMenu;
     PlayerId nextPlayerId_ = 1;
     PlayerId localPlayerId_ = kNoPlayer;

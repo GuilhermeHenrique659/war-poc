@@ -22,6 +22,10 @@ namespace view::ui {
 [[nodiscard]] std::string_view sceneName(model::Scene scene);
 [[nodiscard]] std::string_view lockReason(events::BuildLockReason reason);
 
+// Calendar HUD formatting. The clock line shows the elapsed time inside the current day.
+[[nodiscard]] std::string dateText(const events::TimeChanged& time);
+[[nodiscard]] std::string dayClockText(const events::TimeChanged& time);
+
 // Formats a material list, or the free label when costs are waived.
 [[nodiscard]] std::string costText(const std::vector<events::CostEntry>& costs, bool free);
 

@@ -32,6 +32,8 @@ namespace view::ui {
     X(SettingsDefaultPlayer, "settings.default_player") \
     X(HudPlayer, "hud.player") \
     X(HudHealth, "hud.health") \
+    X(HudMonthWeek, "hud.month_week") \
+    X(HudDayClock, "hud.day_clock") \
     X(BuildBarHelpShortcuts, "buildbar.help.shortcuts") \
     X(BuildBarHelpConstruct, "buildbar.help.construct") \
     X(BuildBarHelpCancel, "buildbar.help.cancel") \
