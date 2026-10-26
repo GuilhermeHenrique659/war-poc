@@ -4,6 +4,7 @@
 #include "model/FootprintGeometry.hpp"
 #include "model/Pathfinding.hpp"
 #include "model/build/BuildingComponents.hpp"
+#include "model/build/ConstructionComponents.hpp"
 #include "model/combat/WeaponComponents.hpp"
 #include "model/economy/InventoryComponents.hpp"
 #include "model/economy/LogisticsComponents.hpp"
@@ -112,6 +113,25 @@ std::optional<ecs::Entity> UnitSystem::spawnTransportDrone(PlayerId player, Grid
     world_.emplace<components::TransportDrone>(entity);
     reserve(entity, *origin, 1);
     bus_.publish(events::DroneSpawned{entity, player, position.x, position.y});
+    bus_.publish(events::DroneLoadStateChanged{entity, events::DroneLoadState::Unloaded});
+    return entity;
+}
+
+std::optional<ecs::Entity> UnitSystem::spawnConstructionDrone(PlayerId player, GridPos center)
+{
+    const auto origin = findSpawnSquare(center, 1, {}, pathfinding::kUnlimitedRadius);
+    if (!origin) {
+        return std::nullopt;
+    }
+    const components::Position position = centerOf(*origin, 1);
+    const ecs::Entity entity = world_.create();
+    world_.emplace<components::Owner>(entity, player);
+    world_.emplace<components::Position>(entity, position);
+    world_.emplace<components::Mover>(entity, components::Mover{kConstructionDroneSpeed, {}, 0, *origin});
+    world_.emplace<components::Inventory>(entity, std::size_t{2});
+    world_.emplace<components::ConstructionDrone>(entity);
+    reserve(entity, *origin, 1);
+    bus_.publish(events::DroneSpawned{entity, player, position.x, position.y, events::DroneKind::Construction});
     bus_.publish(events::DroneLoadStateChanged{entity, events::DroneLoadState::Unloaded});
     return entity;
 }
@@ -296,7 +316,8 @@ bool UnitSystem::update(float deltaSeconds)
             return;
         }
         anyMoved = true;
-        if (world_.has<components::TransportDrone>(entity)) {
+        if (world_.has<components::TransportDrone>(entity)
+            || world_.has<components::ConstructionDrone>(entity)) {
             bus_.publish(events::DroneMoved{entity, position->x, position->y});
         } else {
             bus_.publish(events::UnitMoved{entity, position->x, position->y});

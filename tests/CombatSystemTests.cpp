@@ -13,6 +13,7 @@
 #include "model/player/PlayerComponents.hpp"
 #include "model/units/UnitComponents.hpp"
 #include "model/units/UnitSystem.hpp"
+#include "ConstructionTestHelper.hpp"
 
 #include <gtest/gtest.h>
 
@@ -49,6 +50,11 @@ protected:
             }
         });
         return found;
+    }
+
+    void place(model::BuildingType type, model::GridPos anchor)
+    {
+        (void)test_support::placeAndComplete(buildings_, bus_, world_, 1, type, anchor);
     }
 
     void equip(model::ecs::Entity unit, int ammo = model::kUnitAmmoCapacity)
@@ -126,10 +132,8 @@ TEST_F(CombatSystemTest, RejectsFriendlyTargetsAndRetainsHealthOutsideRange)
 TEST_F(CombatSystemTest, TowerAutomaticallyAttacksNearestEnemyInRange)
 {
     // Given a player with a Command Center and a defensive tower.
-    buildings_.select(1, model::BuildingType::CommandCenter);
-    buildings_.place(1, {0, 0});
-    buildings_.select(1, model::BuildingType::Tower);
-    buildings_.place(1, {10, 0});
+    place(model::BuildingType::CommandCenter, {0, 0});
+    place(model::BuildingType::Tower, {10, 0});
     model::ecs::Entity tower = 0;
     world_.each<model::components::Building>([&](model::ecs::Entity entity, const model::components::Building& b) {
         if (b.type == model::BuildingType::Tower) tower = entity;
@@ -149,10 +153,8 @@ TEST_F(CombatSystemTest, TowerAutomaticallyAttacksNearestEnemyInRange)
 TEST_F(CombatSystemTest, TowerAttacksTargetExactlyAtMaximumRange)
 {
     // Given a tower with range six and an enemy exactly six tiles away.
-    buildings_.select(1, model::BuildingType::CommandCenter);
-    buildings_.place(1, {0, 0});
-    buildings_.select(1, model::BuildingType::Tower);
-    buildings_.place(1, {10, 0});
+    place(model::BuildingType::CommandCenter, {0, 0});
+    place(model::BuildingType::Tower, {10, 0});
     model::ecs::Entity tower = 0;
     world_.each<model::components::Building>([&](model::ecs::Entity entity, const model::components::Building& b) {
         if (b.type == model::BuildingType::Tower) tower = entity;
@@ -172,10 +174,8 @@ TEST_F(CombatSystemTest, TowerAttacksTargetExactlyAtMaximumRange)
 TEST_F(CombatSystemTest, TowerAutomaticallyAttacksAnEnemyPlayerAvatar)
 {
     // Given a defensive tower and an enemy player avatar within its range.
-    buildings_.select(1, model::BuildingType::CommandCenter);
-    buildings_.place(1, {0, 0});
-    buildings_.select(1, model::BuildingType::Tower);
-    buildings_.place(1, {10, 0});
+    place(model::BuildingType::CommandCenter, {0, 0});
+    place(model::BuildingType::Tower, {10, 0});
     const auto avatar = players_.create(2, "Inimigo");
     bus_.publish(events::BuildingPlaced{100, 2, model::BuildingType::CommandCenter, {9, -2}, 5});
     world_.tryGet<model::components::Position>(avatar)->x = 11.0F;
@@ -238,10 +238,8 @@ TEST_F(CombatSystemTest, DirectShotPublishesShotFiredForTheView)
 TEST_F(CombatSystemTest, HeldFirePublishesNoShotEffect)
 {
     // Given a wall blocking the line of sight, with shot events observed.
-    buildings_.select(1, model::BuildingType::CommandCenter);
-    buildings_.place(1, {20, 20});
-    buildings_.select(1, model::BuildingType::Wall);
-    buildings_.place(1, {1, 0});
+    place(model::BuildingType::CommandCenter, {20, 20});
+    place(model::BuildingType::Wall, {1, 0});
     const auto attacker = units_.spawn(1, model::recruitStats(model::UnitType::Soldier), {0, 0});
     const auto target = units_.spawn(2, model::recruitStats(model::UnitType::Soldier), {2, 0});
     equip(attacker);
@@ -330,10 +328,8 @@ TEST_F(CombatSystemTest, EachAttackConsumesOneAmmoAndStopsFiringWhenAmmoRunsOut)
 TEST_F(CombatSystemTest, UnitsCanAttackThePlayersOwnTrainingDummy)
 {
     // Given a player's soldier and a Training Dummy one tile away.
-    buildings_.select(1, model::BuildingType::CommandCenter);
-    buildings_.place(1, {0, 0});
-    buildings_.select(1, model::BuildingType::TrainingDummy);
-    buildings_.place(1, {5, 5});
+    place(model::BuildingType::CommandCenter, {0, 0});
+    place(model::BuildingType::TrainingDummy, {5, 5});
     const model::ecs::Entity dummy = buildingOfType(model::BuildingType::TrainingDummy);
     ASSERT_NE(dummy, 0U);
     const auto attacker = units_.spawn(1, model::recruitStats(model::UnitType::Soldier), {4, 5});
@@ -352,10 +348,8 @@ TEST_F(CombatSystemTest, UnitsCanAttackThePlayersOwnTrainingDummy)
 TEST_F(CombatSystemTest, DestroyingATrainingDummyRemovesItAndFreesItsTile)
 {
     // Given a Training Dummy with little health left and an armed soldier beside it.
-    buildings_.select(1, model::BuildingType::CommandCenter);
-    buildings_.place(1, {0, 0});
-    buildings_.select(1, model::BuildingType::TrainingDummy);
-    buildings_.place(1, {5, 5});
+    place(model::BuildingType::CommandCenter, {0, 0});
+    place(model::BuildingType::TrainingDummy, {5, 5});
     const model::ecs::Entity dummy = buildingOfType(model::BuildingType::TrainingDummy);
     ASSERT_NE(dummy, 0U);
     world_.tryGet<model::components::Health>(dummy)->current = 10;
@@ -374,10 +368,8 @@ TEST_F(CombatSystemTest, DestroyingATrainingDummyRemovesItAndFreesItsTile)
 TEST_F(CombatSystemTest, AttackOrderWalksUntilTheTargetEntersWeaponRange)
 {
     // Given a soldier far from the player's Training Dummy.
-    buildings_.select(1, model::BuildingType::CommandCenter);
-    buildings_.place(1, {0, 0});
-    buildings_.select(1, model::BuildingType::TrainingDummy);
-    buildings_.place(1, {10, 10});
+    place(model::BuildingType::CommandCenter, {0, 0});
+    place(model::BuildingType::TrainingDummy, {10, 10});
     const model::ecs::Entity dummy = buildingOfType(model::BuildingType::TrainingDummy);
     ASSERT_NE(dummy, 0U);
     const auto attacker = units_.spawn(1, model::recruitStats(model::UnitType::Soldier), {0, 10});
@@ -406,10 +398,8 @@ TEST_F(CombatSystemTest, AttackOrderWalksUntilTheTargetEntersWeaponRange)
 TEST_F(CombatSystemTest, AttackOrderKeepsAnInRangeSoldierInPlaceAndFires)
 {
     // Given a soldier that is already three tiles from the dummy, inside the rifle range.
-    buildings_.select(1, model::BuildingType::CommandCenter);
-    buildings_.place(1, {0, 0});
-    buildings_.select(1, model::BuildingType::TrainingDummy);
-    buildings_.place(1, {10, 10});
+    place(model::BuildingType::CommandCenter, {0, 0});
+    place(model::BuildingType::TrainingDummy, {10, 10});
     const model::ecs::Entity dummy = buildingOfType(model::BuildingType::TrainingDummy);
     ASSERT_NE(dummy, 0U);
     const auto attacker = units_.spawn(1, model::recruitStats(model::UnitType::Soldier), {7, 10});
@@ -453,10 +443,8 @@ TEST_F(CombatSystemTest, DoesNotAttackWithoutAWeapon)
 TEST_F(CombatSystemTest, DirectFireWithoutLineOfSightHoldsFireWithoutSpendingAmmo)
 {
     // Given a wall between an armed soldier and its target.
-    buildings_.select(1, model::BuildingType::CommandCenter);
-    buildings_.place(1, {20, 20});
-    buildings_.select(1, model::BuildingType::Wall);
-    buildings_.place(1, {1, 0});
+    place(model::BuildingType::CommandCenter, {20, 20});
+    place(model::BuildingType::Wall, {1, 0});
     const model::ecs::Entity wall = buildingOfType(model::BuildingType::Wall);
     ASSERT_NE(wall, 0U);
     const auto attacker = units_.spawn(1, model::recruitStats(model::UnitType::Soldier), {0, 0});
@@ -506,10 +494,8 @@ TEST_F(CombatSystemTest, TerrainBlockedTilesStopDirectFire)
 TEST_F(CombatSystemTest, ParabolicFireIgnoresObstaclesAndDamagesOnImpact)
 {
     // Given a mortar soldier and a wall blocking the line to its target.
-    buildings_.select(1, model::BuildingType::CommandCenter);
-    buildings_.place(1, {20, 20});
-    buildings_.select(1, model::BuildingType::Wall);
-    buildings_.place(1, {3, 0});
+    place(model::BuildingType::CommandCenter, {20, 20});
+    place(model::BuildingType::Wall, {3, 0});
     model::UnitStats mortarStats = model::recruitStats(model::UnitType::Soldier);
     mortarStats.weapon = model::WeaponType::Mortar;
     mortarStats.damage = model::weaponSpec(model::WeaponType::Mortar).damage;

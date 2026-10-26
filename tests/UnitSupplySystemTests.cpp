@@ -8,6 +8,7 @@
 #include "model/units/UnitComponents.hpp"
 #include "model/units/UnitSupplySystem.hpp"
 #include "model/units/UnitSystem.hpp"
+#include "ConstructionTestHelper.hpp"
 
 #include <gtest/gtest.h>
 
@@ -27,21 +28,7 @@ protected:
     [[nodiscard]] model::ecs::Entity place(model::BuildingType type, model::GridPos anchor)
     {
         buildings_.initializePlayer(kPlayer);
-        // Placement keeps the type selected for repeated builds; clear it before choosing again.
-        buildings_.cancel(kPlayer);
-        buildings_.select(kPlayer, type);
-        buildings_.place(kPlayer, anchor);
-        model::ecs::Entity placed = 0;
-        bool found = false;
-        world_.each<model::components::Building>(
-            [&](model::ecs::Entity entity, const model::components::Building& building) {
-                if (building.type == type && (!found || entity > placed)) {
-                    placed = entity;
-                    found = true;
-                }
-            });
-        EXPECT_TRUE(found);
-        return placed;
+        return test_support::placeAndComplete(buildings_, bus_, world_, kPlayer, type, anchor);
     }
 
     void stock(model::ecs::Entity building, model::ItemId item, int quantity)

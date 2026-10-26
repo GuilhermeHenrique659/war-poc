@@ -3,6 +3,7 @@
 #include "core/Events.hpp"
 #include "model/FootprintGeometry.hpp"
 #include "model/build/BuildingComponents.hpp"
+#include "model/build/ConstructionComponents.hpp"
 #include "model/player/PlayerComponents.hpp"
 #include "model/units/UnitComponents.hpp"
 
@@ -83,7 +84,8 @@ void DamageSystem::resolveDefeats(const std::vector<ecs::Entity>& defeated)
             units_.remove(entity);
             continue;
         }
-        if (world_.tryGet<components::Building>(entity) != nullptr) {
+        if (world_.tryGet<components::Building>(entity) != nullptr
+            || world_.tryGet<components::ConstructionSite>(entity) != nullptr) {
             buildings_.remove(entity);
         }
     }

@@ -3,6 +3,8 @@
 #include "view/IsoProjection.hpp"
 #include "view/IsoShapes.hpp"
 
+#include <algorithm>
+
 namespace view {
 
 namespace {
@@ -166,6 +168,22 @@ void drawBuilding(model::BuildingType type, model::GridPos origin, int size, uns
             iso::boxColors(buildingColor(type), alpha));
         return;
     }
+}
+
+void drawConstructionProgressBar(model::GridPos origin, int size, float progress)
+{
+    constexpr float kBarWidth = 96.0F;
+    constexpr float kBarHeight = 10.0F;
+    const float centerX = static_cast<float>(origin.x) + static_cast<float>(size) / 2.0F;
+    const float centerY = static_cast<float>(origin.y) + static_cast<float>(size) / 2.0F;
+    const Vector2 center = iso::gridToWorld(centerX, centerY);
+    const float left = center.x - kBarWidth / 2.0F;
+    const float top = center.y - 40.0F - static_cast<float>(size) * 12.0F;
+    const float ratio = std::clamp(progress, 0.0F, 1.0F);
+
+    DrawRectangleRec(Rectangle{left - 2.0F, top - 2.0F, kBarWidth + 4.0F, kBarHeight + 4.0F}, BLACK);
+    DrawRectangleRec(Rectangle{left, top, kBarWidth, kBarHeight}, Color{45, 45, 55, 255});
+    DrawRectangleRec(Rectangle{left, top, kBarWidth * ratio, kBarHeight}, Color{230, 190, 70, 255});
 }
 
 } // namespace view

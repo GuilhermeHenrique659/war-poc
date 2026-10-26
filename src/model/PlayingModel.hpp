@@ -3,6 +3,8 @@
 #include "core/EventBus.hpp"
 #include "core/Events.hpp"
 #include "model/build/BuildingSystem.hpp"
+#include "model/build/ConstructionDroneSystem.hpp"
+#include "model/build/ConstructionSystem.hpp"
 #include "model/combat/DamageSystem.hpp"
 #include "model/combat/ProjectileSystem.hpp"
 #include "model/economy/InventoryPanelSystem.hpp"
@@ -53,6 +55,8 @@ private:
     // Systems hold references to world_ (and units_ to buildings_); preserve declaration order.
     std::unique_ptr<BuildingSystem> buildings_;
     std::unique_ptr<UnitSystem> units_;
+    std::unique_ptr<ConstructionSystem> construction_;
+    std::unique_ptr<ConstructionDroneSystem> constructionDrones_;
     std::unique_ptr<UnitSupplySystem> unitSupplies_;
     std::unique_ptr<LogisticsSystem> logistics_;
     std::unique_ptr<PlayerAvatarSystem> playerAvatars_;

@@ -7,6 +7,7 @@
 #include "model/units/UnitSystem.hpp"
 #include "model/units/UnitType.hpp"
 #include "model/ecs/Registry.hpp"
+#include "ConstructionTestHelper.hpp"
 
 #include <gtest/gtest.h>
 
@@ -40,6 +41,11 @@ protected:
     {
         const auto* health = world_.tryGet<model::components::Health>(entity);
         return health == nullptr ? -1 : health->current;
+    }
+
+    void place(model::BuildingType type, model::GridPos anchor)
+    {
+        (void)test_support::placeAndComplete(buildings_, bus_, world_, 1, type, anchor);
     }
 
     core::EventBus bus_;
@@ -86,10 +92,8 @@ TEST_F(DamageSystemTest, ExplosiveDamageHitsEveryEntityInTheRadiusIncludingAllie
 TEST_F(DamageSystemTest, ExplosiveDamageAlsoHitsFriendlyBuildings)
 {
     // Given a player's own wall next to an impact point.
-    buildings_.select(1, model::BuildingType::CommandCenter);
-    buildings_.place(1, {20, 20});
-    buildings_.select(1, model::BuildingType::Wall);
-    buildings_.place(1, {2, 0});
+    place(model::BuildingType::CommandCenter, {20, 20});
+    place(model::BuildingType::Wall, {2, 0});
     const auto wall = buildingOfType(model::BuildingType::Wall);
     ASSERT_NE(wall, 0U);
 
@@ -135,13 +139,33 @@ TEST_F(DamageSystemTest, DefeatingAUnitRemovesItFromTheWorld)
     EXPECT_FALSE(world_.isAlive(unit));
 }
 
+TEST_F(DamageSystemTest, DefeatingAConstructionSiteRemovesItAndFreesItsTiles)
+{
+    // Given a wall that is still a construction site.
+    place(model::BuildingType::CommandCenter, {20, 20});
+    buildings_.select(1, model::BuildingType::Wall);
+    buildings_.place(1, {5, 5});
+    model::ecs::Entity wall = 0;
+    world_.each<model::components::ConstructionSite>(
+        [&wall](model::ecs::Entity entity, const model::components::ConstructionSite&) { wall = entity; });
+    ASSERT_NE(wall, 0U);
+    ASSERT_TRUE(world_.has<model::components::ConstructionSite>(wall));
+    world_.tryGet<model::components::Health>(wall)->current = 5;
+
+    // When it takes lethal kinetic damage.
+    const bool defeated = damage_.apply(wall, model::DamageSpec{model::DamageType::Kinetic, 10, 0.0F});
+
+    // Then it is removed and its tile is free again.
+    EXPECT_TRUE(defeated);
+    EXPECT_FALSE(world_.isAlive(wall));
+    EXPECT_FALSE(buildings_.isOccupied({5, 5}));
+}
+
 TEST_F(DamageSystemTest, DefeatingABuildingRemovesItAndFreesItsTiles)
 {
     // Given a training dummy one hit away from death.
-    buildings_.select(1, model::BuildingType::CommandCenter);
-    buildings_.place(1, {20, 20});
-    buildings_.select(1, model::BuildingType::TrainingDummy);
-    buildings_.place(1, {5, 5});
+    place(model::BuildingType::CommandCenter, {20, 20});
+    place(model::BuildingType::TrainingDummy, {5, 5});
     const auto dummy = buildingOfType(model::BuildingType::TrainingDummy);
     ASSERT_NE(dummy, 0U);
     world_.tryGet<model::components::Health>(dummy)->current = 5;

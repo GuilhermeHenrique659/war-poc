@@ -39,6 +39,8 @@ private:
         int size;
         int health;
         int maxHealth;
+        bool underConstruction = false;
+        float progress = 0.0F;
         std::unique_ptr<BuildingViewModel> viewModel;
     };
 

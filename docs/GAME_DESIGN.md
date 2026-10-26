@@ -26,7 +26,7 @@ Documento vivo com as regras do jogo. Itens marcados como **TBD** ainda não for
 - No sandbox atual há somente o jogador local. O `PlayerId` é propagado aos Controllers e Views pelo event bus, permitindo que novos jogadores sejam adicionados depois.
 
 ## Modo debug
-- `F3` liga e desliga o modo debug em qualquer cena. Quando ativo, o custo em recursos de todas as construções e unidades é zero. A prévia de construção não exige materiais, a colocação não desconta recursos e a interface mostra `Gratis`; o recrutamento de drones também não exige nem desconta recursos.
+- `F3` liga e desliga o modo debug em qualquer cena. Quando ativo, o custo em recursos de todas as construções e unidades é zero. A construção ignora a entrega de materiais, mas mantém o tempo nominal; a interface mostra `Gratis`, e o recrutamento de drones também não exige nem desconta recursos.
 - Painel no canto superior esquerdo com FPS e tempo do frame (verde ≥ 55, amarelo ≥ 30, vermelho abaixo disso) e a cena atual. Durante a partida mostra também a quantidade de construções e tropas, a posição e o zoom da câmera, e o tile sob o mouse.
 - Em cada entidade da partida aparecem:
   - o contorno da área ocupada no chão (ciano);
@@ -45,8 +45,8 @@ Documento vivo com as regras do jogo. Itens marcados como **TBD** ainda não for
 - Renderização de construções, tropas e avatar usa o algoritmo do pintor: objetos mais distantes no eixo de profundidade do grid são desenhados primeiro.
 
 ## Economia / recursos
-- O inventário é composto por slots; cada slot armazena um item e sua quantidade atual em unidades inteiras (não há frações de item). Cada pilha comporta até 100 unidades, exceto arma (1 por pilha). O inventário do jogador tem 32 slots, o de cada construção tem 64, o de cada tropa tem 2 e o de cada drone tem 10.
-- O jogador começa com 500 unidades de ferro, 10 armas e 1000 munições. Inventários de construções começam vazios. Itens definidos: ferro, carvão, aço, cobre, eletrônicos, ferramentas, arma e munição.
+- O inventário é composto por slots; cada slot armazena um item e sua quantidade atual em unidades inteiras (não há frações de item). Cada pilha comporta até 100 unidades, exceto arma (1 por pilha). O inventário do jogador tem 32 slots, o de cada construção tem 64, o de cada tropa tem 2 e o de cada drone de transporte tem 10. O drone de construção usa 2 slots e carrega no máximo 10 unidades de um único recurso por viagem.
+- O jogador começa com 500 unidades de ferro, 10 armas e 1000 munições. Ao colocar o Centro de Comando, os materiais de construção do inventário do jogador (ferro, carvão, aço, cobre, eletrônicos e ferramentas) são transferidos para o inventário do Centro; armas e munição permanecem com o jogador. Os demais inventários de construções começam vazios. Itens definidos: ferro, carvão, aço, cobre, eletrônicos, ferramentas, arma e munição.
 - A tecla `I` abre/fecha o inventário do jogador. Ao selecionar uma construção, o painel mostra o inventário do jogador e o da construção lado a lado. Arrastar uma pilha de um painel ao outro transfere o máximo que couber; o restante permanece na origem se não houver espaço. `ESC` ou `X` fecha o painel.
 - Produção usa taxas por segundo, mas itens e consumo são sempre unidades inteiras. O progresso fracionário da taxa fica acumulado internamente até completar uma unidade; produção também respeita os itens disponíveis e a capacidade do inventário de saída:
   - Mina de Ferro: produz 1 ferro/s sem consumir entradas.
@@ -57,7 +57,9 @@ Documento vivo com as regras do jogo. Itens marcados como **TBD** ainda não for
   - Fábrica de Ferramentas: consome 1 aço/s e 1 eletrônico/s e produz 0,5 ferramenta/s.
   - Fábrica de Armas: consome 1 aço/s, 1 eletrônico/s e 1 ferramenta/s e produz 0,5 arma/s.
   - Fábrica de Munição: consome 1 aço/s e 1 cobre/s e produz 0,5 munição/s.
-- As construções descontam seu custo do inventário do jogador no momento da colocação; recursos armazenados em construções não contam para pagar o custo. A prévia fica inválida quando faltam recursos. O recrutamento continua instantâneo, requer Quartel e não tem custo nem limite populacional.
+- Construções têm custo e tempo nominal de construção. A colocação apenas cria um canteiro (verde/vermelho na prévia não depende de recursos) e não desconta nada do jogador: os materiais são entregues ao canteiro por drones de construção e consumidos proporcionalmente ao progresso. Se faltar qualquer material, o progresso pausa até a entrega; não é preciso ter todos os recursos para começar. O Centro de Comando é a exceção e fica pronto instantaneamente. O recrutamento de tropas continua instantâneo, requer Quartel e não tem custo nem limite populacional.
+- Cada Centro de Comando colocado concede 1 drone de construção grátis ao lado dele. Mais drones de construção podem ser recrutados no Centro de Comando por 50 de ferro + 50 de eletrônicos, sem limite, pagos do inventário do próprio Centro. O drone de construção é uma unidade logística sem combate: busca o material faltante no Armazém mais próximo que tenha estoque e, se nenhum Armazém tiver, no Centro de Comando mais próximo; entrega no canteiro e repete até a construção terminar. Cada viagem carrega até 10 unidades de um recurso. O tempo nominal é mantido mesmo com vários drones; mais drones só reduzem a pausa por falta de material.
+- No modo debug, a construção ignora os materiais, mas continua respeitando o tempo nominal.
 - Casa e Gerador permanecem como estruturas sem efeitos econômicos nesta etapa. Tropas de combate recebem um inventário de 2 slots para arma e munição.
 - O Depósito existente passa a ser chamado **Armazém**, mantém sua área 2x2 e inventário de 64 slots, custa 100 de ferro e permite recrutar drones de transporte. Cada drone é recrutado instantaneamente e custa 50 de ferro e 50 eletrônicos, sem limite.
 - Cada construção produtora cria rotas de saída para todos os Armazéns do mesmo jogador e para as construções do mesmo jogador que consomem seu produto. Ao criar um Armazém ou uma construção consumidora, também são criadas rotas de produtores existentes para ela. Cada rota tem ID único, origem, destino, item e quantidade de drones atribuídos; sua lista pertence à construção de origem.
@@ -73,29 +75,30 @@ Documento vivo com as regras do jogo. Itens marcados como **TBD** ainda não for
 - Estruturas ocupam uma área quadrada de tiles e não podem se sobrepor.
 - Estruturas atuais:
 
-| Estrutura | Área | Custo | Regra |
-|---|---|---|---|
-| Centro de Comando | 5x5 | Grátis | Um por jogador. Precisa ser a primeira construção. Depois de construído, some da seleção. |
-| Muro | 1x1 | 100 de cada recurso | Só liberado depois que o jogador tem um Centro de Comando. |
-| Boneco de Treinamento | 1x1 | Grátis | Requer Centro de Comando; tem 100 de vida e serve de alvo de treino: pode ser atacado por qualquer tropa, inclusive as do próprio jogador. |
-| Casa | 2x2 | 100 de cada recurso | Requer Centro de Comando; sem efeito econômico nesta etapa. |
-| Gerador | 2x2 | 100 de cada recurso | Requer Centro de Comando; sem efeito econômico nesta etapa. |
-| Armazém | 2x2 | 100 ferro | Requer Centro de Comando; inventário de 64 slots; recruta drones de transporte. |
-| Quartel | 3x3 | 100 de cada recurso | Requer Centro de Comando; libera recrutamento. |
-| Cruzador | 3x3 | 100 de cada recurso | Requer Centro de Comando; recebe duas tropas para gerar uma descendente. |
-| Torre | 2x2 | 100 de cada recurso | Requer Centro de Comando. |
-| Mina de Ferro | 2x2 | 100 ferro | Requer Centro de Comando; inventário de 64 slots; produz 1 ferro/s. |
-| Mina de Carvão | 2x2 | 100 ferro | Requer Centro de Comando; inventário de 64 slots; produz 1 carvão/s. |
-| Siderurgia | 3x3 | 300 ferro | Requer Centro de Comando; inventário de 64 slots; consome 1 ferro/s e 1 carvão/s e produz 0,5 aço/s. |
-| Mina de Cobre | 2x2 | 100 ferro | Requer Centro de Comando; inventário de 64 slots; produz 1 cobre/s. |
-| Fábrica de Eletrônicos | 3x3 | 200 ferro, 100 aço | Requer Centro de Comando; inventário de 64 slots; consome 1 ferro/s e 1 cobre/s e produz 0,5 eletrônico/s. |
-| Fábrica de Ferramentas | 3x3 | 200 aço, 200 ferro, 100 eletrônicos | Requer Centro de Comando; inventário de 64 slots; consome 1 aço/s e 1 eletrônico/s e produz 0,5 ferramenta/s. |
-| Fábrica de Armas | 3x3 | 200 aço, 200 ferro, 100 eletrônicos | Requer Centro de Comando; inventário de 64 slots; consome 1 aço/s, 1 eletrônico/s e 1 ferramenta/s e produz 0,5 arma/s. |
-| Fábrica de Munição | 3x3 | 200 aço, 200 ferro, 100 cobre | Requer Centro de Comando; inventário de 64 slots; consome 1 aço/s e 1 cobre/s e produz 0,5 munição/s. |
+| Estrutura | Área | Custo | Tempo | Regra |
+|---|---|---|---|---|
+| Centro de Comando | 5x5 | Grátis | Instantâneo | Um por jogador. Precisa ser a primeira construção. Depois de construído, some da seleção. Concede 1 drone de construção grátis. |
+| Muro | 1x1 | 100 de cada recurso | 3 s | Só liberado depois que o jogador tem um Centro de Comando. |
+| Boneco de Treinamento | 1x1 | Grátis | 3 s | Requer Centro de Comando; tem 100 de vida e serve de alvo de treino: pode ser atacado por qualquer tropa, inclusive as do próprio jogador. |
+| Casa | 2x2 | 100 de cada recurso | 8 s | Requer Centro de Comando; sem efeito econômico nesta etapa. |
+| Gerador | 2x2 | 100 de cada recurso | 8 s | Requer Centro de Comando; sem efeito econômico nesta etapa. |
+| Armazém | 2x2 | 100 ferro | 8 s | Requer Centro de Comando; inventário de 64 slots; recruta drones de transporte. |
+| Quartel | 3x3 | 100 de cada recurso | 12 s | Requer Centro de Comando; libera recrutamento. |
+| Cruzador | 3x3 | 100 de cada recurso | 12 s | Requer Centro de Comando; recebe duas tropas para gerar uma descendente. |
+| Torre | 2x2 | 100 de cada recurso | 8 s | Requer Centro de Comando. |
+| Mina de Ferro | 2x2 | 100 ferro | 8 s | Requer Centro de Comando; inventário de 64 slots; produz 1 ferro/s. |
+| Mina de Carvão | 2x2 | 100 ferro | 8 s | Requer Centro de Comando; inventário de 64 slots; produz 1 carvão/s. |
+| Siderurgia | 3x3 | 300 ferro | 12 s | Requer Centro de Comando; inventário de 64 slots; consome 1 ferro/s e 1 carvão/s e produz 0,5 aço/s. |
+| Mina de Cobre | 2x2 | 100 ferro | 8 s | Requer Centro de Comando; inventário de 64 slots; produz 1 cobre/s. |
+| Fábrica de Eletrônicos | 3x3 | 200 ferro, 100 aço | 12 s | Requer Centro de Comando; inventário de 64 slots; consome 1 ferro/s e 1 cobre/s e produz 0,5 eletrônico/s. |
+| Fábrica de Ferramentas | 3x3 | 200 aço, 200 ferro, 100 eletrônicos | 12 s | Requer Centro de Comando; inventário de 64 slots; consome 1 aço/s e 1 eletrônico/s e produz 0,5 ferramenta/s. |
+| Fábrica de Armas | 3x3 | 200 aço, 200 ferro, 100 eletrônicos | 12 s | Requer Centro de Comando; inventário de 64 slots; consome 1 aço/s, 1 eletrônico/s e 1 ferramenta/s e produz 0,5 arma/s. |
+| Fábrica de Munição | 3x3 | 200 aço, 200 ferro, 100 cobre | 12 s | Requer Centro de Comando; inventário de 64 slots; consome 1 aço/s e 1 cobre/s e produz 0,5 munição/s. |
 
-- Clicar numa construção abre seu inventário para consulta e transferência ao jogador.
+- Clicar numa construção pronta abre seu inventário para consulta e transferência ao jogador.
+- Enquanto a construção não termina, o prédio aparece como um fantasma translúcido com uma barra de progresso acima; só ao concluir ele recebe o comportamento funcional (produção, arma, recrutamento etc.) e passa a ser um alvo válido como construção pronta. Um canteiro tem vida e pode ser destruído; ao ser destruído, libera a área e o progresso é perdido.
 - O Armazém (antigo Depósito) também abre o painel de logística, onde drones podem ser recrutados. Selecionar uma construção produtora mostra as rotas de saída e permite atribuir drones ociosos.
-- **TBD**: tempo de construção, demolição/reembolso.
+- **TBD**: demolição/reembolso.
 
 ## Defesa (tower defense)
 - Torre defensiva: construção 2x2, tem 500 de vida, alcance de 6 tiles e causa 20 de dano a cada segundo com o Canhão (tiro direto, cinético).

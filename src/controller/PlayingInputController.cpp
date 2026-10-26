@@ -33,13 +33,11 @@ PlayingInputController::PlayingInputController(core::EventBus& bus)
         if (e.player != localPlayerId_) {
             return;
         }
-        panelTypes_.clear();
+        panelEntries_.clear();
         if (!e.open) {
             return;
         }
-        for (const auto& entry : e.entries) {
-            panelTypes_.push_back(entry.type);
-        }
+        panelEntries_ = e.entries;
     });
     bus_.subscribe<events::InventoryPanelChanged>([this](const events::InventoryPanelChanged& e) {
         if (e.player == localPlayerId_) {
@@ -54,7 +52,7 @@ PlayingInputController::PlayingInputController(core::EventBus& bus)
     bus_.subscribe<events::WorldReset>([this](const events::WorldReset&) {
         lastTile_.reset();
         placing_ = false;
-        panelTypes_.clear();
+        panelEntries_.clear();
         inventoryPanel_ = {};
         logisticsPanel_ = {};
         inventoryDragSlot_.reset();
@@ -294,16 +292,22 @@ void PlayingInputController::handlePanelMouse(Vector2 mouse)
         return;
     }
     const int screenWidth = GetScreenWidth();
-    if (CheckCollisionPointRec(mouse, view::recruit_panel_layout::closeBounds(panelTypes_.size(), screenWidth))) {
+    if (CheckCollisionPointRec(mouse, view::recruit_panel_layout::closeBounds(panelEntries_.size(), screenWidth))) {
         bus_.publish(events::SelectionClearRequested{localPlayerId_});
         return;
     }
-    for (std::size_t i = 0; i < panelTypes_.size(); ++i) {
-        const Rectangle slot = view::recruit_panel_layout::slotBounds(i, panelTypes_.size(), screenWidth);
-        if (CheckCollisionPointRec(mouse, slot)) {
-            bus_.publish(events::RecruitRequested{localPlayerId_, panelTypes_[i]});
-            return;
+    for (std::size_t i = 0; i < panelEntries_.size(); ++i) {
+        const Rectangle slot = view::recruit_panel_layout::slotBounds(i, panelEntries_.size(), screenWidth);
+        if (!CheckCollisionPointRec(mouse, slot)) {
+            continue;
         }
+        const events::RecruitEntry& entry = panelEntries_[i];
+        if (entry.kind == events::RecruitEntryKind::ConstructionDrone) {
+            bus_.publish(events::RecruitConstructionDroneRequested{localPlayerId_});
+        } else {
+            bus_.publish(events::RecruitRequested{localPlayerId_, entry.type});
+        }
+        return;
     }
 }
 
@@ -361,10 +365,10 @@ bool PlayingInputController::isOverPanel(Vector2 mouse) const
         && CheckCollisionPointRec(mouse, view::inventory_panel_layout::panelBounds(GetScreenWidth()))) {
         return true;
     }
-    if (panelTypes_.empty()) {
+    if (panelEntries_.empty()) {
         return false;
     }
-    return CheckCollisionPointRec(mouse, view::recruit_panel_layout::panelBounds(panelTypes_.size(), GetScreenWidth()));
+    return CheckCollisionPointRec(mouse, view::recruit_panel_layout::panelBounds(panelEntries_.size(), GetScreenWidth()));
 }
 
 } // namespace controller

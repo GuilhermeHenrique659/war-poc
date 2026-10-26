@@ -40,6 +40,7 @@ private:
     core::EventBus& bus_;
     ecs::Registry& world_;
     std::unordered_map<PlayerId, PlayerSelection> selections_;
+    bool debugMode_ = false;
 };
 
 } // namespace model

@@ -44,15 +44,20 @@ void DroneViewModel::setLoaded(bool loaded) noexcept
     loaded_ = loaded;
 }
 
+void DroneViewModel::setTint(Color tint) noexcept
+{
+    tint_ = tint;
+}
+
 void DroneViewModel::drawAt(float gridX, float gridY) const
 {
     const Rectangle destination = iso::spriteDestinationFromSouth(
         gridX - 1.0F, gridY - 1.0F, Vector2{1.0F, 1.0F}, frameSize_);
     if (loaded_) {
-        loadedAnimation_.drawAt(destination);
+        loadedAnimation_.drawAt(destination, tint_);
         return;
     }
-    unloadedAnimation_.drawAt(destination);
+    unloadedAnimation_.drawAt(destination, tint_);
 }
 
 } // namespace view::gameplay

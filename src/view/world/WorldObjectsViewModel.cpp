@@ -40,13 +40,37 @@ WorldObjectsViewModel::WorldObjectsViewModel(core::EventBus& bus)
     });
     bus_.subscribe<events::BuildingPlaced>([this](const events::BuildingPlaced& event) {
         const int health = model::buildingMaxHealth(event.type);
+        const auto existing = std::find_if(buildings_.begin(), buildings_.end(),
+            [&event](const BuildingVisual& building) { return building.entity == event.entity; });
+        if (existing != buildings_.end()) {
+            existing->underConstruction = false;
+            existing->progress = 1.0F;
+            return;
+        }
         buildings_.push_back(BuildingVisual{
-            event.entity, event.type, event.origin, event.size, health, health,
+            event.entity, event.type, event.origin, event.size, health, health, false, 1.0F,
             std::make_unique<BuildingViewModel>(event.type, event.size, mineResourceViewModel_,
                 commandCenterViewModel_, warehouseViewModel_, steelworksViewModel_, factoryViewModel_,
                 barracksViewModel_)
         });
     });
+    bus_.subscribe<events::ConstructionStarted>([this](const events::ConstructionStarted& event) {
+        const int health = model::buildingMaxHealth(event.type);
+        buildings_.push_back(BuildingVisual{
+            event.entity, event.type, event.origin, event.size, health, health, true, 0.0F,
+            std::make_unique<BuildingViewModel>(event.type, event.size, mineResourceViewModel_,
+                commandCenterViewModel_, warehouseViewModel_, steelworksViewModel_, factoryViewModel_,
+                barracksViewModel_)
+        });
+    });
+    bus_.subscribe<events::ConstructionProgressChanged>(
+        [this](const events::ConstructionProgressChanged& event) {
+            const auto building = std::find_if(buildings_.begin(), buildings_.end(),
+                [&event](const BuildingVisual& candidate) { return candidate.entity == event.entity; });
+            if (building != buildings_.end()) {
+                building->progress = event.progress;
+            }
+        });
     bus_.subscribe<events::BuildingRemoved>([this](const events::BuildingRemoved& event) {
         std::erase_if(buildings_, [&event](const BuildingVisual& building) {
             return building.entity == event.entity;
@@ -84,7 +108,11 @@ void WorldObjectsViewModel::subscribeUnits()
         selectedUnits_.erase(event.entity);
     });
     bus_.subscribe<events::DroneSpawned>([this](const events::DroneSpawned& event) {
-        drones_[event.entity] = DroneVisual{event.entity, event.x, event.y, std::make_unique<DroneViewModel>()};
+        auto viewModel = std::make_unique<DroneViewModel>();
+        if (event.kind == events::DroneKind::Construction) {
+            viewModel->setTint(Color{255, 205, 120, 255});
+        }
+        drones_[event.entity] = DroneVisual{event.entity, event.x, event.y, std::move(viewModel)};
     });
     bus_.subscribe<events::DroneMoved>([this](const events::DroneMoved& event) {
         const auto drone = drones_.find(event.entity);
@@ -222,8 +250,15 @@ void WorldObjectsViewModel::draw()
         case Kind::Player:
             break;
         }
-        object.viewModel->drawAt(object.x, object.y);
-        if (object.building != nullptr && object.building->type == model::BuildingType::TrainingDummy
+        if (object.building != nullptr && object.building->underConstruction) {
+            object.building->viewModel->drawAt(object.x, object.y, 150);
+            drawConstructionProgressBar(object.building->origin, object.building->size,
+                object.building->progress);
+        } else {
+            object.viewModel->drawAt(object.x, object.y);
+        }
+        if (object.building != nullptr && !object.building->underConstruction
+            && object.building->type == model::BuildingType::TrainingDummy
             && object.building->maxHealth > 0) {
             const float ratio = static_cast<float>(object.building->health)
                 / static_cast<float>(object.building->maxHealth);

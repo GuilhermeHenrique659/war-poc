@@ -84,6 +84,9 @@ void DebugOverlay::subscribeWorld(core::EventBus& bus)
     bus.subscribe<events::BuildingPlaced>([this](const events::BuildingPlaced& e) {
         buildings_[e.entity] = BuildingInfo{e.type, e.origin, e.size};
     });
+    bus.subscribe<events::ConstructionStarted>([this](const events::ConstructionStarted& e) {
+        buildings_[e.entity] = BuildingInfo{e.type, e.origin, e.size};
+    });
     bus.subscribe<events::UnitSpawned>(
         [this](const events::UnitSpawned& e) { units_[e.entity] = UnitInfo{e.type, e.x, e.y, e.size}; });
     bus.subscribe<events::UnitRemoved>([this](const events::UnitRemoved& e) { units_.erase(e.entity); });

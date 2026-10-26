@@ -1,6 +1,7 @@
 #include "model/selection/SelectionSystem.hpp"
 
 #include "core/Events.hpp"
+#include "model/build/ConstructionComponents.hpp"
 #include "model/combat/WeaponType.hpp"
 #include "model/units/UnitType.hpp"
 #include "model/build/BuildingComponents.hpp"
@@ -17,6 +18,13 @@ SelectionSystem::SelectionSystem(core::EventBus& bus, ecs::Registry& world)
 {
     bus_.subscribe<events::UnitRemoved>([this](const auto& event) { removeEntity(event.entity); });
     bus_.subscribe<events::BuildingRemoved>([this](const auto& event) { removeEntity(event.entity); });
+    bus_.subscribe<events::DebugToggleRequested>([this](const events::DebugToggleRequested&) {
+        debugMode_ = !debugMode_;
+        for (const auto& [player, selection] : selections_) {
+            (void)selection;
+            publish(player);
+        }
+    });
 }
 
 void SelectionSystem::reset()
@@ -130,9 +138,15 @@ void SelectionSystem::publish(PlayerId player) const
         for (const UnitType type : kRecruitableUnitTypes) {
             const UnitSpec spec = unitSpec(type);
             const WeaponSpec weapon = weaponSpec(spec.weapon);
-            panel.entries.push_back(events::RecruitEntry{
-                type, std::string(spec.label), spec.maxHealth, weapon.damage, weapon.range, spec.speed});
+            panel.entries.push_back(events::RecruitEntry{type, std::string(spec.label), spec.maxHealth,
+                weapon.damage, weapon.range, spec.speed, events::RecruitEntryKind::Unit, {}, {}});
         }
+        const std::string cost = debugMode_ ? "Gratis"
+            : std::to_string(kConstructionDroneIronCost) + " Fe + "
+                + std::to_string(kConstructionDroneElectronicsCost) + " Ele";
+        panel.entries.push_back(events::RecruitEntry{UnitType::Soldier, "Drone de Construcao", 0, 0, 0.0F,
+            0.0F, events::RecruitEntryKind::ConstructionDrone,
+            "Carga " + std::to_string(kConstructionDroneCapacity), cost});
     }
     bus_.publish(panel);
 }

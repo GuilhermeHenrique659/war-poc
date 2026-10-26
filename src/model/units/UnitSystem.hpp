@@ -31,6 +31,7 @@ public:
     void recruit(PlayerId player, UnitType type, ecs::Entity commandCenter);
     // Spawns a non-combat drone next to the supplied tile.
     [[nodiscard]] std::optional<ecs::Entity> spawnTransportDrone(PlayerId player, GridPos center);
+    [[nodiscard]] std::optional<ecs::Entity> spawnConstructionDrone(PlayerId player, GridPos center);
     [[nodiscard]] bool moveToAdjacent(ecs::Entity entity, GridPos center);
     // Walks the unit along the route to `target` only until the target is within `range` tiles,
     // stopping there instead of hugging it. Does nothing (and returns true) when already in range.

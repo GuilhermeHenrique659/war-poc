@@ -9,6 +9,7 @@
 #include "model/units/UnitSystem.hpp"
 #include "model/units/UnitType.hpp"
 #include "model/ecs/Registry.hpp"
+#include "ConstructionTestHelper.hpp"
 
 #include <gtest/gtest.h>
 
@@ -44,6 +45,11 @@ protected:
     {
         const auto* health = world_.tryGet<model::components::Health>(entity);
         return health == nullptr ? -1 : health->current;
+    }
+
+    void place(model::BuildingType type, model::GridPos anchor)
+    {
+        (void)test_support::placeAndComplete(buildings_, bus_, world_, 1, type, anchor);
     }
 
     core::EventBus bus_;
@@ -128,10 +134,8 @@ TEST_F(ProjectileSystemTest, ExplosionHitsFriendliesInsideTheArea)
 TEST_F(ProjectileSystemTest, ProjectileIgnoresBuildingsInItsPath)
 {
     // Given a wall between the mortar and its target.
-    buildings_.select(1, model::BuildingType::CommandCenter);
-    buildings_.place(1, {20, 20});
-    buildings_.select(1, model::BuildingType::Wall);
-    buildings_.place(1, {3, 0});
+    place(model::BuildingType::CommandCenter, {20, 20});
+    place(model::BuildingType::Wall, {3, 0});
     const auto wall = buildingOfType(model::BuildingType::Wall);
     ASSERT_NE(wall, 0U);
     const auto source = units_.spawn(1, model::recruitStats(model::UnitType::Soldier), {0, 0});

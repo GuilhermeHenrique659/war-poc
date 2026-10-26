@@ -11,6 +11,7 @@ public:
     DroneViewModel(SpriteSheet loadedSpriteSheet, SpriteSheet unloadedSpriteSheet);
 
     void setLoaded(bool loaded) noexcept;
+    void setTint(Color tint) noexcept;
     void drawAt(float gridX, float gridY) const override;
 
 private:
@@ -18,6 +19,7 @@ private:
     AnimatedSpriteViewModel loadedAnimation_;
     AnimatedSpriteViewModel unloadedAnimation_;
     bool loaded_ = false;
+    Color tint_ = WHITE;
 };
 
 } // namespace view::gameplay

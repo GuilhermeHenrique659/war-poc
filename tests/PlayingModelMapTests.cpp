@@ -39,10 +39,12 @@ TEST(PlayingModelMapTests, PublishesTheSeededWorldAndRequiresMatchingDepositsFor
     bus.publish(events::BuildPlaceRequested{1, {-5, 0}});
     EXPECT_EQ(buildings.size(), 1U);
 
-    // When the iron mine is placed over an iron deposit.
+    // When the iron mine is placed over an iron deposit and construction finishes.
+    bus.publish(events::DebugToggleRequested{});
     bus.publish(events::BuildCursorMoved{1, model::GridPos{-9, 0}});
     EXPECT_TRUE(preview.valid);
     bus.publish(events::BuildPlaceRequested{1, {-9, 0}});
+    playing.update(9.0F);
 
     // Then the matching mine is created.
     ASSERT_EQ(buildings.size(), 2U);

@@ -14,6 +14,7 @@ namespace {
 
 constexpr Color kSlotColor{50, 50, 62, 255};
 constexpr Color kSlotHover{72, 72, 90, 255};
+constexpr Color kDroneSwatch{220, 160, 60, 255};
 constexpr int kTitleSize = 18;
 constexpr int kLabelSize = 18;
 constexpr int kDetailSize = 14;
@@ -87,7 +88,8 @@ void RecruitPanelView::drawSlot(std::size_t index) const
 
     const float margin = (bounds.height - kSwatchSize) / 2.0f;
     const Rectangle swatch{bounds.x + margin, bounds.y + margin, kSwatchSize, kSwatchSize};
-    DrawRectangleRec(swatch, unitColor(entry.type));
+    const bool drone = entry.kind == events::RecruitEntryKind::ConstructionDrone;
+    DrawRectangleRec(swatch, drone ? kDroneSwatch : unitColor(entry.type));
     DrawRectangleLinesEx(swatch, 1.0f, BLACK);
 
     const int textX = static_cast<int>(swatch.x + swatch.width + margin);
@@ -95,6 +97,11 @@ void RecruitPanelView::drawSlot(std::size_t index) const
     DrawText(entry.label.c_str(), textX, labelY, kLabelSize, RAYWHITE);
 
     const int statsY = labelY + kLabelSize + 6;
+    if (drone) {
+        DrawText(entry.detail.c_str(), textX, statsY, kDetailSize, LIGHTGRAY);
+        DrawText(entry.cost.c_str(), textX, statsY + kDetailSize + 4, kDetailSize, LIGHTGRAY);
+        return;
+    }
     DrawText(TextFormat("Vida %d   Dano %d", entry.maxHealth, entry.damage), textX, statsY, kDetailSize, LIGHTGRAY);
     DrawText(TextFormat("Alcance %.0f   Vel %.1f", static_cast<double>(entry.range), static_cast<double>(entry.speed)),
         textX, statsY + kDetailSize + 4, kDetailSize, LIGHTGRAY);

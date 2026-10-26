@@ -342,6 +342,27 @@ struct BuildingRemoved {
     model::ecs::Entity entity;
 };
 
+// A construction site was placed. It is not a functional building until BuildingPlaced arrives.
+struct ConstructionStarted {
+    model::ecs::Entity entity;
+    model::PlayerId owner;
+    model::BuildingType type;
+    model::GridPos origin;
+    int size;
+    float duration;
+};
+
+// Construction progress in [0, 1]. Published when the whole percentage changes.
+struct ConstructionProgressChanged {
+    model::ecs::Entity entity;
+    float progress;
+};
+
+// Recruits another construction drone at the player's Command Center.
+struct RecruitConstructionDroneRequested {
+    model::PlayerId player;
+};
+
 // Unit positions are the continuous grid coordinates of the unit's center (tile center = tile + 0.5).
 struct UnitSpawned {
     model::ecs::Entity entity;
@@ -361,11 +382,14 @@ struct UnitMoved {
     float y;
 };
 
+enum class DroneKind { Transport, Construction };
+
 struct DroneSpawned {
     model::ecs::Entity entity;
     model::PlayerId owner;
     float x;
     float y;
+    DroneKind kind = DroneKind::Transport;
 };
 
 struct DroneMoved {
@@ -435,6 +459,8 @@ struct SelectionChanged {
     std::optional<model::ecs::Entity> building;
 };
 
+enum class RecruitEntryKind { Unit, ConstructionDrone };
+
 struct RecruitEntry {
     model::UnitType type;
     std::string label;
@@ -442,6 +468,9 @@ struct RecruitEntry {
     int damage;
     float range;
     float speed;
+    RecruitEntryKind kind = RecruitEntryKind::Unit;
+    std::string detail;
+    std::string cost;
 };
 
 // Open while the player has their Command Center selected.

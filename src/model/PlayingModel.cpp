@@ -1,6 +1,8 @@
 #include "model/PlayingModel.hpp"
 
 #include "model/build/BuildingComponents.hpp"
+#include "model/build/ConstructionDroneSystem.hpp"
+#include "model/build/ConstructionSystem.hpp"
 #include "model/components/Owner.hpp"
 #include "model/economy/LogisticsComponents.hpp"
 
@@ -13,6 +15,8 @@ PlayingModel::PlayingModel(core::EventBus& bus)
     , world_(std::make_unique<ecs::Registry>())
     , buildings_(std::make_unique<BuildingSystem>(bus_, *world_))
     , units_(std::make_unique<UnitSystem>(bus_, *world_, *buildings_))
+    , construction_(std::make_unique<ConstructionSystem>(bus_, *world_))
+    , constructionDrones_(std::make_unique<ConstructionDroneSystem>(bus_, *world_, *units_))
     , unitSupplies_(std::make_unique<UnitSupplySystem>(*world_, *units_))
     , logistics_(std::make_unique<LogisticsSystem>(bus_, *world_, *units_))
     , playerAvatars_(std::make_unique<PlayerAvatarSystem>(bus_, *world_))
@@ -62,6 +66,12 @@ PlayingModel::PlayingModel(core::EventBus& bus)
         (void)logistics_->recruitDrone(e.player, e.warehouse);
         publishLogisticsPanel(e.player);
     });
+    bus_.subscribe<events::RecruitConstructionDroneRequested>(
+        [this](const events::RecruitConstructionDroneRequested& e) {
+            if (inMatch()) {
+                (void)constructionDrones_->recruit(e.player);
+            }
+        });
     bus_.subscribe<events::AssignDroneToRouteRequested>([this](const events::AssignDroneToRouteRequested& e) {
         if (!inMatch()) {
             return;
@@ -147,6 +157,7 @@ void PlayingModel::update(float deltaSeconds)
         return;
     }
     production_.update(*world_, deltaSeconds);
+    construction_->update(deltaSeconds);
     inventoryPanels_->update();
     // Resupply decisions happen before movement, so a unit can start walking in the same frame.
     unitSupplies_->update();
@@ -155,6 +166,7 @@ void PlayingModel::update(float deltaSeconds)
         buildings_->refreshPreviews();
     }
     logistics_->update();
+    constructionDrones_->update();
     for (const auto& [player, building] : logisticsPanels_) {
         (void)building;
         publishLogisticsPanel(player);
@@ -200,6 +212,8 @@ void PlayingModel::resetWorld()
     inventoryPanels_->reset();
     production_.reset();
     logistics_->reset();
+    construction_->reset();
+    constructionDrones_->reset();
     bus_.publish(events::WorldReset{});
     buildings_->reset();
     units_->reset();

@@ -8,9 +8,11 @@
 #include "model/economy/Item.hpp"
 #include "model/economy/ProductionComponents.hpp"
 #include "model/build/BuildingComponents.hpp"
+#include "model/build/ConstructionComponents.hpp"
 #include "model/components/Owner.hpp"
 #include "model/player/PlayerComponents.hpp"
 #include "model/units/UnitComponents.hpp"
+#include "ConstructionTestHelper.hpp"
 
 #include <gtest/gtest.h>
 
@@ -27,6 +29,9 @@ protected:
     {
         bus_.subscribe<events::BuildingPlaced>([this](const events::BuildingPlaced& event) {
             placements_.push_back(event);
+        });
+        bus_.subscribe<events::ConstructionStarted>([this](const events::ConstructionStarted& event) {
+            sites_.push_back(event);
         });
         bus_.subscribe<events::BuildPreviewChanged>([this](const events::BuildPreviewChanged& event) {
             previews_.push_back(event);
@@ -46,10 +51,22 @@ protected:
         EXPECT_EQ(model::InventorySystem::add(*playerInventory_, item, quantity), quantity);
     }
 
+    // Selects, places and immediately finishes the construction (if the type takes time).
+    model::ecs::Entity placeReady(model::BuildingType type, model::GridPos anchor)
+    {
+        return test_support::placeAndComplete(buildings_, bus_, world_, kPlayer, type, anchor);
+    }
+
+    [[nodiscard]] model::components::Inventory* buildingInventory(model::ecs::Entity entity)
+    {
+        return world_.tryGet<model::components::Inventory>(entity);
+    }
+
     core::EventBus bus_;
     model::ecs::Registry world_;
     model::BuildingSystem buildings_;
     std::vector<events::BuildingPlaced> placements_;
+    std::vector<events::ConstructionStarted> sites_;
     std::vector<events::BuildPreviewChanged> previews_;
     std::vector<events::BuildBarChanged> buildBars_;
     model::components::Inventory* playerInventory_ = nullptr;

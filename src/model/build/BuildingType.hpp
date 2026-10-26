@@ -148,6 +148,35 @@ inline constexpr BuildingCosts kAmmoFactoryBuildingCost{
     return type == BuildingType::TrainingDummy ? 100 : 500;
 }
 
+// Nominal construction time, in seconds. Zero means the building is placed ready (Command Center).
+[[nodiscard]] constexpr float buildingBuildSeconds(BuildingType type)
+{
+    switch (type) {
+    case BuildingType::CommandCenter:
+        return 0.0F;
+    case BuildingType::Wall:
+    case BuildingType::TrainingDummy:
+        return 3.0F;
+    case BuildingType::House:
+    case BuildingType::Generator:
+    case BuildingType::Warehouse:
+    case BuildingType::Tower:
+    case BuildingType::IronMine:
+    case BuildingType::CoalMine:
+    case BuildingType::CopperMine:
+        return 8.0F;
+    case BuildingType::Barracks:
+    case BuildingType::Cruzador:
+    case BuildingType::Steelworks:
+    case BuildingType::ElectronicsFactory:
+    case BuildingType::ToolFactory:
+    case BuildingType::WeaponFactory:
+    case BuildingType::AmmoFactory:
+        return 12.0F;
+    }
+    return 0.0F;
+}
+
 // The cursor tile is the center of the footprint.
 [[nodiscard]] constexpr GridPos footprintOrigin(GridPos anchor, int size)
 {

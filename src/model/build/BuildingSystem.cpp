@@ -3,6 +3,8 @@
 #include "core/Events.hpp"
 #include "model/FootprintGeometry.hpp"
 #include "model/build/BuildingComponents.hpp"
+#include "model/build/BuildingFactory.hpp"
+#include "model/build/ConstructionComponents.hpp"
 #include "model/combat/WeaponComponents.hpp"
 #include "model/economy/InventoryComponents.hpp"
 #include "model/economy/InventorySystem.hpp"
@@ -142,11 +144,8 @@ void BuildingSystem::place(PlayerId player, GridPos anchor)
     if (!canPlace(player, type, origin)) {
         return;
     }
-    if (!payCost(player, type)) {
-        return;
-    }
+
     const ecs::Entity entity = world_.create();
-    world_.emplace<components::Building>(entity, type);
     world_.emplace<components::Owner>(entity, player);
     world_.emplace<components::Inventory>(entity, std::size_t{64});
     world_.emplace<components::Footprint>(entity, origin, size);
@@ -154,62 +153,24 @@ void BuildingSystem::place(PlayerId player, GridPos anchor)
     world_.emplace<components::Health>(entity, health, health);
     const FootprintBounds bounds = footprintBounds(components::Footprint{origin, size});
     world_.emplace<components::Position>(entity, bounds.centerX(), bounds.centerY());
-    if (type == BuildingType::Tower) {
-        const WeaponSpec cannon = weaponSpec(WeaponType::Cannon);
-        world_.emplace<components::Weapon>(entity, WeaponType::Cannon, cannon.damage, cannon.range);
-    }
-    switch (type) {
-    case BuildingType::IronMine:
-        world_.emplace<components::Production>(entity, std::vector<ProductionInput>{}, ItemId::Iron, 1.0F);
-        break;
-    case BuildingType::CoalMine:
-        world_.emplace<components::Production>(entity, std::vector<ProductionInput>{}, ItemId::Coal, 1.0F);
-        break;
-    case BuildingType::Steelworks:
-        world_.emplace<components::Production>(entity,
-            std::vector<ProductionInput>{{ItemId::Iron, 1.0F}, {ItemId::Coal, 1.0F}}, ItemId::Steel, 0.5F);
-        break;
-    case BuildingType::CopperMine:
-        world_.emplace<components::Production>(entity, std::vector<ProductionInput>{}, ItemId::Copper, 1.0F);
-        break;
-    case BuildingType::ElectronicsFactory:
-        world_.emplace<components::Production>(entity,
-            std::vector<ProductionInput>{{ItemId::Iron, 1.0F}, {ItemId::Copper, 1.0F}}, ItemId::Electronics, 0.5F);
-        break;
-    case BuildingType::ToolFactory:
-        world_.emplace<components::Production>(entity,
-            std::vector<ProductionInput>{{ItemId::Steel, 1.0F}, {ItemId::Electronics, 1.0F}}, ItemId::Tools, 0.5F);
-        break;
-    case BuildingType::WeaponFactory:
-        world_.emplace<components::Production>(entity,
-            std::vector<ProductionInput>{
-                {ItemId::Steel, 1.0F}, {ItemId::Electronics, 1.0F}, {ItemId::Tools, 1.0F}},
-            ItemId::Weapon, 0.5F);
-        break;
-    case BuildingType::AmmoFactory:
-        world_.emplace<components::Production>(entity,
-            std::vector<ProductionInput>{{ItemId::Steel, 1.0F}, {ItemId::Copper, 1.0F}}, ItemId::Ammo, 0.5F);
-        break;
-    case BuildingType::CommandCenter:
-    case BuildingType::Wall:
-    case BuildingType::House:
-    case BuildingType::Generator:
-    case BuildingType::Warehouse:
-    case BuildingType::Barracks:
-    case BuildingType::Cruzador:
-    case BuildingType::Tower:
-    case BuildingType::TrainingDummy:
-        break;
-    }
     for (int dy = 0; dy < size; ++dy) {
         for (int dx = 0; dx < size; ++dx) {
             occupied_[GridPos{origin.x + dx, origin.y + dy}] = entity;
         }
     }
-    if (type == BuildingType::CommandCenter) {
-        commandCenters_[player] = entity;
+
+    const float duration = buildingBuildSeconds(type);
+    if (duration <= 0.0F) {
+        completeBuilding(world_, entity, type);
+        if (type == BuildingType::CommandCenter) {
+            commandCenters_[player] = entity;
+            transferStartingMaterials(player, entity);
+        }
+        bus_.publish(events::BuildingPlaced{entity, player, type, origin, size});
+    } else {
+        world_.emplace<components::ConstructionSite>(entity, type, duration);
+        bus_.publish(events::ConstructionStarted{entity, player, type, origin, size, duration});
     }
-    bus_.publish(events::BuildingPlaced{entity, player, type, origin, size});
 
     // Keep the selection for repeated placement (walls) unless the type just got locked.
     if (!isUnlocked(player, type) || type == BuildingType::TrainingDummy) {
@@ -223,16 +184,18 @@ void BuildingSystem::remove(ecs::Entity entity)
 {
     const auto* footprint = world_.tryGet<components::Footprint>(entity);
     const auto* building = world_.tryGet<components::Building>(entity);
+    const auto* site = world_.tryGet<components::ConstructionSite>(entity);
     const auto* owner = world_.tryGet<components::Owner>(entity);
-    if (footprint == nullptr || building == nullptr || owner == nullptr) {
+    if (footprint == nullptr || owner == nullptr || (building == nullptr && site == nullptr)) {
         return;
     }
+    const BuildingType type = building != nullptr ? building->type : site->type;
     for (int dy = 0; dy < footprint->size; ++dy) {
         for (int dx = 0; dx < footprint->size; ++dx) {
             occupied_.erase(GridPos{footprint->origin.x + dx, footprint->origin.y + dy});
         }
     }
-    if (building->type == BuildingType::CommandCenter) {
+    if (type == BuildingType::CommandCenter) {
         commandCenters_.erase(owner->player);
     }
     world_.destroy(entity);
@@ -282,7 +245,7 @@ bool BuildingSystem::isAreaFree(GridPos origin, int size) const
 bool BuildingSystem::canPlace(PlayerId player, BuildingType type, GridPos origin) const
 {
     const int size = buildingSpec(type).size;
-    return isUnlocked(player, type) && isAreaFree(origin, size) && canAfford(player, type)
+    return isUnlocked(player, type) && isAreaFree(origin, size)
         && (!placementRule_ || placementRule_(type, origin, size));
 }
 
@@ -296,44 +259,16 @@ components::Inventory* BuildingSystem::playerInventory(PlayerId player) const
     return model::playerInventory(world_, player);
 }
 
-bool BuildingSystem::canAfford(PlayerId player, BuildingType type) const
+void BuildingSystem::transferStartingMaterials(PlayerId player, ecs::Entity commandCenter) const
 {
-    if (debugMode_) {
-        return true;
+    components::Inventory* source = playerInventory(player);
+    components::Inventory* destination = world_.tryGet<components::Inventory>(commandCenter);
+    if (source == nullptr || destination == nullptr) {
+        return;
     }
-
-    const components::Inventory* inventory = playerInventory(player);
-    for (const BuildingCost& cost : buildingCosts(type)) {
-        if (cost.quantity <= 0) {
-            continue;
-        }
-        if (inventory == nullptr || InventorySystem::amount(*inventory, cost.item) < cost.quantity) {
-            return false;
-        }
+    for (const ItemId item : kConstructionMaterials) {
+        (void)InventorySystem::transfer(*source, *destination, item, InventorySystem::amount(*source, item));
     }
-    return true;
-}
-
-bool BuildingSystem::payCost(PlayerId player, BuildingType type)
-{
-    if (debugMode_) {
-        return true;
-    }
-
-    const BuildingCosts& costs = buildingCosts(type);
-    if (&costs == &kNoBuildingCost) {
-        return true;
-    }
-    components::Inventory* inventory = playerInventory(player);
-    if (inventory == nullptr) {
-        return false;
-    }
-    for (const BuildingCost& cost : costs) {
-        if (cost.quantity > 0 && InventorySystem::remove(*inventory, cost.item, cost.quantity) != cost.quantity) {
-            return false;
-        }
-    }
-    return true;
 }
 
 bool BuildingSystem::hasBuilding(PlayerId player, BuildingType type) const

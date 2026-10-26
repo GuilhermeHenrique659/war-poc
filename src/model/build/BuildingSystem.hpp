@@ -52,8 +52,7 @@ private:
     [[nodiscard]] bool canPlace(PlayerId player, BuildingType type, GridPos origin) const;
     [[nodiscard]] bool hasCommandCenter(PlayerId player) const;
     [[nodiscard]] components::Inventory* playerInventory(PlayerId player) const;
-    [[nodiscard]] bool canAfford(PlayerId player, BuildingType type) const;
-    bool payCost(PlayerId player, BuildingType type);
+    void transferStartingMaterials(PlayerId player, ecs::Entity commandCenter) const;
 
     void publishBar(PlayerId player) const;
     void publishPreview(PlayerId player) const;

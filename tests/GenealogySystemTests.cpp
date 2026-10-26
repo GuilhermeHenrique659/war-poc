@@ -12,6 +12,7 @@
 #include "model/economy/Item.hpp"
 #include "model/player/PlayerComponents.hpp"
 #include "model/units/UnitComponents.hpp"
+#include "ConstructionTestHelper.hpp"
 
 #include <gtest/gtest.h>
 
@@ -42,18 +43,10 @@ protected:
 
     model::ecs::Entity buildCruzador()
     {
-        buildings_.select(kPlayer, model::BuildingType::CommandCenter);
-        buildings_.place(kPlayer, {0, 0});
-        buildings_.select(kPlayer, model::BuildingType::Cruzador);
-        buildings_.place(kPlayer, {12, 12});
-        model::ecs::Entity cruzador{};
-        world_.each<model::components::Building>([&](model::ecs::Entity entity,
-                                                     const model::components::Building& building) {
-            if (building.type == model::BuildingType::Cruzador) {
-                cruzador = entity;
-            }
-        });
-        return cruzador;
+        (void)test_support::placeAndComplete(buildings_, bus_, world_, kPlayer,
+            model::BuildingType::CommandCenter, {0, 0});
+        return test_support::placeAndComplete(buildings_, bus_, world_, kPlayer,
+            model::BuildingType::Cruzador, {12, 12});
     }
 
     core::EventBus bus_;

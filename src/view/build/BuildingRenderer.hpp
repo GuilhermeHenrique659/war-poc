@@ -13,4 +13,7 @@ namespace view {
 // Draws in world space; call inside BeginMode2D.
 void drawBuilding(model::BuildingType type, model::GridPos origin, int size, unsigned char alpha = 255);
 
+// Draws a progress bar above a construction site (0..1), in world space.
+void drawConstructionProgressBar(model::GridPos origin, int size, float progress);
+
 } // namespace view
