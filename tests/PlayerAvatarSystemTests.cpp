@@ -93,7 +93,7 @@ TEST_F(PlayerAvatarSystemTest, SpawnsAtTheCommandCenterWhenItIsPlaced)
     ASSERT_NE(health, nullptr);
     ASSERT_NE(weapon, nullptr);
     EXPECT_FLOAT_EQ(position->x, 4.5F);
-    EXPECT_FLOAT_EQ(position->y, 3.5F);
+    EXPECT_FLOAT_EQ(position->y, 1.5F);
     EXPECT_EQ(health->current, 10);
     EXPECT_EQ(health->max, 10);
     EXPECT_EQ(weapon->type, model::WeaponType::Pistol);
@@ -103,7 +103,7 @@ TEST_F(PlayerAvatarSystemTest, SpawnsAtTheCommandCenterWhenItIsPlaced)
     EXPECT_EQ(spawned.entity, entity);
     EXPECT_EQ(spawned.player, playerId);
     EXPECT_FLOAT_EQ(spawned.x, 4.5F);
-    EXPECT_FLOAT_EQ(spawned.y, 3.5F);
+    EXPECT_FLOAT_EQ(spawned.y, 1.5F);
 }
 
 TEST_F(PlayerAvatarSystemTest, IgnoresOtherBuildingTypesWhenWaitingToSpawn)
@@ -120,7 +120,7 @@ TEST_F(PlayerAvatarSystemTest, IgnoresOtherBuildingTypesWhenWaitingToSpawn)
     EXPECT_EQ(world_.tryGet<model::components::Health>(entity), nullptr);
 }
 
-TEST_F(PlayerAvatarSystemTest, MovesTheAvatarAtGoatSpeedAndPublishesItsPosition)
+TEST_F(PlayerAvatarSystemTest, MovesTheAvatarAtEngineerSpeedAndPublishesItsPosition)
 {
     // Given a player avatar whose Command Center is centered at (4, 6).
     constexpr model::PlayerId playerId = 3;
@@ -132,15 +132,15 @@ TEST_F(PlayerAvatarSystemTest, MovesTheAvatarAtGoatSpeedAndPublishesItsPosition)
     // When the player requests one second of movement along the X grid axis.
     bus_.publish(events::PlayerMoveRequested{playerId, 1.0F, 0.0F, 1.0F});
 
-    // Then it moves at Goat speed and publishes the updated position.
+    // Then it moves at Engineer speed and publishes the updated position.
     const auto* position = world_.tryGet<model::components::Position>(entity);
     ASSERT_NE(position, nullptr);
-    EXPECT_FLOAT_EQ(position->x, 8.0F);
-    EXPECT_FLOAT_EQ(position->y, 3.5F);
+    EXPECT_FLOAT_EQ(position->x, 6.0F);
+    EXPECT_FLOAT_EQ(position->y, 1.5F);
     EXPECT_EQ(movement.entity, entity);
     EXPECT_EQ(movement.player, playerId);
-    EXPECT_FLOAT_EQ(movement.x, 8.0F);
-    EXPECT_FLOAT_EQ(movement.y, 3.5F);
+    EXPECT_FLOAT_EQ(movement.x, 6.0F);
+    EXPECT_FLOAT_EQ(movement.y, 1.5F);
 }
 
 TEST_F(PlayerAvatarSystemTest, RespawnsAPlayerAtItsStartingPositionWithFullHealth)
@@ -162,11 +162,11 @@ TEST_F(PlayerAvatarSystemTest, RespawnsAPlayerAtItsStartingPositionWithFullHealt
     ASSERT_NE(position, nullptr);
     ASSERT_NE(health, nullptr);
     EXPECT_FLOAT_EQ(position->x, 7.5F);
-    EXPECT_FLOAT_EQ(position->y, -3.5F);
+    EXPECT_FLOAT_EQ(position->y, -1.5F);
     EXPECT_EQ(health->current, 10);
 }
 
-TEST_F(PlayerAvatarSystemTest, DiagonalMovementDoesNotExceedGoatSpeed)
+TEST_F(PlayerAvatarSystemTest, DiagonalMovementDoesNotExceedEngineerSpeed)
 {
     // Given a player avatar spawned from its Command Center.
     constexpr model::PlayerId playerId = 9;
@@ -180,10 +180,10 @@ TEST_F(PlayerAvatarSystemTest, DiagonalMovementDoesNotExceedGoatSpeed)
     // When it moves diagonally for one second.
     players_.move(playerId, 1.0F, 1.0F, 1.0F);
 
-    // Then its total displacement equals the Goat speed, not a faster diagonal.
+    // Then its total displacement equals the Engineer speed, not a faster diagonal.
     const auto* position = world_.tryGet<model::components::Position>(entity);
     ASSERT_NE(position, nullptr);
-    EXPECT_FLOAT_EQ(std::hypot(position->x - startX, position->y - startY), 3.5F);
+    EXPECT_FLOAT_EQ(std::hypot(position->x - startX, position->y - startY), 1.5F);
 }
 
 TEST_F(PlayerAvatarSystemTest, StopsAtBuildingCollisionAndSlidesAlongItsWall)
@@ -204,8 +204,8 @@ TEST_F(PlayerAvatarSystemTest, StopsAtBuildingCollisionAndSlidesAlongItsWall)
     players_.move(playerId, 1.0F, 1.0F, 1.0F);
 
     // Then it stops at the collision boundary without passing through the house.
-    EXPECT_FLOAT_EQ(position->x, 1.7F);
-    EXPECT_FLOAT_EQ(position->y, 0.5F + 3.5F / std::sqrt(2.0F));
+    EXPECT_FLOAT_EQ(position->x, 1.56F);
+    EXPECT_FLOAT_EQ(position->y, 0.5F + 1.5F / std::sqrt(2.0F));
 }
 
 TEST_F(PlayerAvatarSystemTest, StopsAtWaterInsteadOfWalkingAcrossIt)
@@ -223,5 +223,5 @@ TEST_F(PlayerAvatarSystemTest, StopsAtWaterInsteadOfWalkingAcrossIt)
     const auto* position = world_.tryGet<model::components::Position>(avatar);
     ASSERT_NE(position, nullptr);
     EXPECT_LT(position->x + 0.3F, 4.001F);
-    EXPECT_GT(position->x, 3.5F);
+    EXPECT_GT(position->x, 1.5F);
 }

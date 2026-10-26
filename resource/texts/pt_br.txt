@@ -130,7 +130,7 @@ building.ammo_factory=Fabrica de Municao
 building.trade_center=Centro Comercial
 building.training_dummy=Boneco de Treinamento
 
-unit.soldier=Soldado
-unit.bat=Morcego
-unit.goat=Bode
+unit.soldier=soldado
+unit.sniper=franco atirador
+unit.engineer=engenheiro
 unit.combined=Combinado

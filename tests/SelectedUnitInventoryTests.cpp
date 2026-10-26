@@ -62,14 +62,14 @@ TEST(SelectedUnitInventoryTests, ReportsMissingWeaponAndAmmo)
 {
     // Given a unit that has not resupplied yet.
     model::ecs::Registry world;
-    const model::ecs::Entity goat = spawnUnit(world, model::UnitType::Goat, 140, 140, 0, 0);
+    const model::ecs::Entity goat = spawnUnit(world, model::UnitType::Engineer, 140, 140, 0, 0);
 
     // When its inventory is collected.
     const auto inventories = model::selectedUnitInventories(world, {goat});
 
     // Then the empty slots are explicit instead of being hidden.
     ASSERT_EQ(inventories.size(), 1U);
-    EXPECT_EQ(inventories[0].type, model::UnitType::Goat);
+    EXPECT_EQ(inventories[0].type, model::UnitType::Engineer);
     EXPECT_EQ(amountOf(inventories[0], model::ItemId::Weapon), 0);
     EXPECT_EQ(amountOf(inventories[0], model::ItemId::Ammo), 0);
 }
@@ -79,7 +79,7 @@ TEST(SelectedUnitInventoryTests, SkipsEntitiesThatAreNotLiveUnits)
     // Given one live unit, one destroyed unit and one entity without the Unit component.
     model::ecs::Registry world;
     const model::ecs::Entity live = spawnUnit(world, model::UnitType::Soldier, 100, 100, 1, 100);
-    const model::ecs::Entity destroyed = spawnUnit(world, model::UnitType::Bat, 60, 60, 1, 100);
+    const model::ecs::Entity destroyed = spawnUnit(world, model::UnitType::Sniper, 60, 60, 1, 100);
     world.destroy(destroyed);
     const model::ecs::Entity notAUnit = world.create();
     world.emplace<model::components::Health>(notAUnit, 20, 20);

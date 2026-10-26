@@ -125,8 +125,8 @@ namespace view::ui {
     X(BuildingTradeCenter, "building.trade_center") \
     X(BuildingTrainingDummy, "building.training_dummy") \
     X(UnitSoldier, "unit.soldier") \
-    X(UnitBat, "unit.bat") \
-    X(UnitGoat, "unit.goat") \
+    X(UnitSniper, "unit.sniper") \
+    X(UnitEngineer, "unit.engineer") \
     X(UnitCombined, "unit.combined")
 
 #define WAR_TEXT_ID_ENUM(name, key) name,

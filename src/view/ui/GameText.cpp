@@ -59,8 +59,8 @@ std::string_view unitName(model::UnitType type)
 {
     switch (type) {
     case model::UnitType::Soldier: return text(TextId::UnitSoldier);
-    case model::UnitType::Bat: return text(TextId::UnitBat);
-    case model::UnitType::Goat: return text(TextId::UnitGoat);
+    case model::UnitType::Sniper: return text(TextId::UnitSniper);
+    case model::UnitType::Engineer: return text(TextId::UnitEngineer);
     case model::UnitType::Combined: return text(TextId::UnitCombined);
     }
     return text(TextId::CommonUnknown);

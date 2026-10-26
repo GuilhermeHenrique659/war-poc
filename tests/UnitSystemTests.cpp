@@ -101,13 +101,13 @@ TEST(UnitNameTests, ShowsTheNewRecruitableNames)
 {
     // Given the three recruitable unit types.
     const model::UnitSpec soldier = model::unitSpec(model::UnitType::Soldier);
-    const model::UnitSpec bat = model::unitSpec(model::UnitType::Bat);
-    const model::UnitSpec goat = model::unitSpec(model::UnitType::Goat);
+    const model::UnitSpec sniper = model::unitSpec(model::UnitType::Sniper);
+    const model::UnitSpec engineer = model::unitSpec(model::UnitType::Engineer);
 
     // When their presentation labels are read.
 
-    // Then the initial units are named Soldado, Morcego, and Bode.
-    EXPECT_EQ(soldier.label, "Soldado");
-    EXPECT_EQ(bat.label, "Morcego");
-    EXPECT_EQ(goat.label, "Bode");
+    // Then the initial units are named soldado, franco atirador, and engenheiro.
+    EXPECT_EQ(soldier.label, "soldado");
+    EXPECT_EQ(sniper.label, "franco atirador");
+    EXPECT_EQ(engineer.label, "engenheiro");
 }

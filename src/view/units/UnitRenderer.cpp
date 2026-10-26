@@ -78,9 +78,9 @@ Color unitColor(model::UnitType type)
     switch (type) {
     case model::UnitType::Soldier:
         return kSoldierColor;
-    case model::UnitType::Bat:
+    case model::UnitType::Sniper:
         return kBatColor;
-    case model::UnitType::Goat:
+    case model::UnitType::Engineer:
         return kGoatColor;
     case model::UnitType::Combined:
         return kCombinedColor;
@@ -98,10 +98,10 @@ void drawUnit(model::UnitType type, float gx, float gy, int size)
     case model::UnitType::Soldier:
         drawSoldier(gx, gy);
         return;
-    case model::UnitType::Bat:
+    case model::UnitType::Sniper:
         drawBat(gx, gy);
         return;
-    case model::UnitType::Goat:
+    case model::UnitType::Engineer:
         drawGoat(gx, gy);
         return;
     case model::UnitType::Combined:

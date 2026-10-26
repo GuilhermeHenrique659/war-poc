@@ -21,7 +21,7 @@ namespace {
 
 constexpr int kPlayerHealth = 10;
 constexpr WeaponSpec kPlayerWeapon = weaponSpec(WeaponType::Pistol);
-constexpr float kPlayerSpeed = unitSpec(UnitType::Goat).speed;
+constexpr float kPlayerSpeed = unitSpec(model::UnitType::Engineer).speed;
 constexpr float kPlayerCollisionRadius = 0.3F;
 
 } // namespace

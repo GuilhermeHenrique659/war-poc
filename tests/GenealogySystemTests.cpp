@@ -66,7 +66,7 @@ TEST_F(GenealogySystemTest, SendsExactlyTwoFriendlyUnitsToCruzadorAndUsesLegacyF
     // Given a Cruzador and two nearby units of different types.
     const model::ecs::Entity cruzador = buildCruzador();
     const model::ecs::Entity soldier = units_.spawn(kPlayer, model::recruitStats(model::UnitType::Soldier), {5, 10});
-    const model::ecs::Entity bat = units_.spawn(kPlayer, model::recruitStats(model::UnitType::Bat), {5, 11});
+    const model::ecs::Entity bat = units_.spawn(kPlayer, model::recruitStats(model::UnitType::Sniper), {5, 11});
     const std::vector<model::ecs::Entity> parents{soldier, bat};
 
     // When the pair is sent and reaches the Cruzador.
@@ -118,7 +118,7 @@ TEST_F(GenealogySystemTest, CancelsTheCrossingWhenTheUnitsReceiveANewMoveOrder)
     // Given two units that have been sent to the Cruzador.
     const model::ecs::Entity cruzador = buildCruzador();
     const model::ecs::Entity first = units_.spawn(kPlayer, model::recruitStats(model::UnitType::Soldier), {5, 10});
-    const model::ecs::Entity second = units_.spawn(kPlayer, model::recruitStats(model::UnitType::Bat), {5, 11});
+    const model::ecs::Entity second = units_.spawn(kPlayer, model::recruitStats(model::UnitType::Sniper), {5, 11});
     const std::vector<model::ecs::Entity> parents{first, second};
     ASSERT_TRUE(genealogy_.send(kPlayer, cruzador, parents));
 

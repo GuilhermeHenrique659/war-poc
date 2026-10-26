@@ -9,10 +9,10 @@
 namespace model {
 
 // Combined is the temporary legacy offspring type; it cannot be recruited.
-enum class UnitType { Soldier, Bat, Goat, Combined };
+enum class UnitType { Soldier, Sniper, Engineer, Combined };
 
 // Order in which the recruit panel lists the units.
-inline constexpr std::array kRecruitableUnitTypes{UnitType::Soldier, UnitType::Bat, UnitType::Goat};
+inline constexpr std::array kRecruitableUnitTypes{UnitType::Soldier, UnitType::Sniper, UnitType::Engineer};
 
 // Everything fixed by the unit type. Damage and range come from the equipped weapon.
 struct UnitSpec {
@@ -27,11 +27,11 @@ struct UnitSpec {
 {
     switch (type) {
     case UnitType::Soldier:
-        return UnitSpec{"Soldado", 100, WeaponType::Rifle, 2.0f};
-    case UnitType::Bat:
-        return UnitSpec{"Morcego", 60, WeaponType::MarksmanRifle, 1.6f};
-    case UnitType::Goat:
-        return UnitSpec{"Bode", 140, WeaponType::Shotgun, 3.5f};
+        return UnitSpec{"soldado", 100, WeaponType::Rifle, 2.0f};
+    case UnitType::Sniper:
+        return UnitSpec{"franco atirador", 80, WeaponType::MarksmanRifle, 1.8f};
+    case UnitType::Engineer:
+        return UnitSpec{"engenheiro", 120, WeaponType::Shotgun, 1.5f};
     case UnitType::Combined:
         return UnitSpec{"Tropa Combinada", 0, WeaponType::Rifle, 0.0f};
     }

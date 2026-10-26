@@ -27,8 +27,8 @@ TEST_F(GameTextTest, TranslatesBuildingNames)
 
 TEST_F(GameTextTest, TranslatesUnitAndItemNames)
 {
-    EXPECT_EQ(view::ui::unitName(model::UnitType::Soldier), "Soldado");
-    EXPECT_EQ(view::ui::unitName(model::UnitType::Goat), "Bode");
+    EXPECT_EQ(view::ui::unitName(model::UnitType::Soldier), "soldado");
+    EXPECT_EQ(view::ui::unitName(model::UnitType::Engineer), "engenheiro");
     EXPECT_EQ(view::ui::unitName(model::UnitType::Combined), "Combinado");
     EXPECT_EQ(view::ui::itemName(model::ItemId::Iron), "Ferro");
     EXPECT_EQ(view::ui::itemName(model::ItemId::Ammo), "Municao");
