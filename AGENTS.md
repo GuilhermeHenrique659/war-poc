@@ -2,6 +2,8 @@
 
 Jogo de estratégia com construção de base e elementos de tower defense. C++ + raylib 5.5.
 
+**TDD é bloqueante:** toda mudança de comportamento é feita *test-first* (teste que falha antes da implementação). Leia a seção [Testes e TDD](#testes-e-tdd-obrigatório-test-first) antes de escrever qualquer código em `src/`.
+
 ## O jogo
 - Perspectiva **isométrica** (2D, tiles em losango). O mundo é modelado em coordenadas de grid (lógicas) e a conversão grid ↔ tela (e tela ↔ grid, para picking do mouse) é responsabilidade da View. O Model nunca conhece pixels nem a projeção isométrica.
 - Modo atual: **single player sandbox**. Multiplayer (PvE cooperativo e PvP via ENet) está planejado, mas fora do escopo por enquanto. Não acople a lógica a um único jogador local de um jeito que impeça o multiplayer depois (ex.: componentes guardam o dono/jogador).
@@ -20,7 +22,7 @@ Jogo de estratégia com construção de base e elementos de tower defense. C++ +
 - Configurar: `cmake --preset default` (Ninja + g++, saída em `build/`). Compilar: `cmake --build --preset default`. Rodar: `.\build\war_poc.exe`.
 - Para compartilhar uma versão de teste no Windows: `cmake --preset release`, `cmake --build --preset release --target package`. O ZIP `build/release/war_poc-windows-x64.zip` contém o executável e, se existir, a pasta `resource/`; quem testar só precisa extrair o ZIP e abrir `war_poc.exe`, sem instalar compilador ou bibliotecas do projeto.
 - Execute os testes com `ctest --test-dir build --output-on-failure`. O alvo `war_poc_tests` usa GoogleTest, não depende de raylib e não abre uma janela. A primeira configuração baixa o GoogleTest via CMake `FetchContent`.
-- Para verificar uma mudança, compile sem warnings (`-Wall -Wextra -Wpedantic -Wshadow -Wconversion` estão ligados) e execute os testes relevantes.
+- Para verificar uma mudança, compile sem warnings (`-Wall -Wextra -Wpedantic -Wshadow -Wconversion` estão ligados) e execute a suíte completa de testes (ver [Testes e TDD](#testes-e-tdd-obrigatório-test-first)).
 - Os `.cpp` são achados por `GLOB_RECURSE` em `src/`. Não precisa listar arquivos novos no CMake.
 - O executável é linkado com `-static` (raylib estática) e não precisa de DLLs. Hoje só a raylib está linkada. ENet e tmxlite ainda não estão no CMake.
 - O caminho do repo tem acento (`Área de Trabalho`): o `make` do MSYS2 quebra e o link via `cmd.exe` corrompe caminhos absolutos. Por isso o build usa Ninja e as libs são passadas por `-L` com caminho **relativo** (veja `CMakeLists.txt`). Mantenha esse padrão ao adicionar libs.
@@ -50,8 +52,23 @@ Jogo de estratégia com construção de base e elementos de tower defense. C++ +
 - Prefira early return / guard clauses em vez de `if` aninhados.
 - Siga boas práticas de C++ moderno: RAII (inclusive para recursos da raylib como `Texture2D` e `Sound`), const-correctness, `enum class`, nada de `using namespace` em headers.
 
-## Testes e TDD (obrigatório)
-- Implemente mudanças de comportamento com **TDD**: primeiro escreva um teste que falha, implemente o mínimo para fazê-lo passar e só então refatore, mantendo a suíte verde.
-- Estruture cada cenário pela filosofia **Given / When / Then**: deixe claro o estado inicial (Given), execute uma única ação observada (When) e verifique o resultado público (Then). Isso é uma forma de pensar e organizar o teste, não uma exigência de macros específicas; comentários curtos podem separar as etapas quando ajudarem a leitura.
-- Os testes ficam em `tests/`, em arquivos terminados em `Tests.cpp`; o CMake os descobre automaticamente. Use GoogleTest (`TEST`, `TEST_F`, `EXPECT_*` e `ASSERT_*`) para escrevê-los.
-- Priorize testes unitários determinísticos da lógica do Model e dos sistemas ECS. A View/raylib não deve ser necessária para testar regras de jogo.
+## Testes e TDD (obrigatório, test-first)
+
+**Nenhuma implementação de comportamento começa antes do teste.** O ciclo é sempre **red → green → refactor**:
+
+1. **Red**: escreva primeiro o teste em `tests/<Assunto>Tests.cpp` descrevendo o comportamento desejado (Given / When / Then). Rode `ctest --test-dir build --output-on-failure` e confirme que ele falha **pela asserção esperada** — não por erro de compilação, include faltando ou typo.
+2. **Green**: implemente em `src/` o mínimo necessário para o teste passar. Não antecipe features que nenhum teste pede.
+3. **Refactor**: com a suíte inteira verde, limpe o código mantendo todos os testes passando.
+4. **Verificação final**: compile sem warnings e rode a suíte completa (`ctest --test-dir build --output-on-failure`), não apenas o teste novo.
+
+Regras:
+
+- **É proibido implementar primeiro e "adicionar testes depois"**: teste escrito depois não conta como TDD. Se perceber que fez isso, descarte a implementação e refaça a partir do teste.
+- **Bugfix**: reproduza o bug com um teste de regressão que falha antes da correção e siga o mesmo ciclo. Nunca corrija "no olho".
+- **Definition of Done**: na resposta final, informe os testes criados/alterados, a falha observada no passo Red e o resultado da suíte completa (ex.: `N tests passed`). Sem isso, a tarefa não está concluída.
+- **Não é permitido** entregar teste desabilitado (`DISABLED_`), comentado, com `EXPECT_TRUE(true)` ou com asserção enfraquecida só para "ficar verde". Se um teste estiver instável, conserte a causa; se for realmente impossível testar de forma determinística, pare e peça orientação em vez de mascarar.
+- **Exceções** (docs, build/CMake, assets e refactor puro): não exigem teste novo, mas exigem a suíte rodada antes e depois, verde. Refactor não pode mudar comportamento observável; se mudar, é feature e volta para o ciclo TDD.
+- **Escopo do teste**: verifique comportamento público (API, eventos, estado exposto), não detalhes internos. Um cenário por comportamento, cobrindo caminho feliz, limites e erros relevantes.
+- Estruture cada cenário pela filosofia **Given / When / Then**: estado inicial explícito (Given), uma única ação observada (When) e verificação do resultado público (Then). Comentários curtos podem separar as etapas quando ajudarem a leitura.
+- Os testes ficam em `tests/`, em arquivos terminados em `Tests.cpp`; o CMake os descobre automaticamente. Use GoogleTest (`TEST`, `TEST_F`, `EXPECT_*` e `ASSERT_*`).
+- Priorize testes unitários determinísticos da lógica do Model e dos sistemas ECS. A View/raylib não deve ser necessária para testar regras de jogo: se uma regra só for testável com raylib, extraia a regra para o Model.
