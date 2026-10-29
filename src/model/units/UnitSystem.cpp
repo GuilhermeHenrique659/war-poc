@@ -8,6 +8,7 @@
 #include "model/combat/WeaponComponents.hpp"
 #include "model/economy/InventoryComponents.hpp"
 #include "model/economy/LogisticsComponents.hpp"
+#include "model/units/UnitGeometry.hpp"
 
 #include <algorithm>
 #include <cmath>
@@ -16,56 +17,11 @@
 
 namespace model {
 
-namespace {
-
-// Keeps a unit standing exactly on its square from touching the neighbor tiles.
-constexpr float kCoverEpsilon = 0.01f;
-
-[[nodiscard]] float halfSize(int size)
-{
-    return static_cast<float>(size) / 2.0f;
-}
-
-[[nodiscard]] GridPos originOf(const components::Position& position, int size)
-{
-    const float offset = halfSize(size) - 0.5f;
-    return GridPos{static_cast<int>(std::floor(position.x - offset)), static_cast<int>(std::floor(position.y - offset))};
-}
-
-[[nodiscard]] components::Position centerOf(GridPos origin, int size)
-{
-    return components::Position{static_cast<float>(origin.x) + halfSize(size), static_cast<float>(origin.y) + halfSize(size)};
-}
-
-[[nodiscard]] bool covers(const components::Position& position, int size, GridPos tile)
-{
-    const float half = halfSize(size) - kCoverEpsilon;
-    const float x = static_cast<float>(tile.x);
-    const float y = static_cast<float>(tile.y);
-    return x + 1.0f > position.x - half && x < position.x + half && y + 1.0f > position.y - half
-        && y < position.y + half;
-}
-
-template <typename Func>
-bool anyTileOf(GridPos origin, int size, Func&& func)
-{
-    for (int dy = 0; dy < size; ++dy) {
-        for (int dx = 0; dx < size; ++dx) {
-            if (func(GridPos{origin.x + dx, origin.y + dy})) {
-                return true;
-            }
-        }
-    }
-    return false;
-}
-
-// Origin that centers a square of `size` on the tile.
-[[nodiscard]] GridPos centeredOrigin(GridPos tile, int size)
-{
-    return GridPos{tile.x - (size - 1) / 2, tile.y - (size - 1) / 2};
-}
-
-} // namespace
+using unit_geometry::anyTileOf;
+using unit_geometry::centerOf;
+using unit_geometry::centeredOrigin;
+using unit_geometry::covers;
+using unit_geometry::originOf;
 
 UnitSystem::UnitSystem(core::EventBus& bus, ecs::Registry& world, const BuildingSystem& buildings)
     : bus_(bus)
@@ -231,10 +187,12 @@ ecs::Entity UnitSystem::spawn(PlayerId player, const UnitStats& stats, GridPos o
     world_.emplace<components::Mover>(entity, std::move(mover));
     world_.emplace<components::Inventory>(entity, kUnitInventorySlots);
     world_.emplace<components::UnitSupplyState>(entity);
+    const Direction initialFacing = world_.emplace<components::Facing>(entity).direction;
     reserve(entity, origin, stats.size);
 
     bus_.publish(events::UnitSpawned{entity, player, stats.type, position.x, position.y, stats.health,
         stats.maxHealth, stats.size, stats.baseCount});
+    bus_.publish(events::FacingChanged{entity, initialFacing});
     return entity;
 }
 
@@ -312,10 +270,15 @@ bool UnitSystem::update(float deltaSeconds)
     bool anyMoved = false;
     world_.each<components::Mover>([&](ecs::Entity entity, components::Mover& mover) {
         auto* position = world_.tryGet<components::Position>(entity);
-        if (position == nullptr || !advance(Walker{entity, &mover, position, sizeOf(entity)}, deltaSeconds)) {
+        if (position == nullptr) {
+            return;
+        }
+        const components::Position previous = *position;
+        if (!advance(Walker{entity, &mover, position, sizeOf(entity)}, deltaSeconds)) {
             return;
         }
         anyMoved = true;
+        updateFacing(entity, previous, *position);
         if (world_.has<components::TransportDrone>(entity)
             || world_.has<components::ConstructionDrone>(entity)) {
             bus_.publish(events::DroneMoved{entity, position->x, position->y});
@@ -324,6 +287,22 @@ bool UnitSystem::update(float deltaSeconds)
         }
     });
     return anyMoved;
+}
+
+void UnitSystem::updateFacing(
+    ecs::Entity entity, const components::Position& before, const components::Position& after)
+{
+    auto* facing = world_.tryGet<components::Facing>(entity);
+    if (facing == nullptr) {
+        return;
+    }
+    const Direction direction = directionFromGridMovement(
+        after.x - before.x, after.y - before.y, facing->direction);
+    if (direction == facing->direction) {
+        return;
+    }
+    facing->direction = direction;
+    bus_.publish(events::FacingChanged{entity, direction});
 }
 
 bool UnitSystem::isTileTaken(GridPos tile) const

@@ -1,8 +1,7 @@
 #pragma once
 
 #include "model/build/BuildingType.hpp"
-#include "model/GridPos.hpp"
-#include "model/components/Owner.hpp"
+#include "model/components/CommonComponents.hpp"
 
 #include <string>
 
@@ -17,11 +16,6 @@ struct Building {
 
     BuildingType type;
     std::string name;
-};
-
-struct Footprint {
-    GridPos origin;
-    int size;
 };
 
 } // namespace model::components

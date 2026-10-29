@@ -63,11 +63,14 @@ UnitViewModel::UnitViewModel(model::UnitType type, int size, int health, int max
     , health_(health)
     , maxHealth_(maxHealth)
 {
+    if (type == model::UnitType::Soldier) {
+        soldierSprite_.emplace();
+    }
 }
 
 void UnitViewModel::drawAt(float gridX, float gridY) const
 {
-    drawUnit(type_, gridX, gridY, size_);
+    drawUnit(type_, gridX, gridY, size_, facing_, soldierSprite_ ? &*soldierSprite_ : nullptr);
     if (maxHealth_ > 0) {
         drawUnitHealthBar(gridX, gridY, size_, static_cast<float>(health_) / static_cast<float>(maxHealth_));
     }
@@ -79,9 +82,29 @@ void UnitViewModel::setHealth(int health, int maxHealth) noexcept
     maxHealth_ = maxHealth;
 }
 
+void UnitViewModel::setFacing(UnitFacing facing) noexcept
+{
+    facing_ = facing;
+}
+
+UnitFacing UnitViewModel::facing() const noexcept
+{
+    return facing_;
+}
+
 void PlayerAvatarViewModel::drawAt(float gridX, float gridY) const
 {
     drawPlayerAvatar(gridX, gridY);
+}
+
+void PlayerAvatarViewModel::setFacing(UnitFacing facing) noexcept
+{
+    facing_ = facing;
+}
+
+UnitFacing PlayerAvatarViewModel::facing() const noexcept
+{
+    return facing_;
 }
 
 } // namespace view::gameplay

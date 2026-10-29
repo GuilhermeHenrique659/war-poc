@@ -4,7 +4,7 @@
 #include "core/Events.hpp"
 #include "model/GridPos.hpp"
 #include "model/player/Player.hpp"
-#include "model/units/UnitComponents.hpp"
+#include "model/components/CommonComponents.hpp"
 #include "model/ecs/Entity.hpp"
 #include "model/ecs/Registry.hpp"
 
@@ -29,6 +29,7 @@ public:
 private:
     void onBuildingPlaced(const events::BuildingPlaced& event);
     void respawn(ecs::Entity entity);
+    void updateFacing(ecs::Entity entity, float directionX, float directionY);
     [[nodiscard]] components::Position findSpawnPosition(GridPos origin, int size) const;
     [[nodiscard]] bool collidesWithBuilding(components::Position position) const;
     [[nodiscard]] bool isPositionWalkable(components::Position position) const;

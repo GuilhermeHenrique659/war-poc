@@ -6,6 +6,8 @@
 #include "view/build/FactoryViewModel.hpp"
 #include "view/build/MineResourceViewModel.hpp"
 #include "view/units/DroneViewModel.hpp"
+#include "view/units/SoldierSpriteViewModel.hpp"
+#include "view/units/UnitFacing.hpp"
 #include "model/build/BuildingType.hpp"
 
 #include <gtest/gtest.h>
@@ -244,6 +246,38 @@ TEST_F(SpriteViewModelTests, FactoryViewModelDrawsDistinctStaticSpriteForEachFac
     EXPECT_NE(textureIds[2], textureIds[3]);
     EXPECT_FALSE(gameplay::FactoryViewModel::handles(model::BuildingType::Barracks));
     EXPECT_FALSE(gameplay::FactoryViewModel::handles(model::BuildingType::Steelworks));
+}
+
+TEST_F(SpriteViewModelTests, SoldierSpriteSelectsTheSheetForTheCurrentFacingAndAnchorsFeetAtTheGround)
+{
+    const auto sheet = [this](const char* key) {
+        return SpriteSheet{key, texturePath_.filename().string(), 2, Vector2{443.5F, 443.5F}, 8.0};
+    };
+    std::array<SpriteSheet, 8> sheets{{
+        sheet("test/soldier_n"),
+        sheet("test/soldier_ne"),
+        sheet("test/soldier_e"),
+        sheet("test/soldier_se"),
+        sheet("test/soldier_s"),
+        sheet("test/soldier_sw"),
+        sheet("test/soldier_w"),
+        sheet("test/soldier_nw"),
+    }};
+    std::array<unsigned int, 8> textureIds{};
+    for (std::size_t index = 0; index < sheets.size(); ++index) {
+        textureIds[index] = sheets[index].texture().id;
+    }
+    const SoldierSpriteViewModel soldier{std::move(sheets)};
+
+    for (std::size_t index = 0; index < textureIds.size(); ++index) {
+        soldier.drawAt(2.0F, 4.0F, static_cast<UnitFacing>(index));
+
+        EXPECT_EQ(drawnTextureId, textureIds[index]);
+        EXPECT_FLOAT_EQ(drawnDestination.x, -349.75F);
+        EXPECT_FLOAT_EQ(drawnDestination.y, -251.5F);
+        EXPECT_FLOAT_EQ(drawnDestination.width, 443.5F);
+        EXPECT_FLOAT_EQ(drawnDestination.height, 443.5F);
+    }
 }
 
 TEST_F(SpriteViewModelTests, DroneViewModelDrawsAnimatedSpriteAboveItsGridPosition)

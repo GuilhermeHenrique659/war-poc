@@ -1,7 +1,7 @@
 #pragma once
 
 #include "model/GridPos.hpp"
-#include "model/build/BuildingComponents.hpp"
+#include "model/components/CommonComponents.hpp"
 
 #include <algorithm>
 #include <cmath>

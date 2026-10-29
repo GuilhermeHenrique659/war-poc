@@ -1,7 +1,9 @@
 #include "core/EventBus.hpp"
 #include "core/Events.hpp"
+#include "model/Direction.hpp"
 #include "model/build/BuildingSystem.hpp"
 #include "model/combat/WeaponComponents.hpp"
+#include "model/components/CommonComponents.hpp"
 #include "model/units/UnitType.hpp"
 #include "model/units/UnitSystem.hpp"
 
@@ -23,6 +25,9 @@ protected:
         bus_.subscribe<events::UnitMoved>([this](const events::UnitMoved& event) {
             moves_.push_back(event);
         });
+        bus_.subscribe<events::FacingChanged>([this](const events::FacingChanged& event) {
+            facings_.push_back(event);
+        });
     }
 
     core::EventBus bus_;
@@ -31,6 +36,7 @@ protected:
     model::UnitSystem units_;
     std::vector<events::UnitSpawned> spawns_;
     std::vector<events::UnitMoved> moves_;
+    std::vector<events::FacingChanged> facings_;
     static constexpr model::PlayerId kPlayer = 1;
 };
 
@@ -110,4 +116,58 @@ TEST(UnitNameTests, ShowsTheNewRecruitableNames)
     EXPECT_EQ(soldier.label, "soldado");
     EXPECT_EQ(sniper.label, "franco atirador");
     EXPECT_EQ(engineer.label, "engenheiro");
+}
+
+TEST_F(UnitSystemTest, SpawnsUnitsFacingSouthAndPublishesTheInitialFacing)
+{
+    // Given the stats a Soldier is recruited with.
+    const model::UnitStats soldier = model::recruitStats(model::UnitType::Soldier);
+
+    // When the soldier spawns into the world.
+    const model::ecs::Entity unit = units_.spawn(kPlayer, soldier, {0, 0});
+
+    // Then it starts facing south and the View is told about that initial state.
+    const auto* facing = world_.tryGet<model::components::Facing>(unit);
+    ASSERT_NE(facing, nullptr);
+    EXPECT_EQ(facing->direction, model::Direction::South);
+    ASSERT_EQ(facings_.size(), 1U);
+    EXPECT_EQ(facings_.front().entity, unit);
+    EXPECT_EQ(facings_.front().direction, model::Direction::South);
+}
+
+TEST_F(UnitSystemTest, TurnsToFaceTheDirectionTheUnitWalks)
+{
+    // Given a Soldier unit standing at the origin.
+    const model::UnitStats soldier = model::recruitStats(model::UnitType::Soldier);
+    const model::ecs::Entity unit = units_.spawn(kPlayer, soldier, {0, 0});
+    facings_.clear();
+
+    // When its owner orders it to move east and time advances by one second.
+    units_.orderMove(kPlayer, {unit}, {2, 0});
+    ASSERT_TRUE(units_.update(1.0F));
+
+    // Then it faces east and publishes the new facing.
+    const auto* facing = world_.tryGet<model::components::Facing>(unit);
+    ASSERT_NE(facing, nullptr);
+    EXPECT_EQ(facing->direction, model::Direction::East);
+    ASSERT_EQ(facings_.size(), 1U);
+    EXPECT_EQ(facings_.front().entity, unit);
+    EXPECT_EQ(facings_.front().direction, model::Direction::East);
+}
+
+TEST_F(UnitSystemTest, KeepsTheFacingWhenTheUnitDoesNotMove)
+{
+    // Given a Soldier unit standing at the origin with no orders.
+    const model::UnitStats soldier = model::recruitStats(model::UnitType::Soldier);
+    const model::ecs::Entity unit = units_.spawn(kPlayer, soldier, {0, 0});
+    facings_.clear();
+
+    // When the world advances without any movement.
+    EXPECT_FALSE(units_.update(1.0F));
+
+    // Then it keeps facing south and no notification is published.
+    const auto* facing = world_.tryGet<model::components::Facing>(unit);
+    ASSERT_NE(facing, nullptr);
+    EXPECT_EQ(facing->direction, model::Direction::South);
+    EXPECT_TRUE(facings_.empty());
 }

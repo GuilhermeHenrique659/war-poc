@@ -1,13 +1,11 @@
 #pragma once
 
-#include "model/GridPos.hpp"
+#include "model/components/CommonComponents.hpp"
 #include "model/units/UnitType.hpp"
-#include "model/components/Owner.hpp"
 #include "model/ecs/Entity.hpp"
 
 #include <cstddef>
 #include <optional>
-#include <vector>
 
 namespace model {
 
@@ -34,28 +32,9 @@ struct Unit {
     int size; // Square footprint, in tiles per side.
 };
 
-struct Health {
-    int current;
-    int max;
-};
-
 struct AttackOrder {
     ecs::Entity target;
     float cooldownRemaining;
-};
-
-// Continuous grid coordinates of the unit's center. A unit of size N whose square starts at
-// tile (x, y) is centered at (x + N / 2, y + N / 2).
-struct Position {
-    float x;
-    float y;
-};
-
-struct Mover {
-    float speed; // Tiles per second.
-    std::vector<GridPos> path; // Square origins still ahead start at `next`.
-    std::size_t next;
-    GridPos destination; // Origin of the square reserved for this unit (where it stands when idle).
 };
 
 // State machine driving the automatic resupply behaviour.

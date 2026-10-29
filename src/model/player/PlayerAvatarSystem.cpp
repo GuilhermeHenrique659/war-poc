@@ -4,7 +4,7 @@
 #include "model/build/BuildingType.hpp"
 #include "model/combat/WeaponComponents.hpp"
 #include "model/units/UnitType.hpp"
-#include "model/build/BuildingComponents.hpp"
+#include "model/components/CommonComponents.hpp"
 #include "model/components/Owner.hpp"
 #include "model/economy/InventoryComponents.hpp"
 #include "model/economy/InventorySystem.hpp"
@@ -83,7 +83,22 @@ void PlayerAvatarSystem::move(PlayerId player, float directionX, float direction
     const float movementY = directionY / magnitude * kPlayerSpeed * deltaSeconds;
     position->x = moveAlongAxis(*position, movementX, true);
     position->y = moveAlongAxis(*position, movementY, false);
+    updateFacing(entity->second, directionX, directionY);
     bus_.publish(events::PlayerMoved{entity->second, player, position->x, position->y});
+}
+
+void PlayerAvatarSystem::updateFacing(ecs::Entity entity, float directionX, float directionY)
+{
+    auto* facing = world_.tryGet<components::Facing>(entity);
+    if (facing == nullptr) {
+        return;
+    }
+    const Direction direction = directionFromGridMovement(directionX, directionY, facing->direction);
+    if (direction == facing->direction) {
+        return;
+    }
+    facing->direction = direction;
+    bus_.publish(events::FacingChanged{entity, direction});
 }
 
 void PlayerAvatarSystem::onBuildingPlaced(const events::BuildingPlaced& event)
@@ -104,9 +119,12 @@ void PlayerAvatarSystem::onBuildingPlaced(const events::BuildingPlaced& event)
         world_.emplace<components::Weapon>(
             entity->second, WeaponType::Pistol, kPlayerWeapon.damage, kPlayerWeapon.range);
         world_.emplace<components::Position>(entity->second, spawnPosition);
+        const Direction initialFacing
+            = world_.emplace<components::Facing>(entity->second).direction;
         spawnPositions_[entity->second] = spawnPosition;
         bus_.publish(events::PlayerSpawned{
             entity->second, event.owner, spawnPosition.x, spawnPosition.y, kPlayerHealth, kPlayerHealth});
+        bus_.publish(events::FacingChanged{entity->second, initialFacing});
         return;
     }
 

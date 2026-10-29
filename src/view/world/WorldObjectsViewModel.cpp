@@ -3,6 +3,7 @@
 #include "view/build/BuildingRenderer.hpp"
 #include "view/IsoProjection.hpp"
 #include "view/IsoShapes.hpp"
+#include "view/units/UnitFacing.hpp"
 #include "view/units/UnitRenderer.hpp"
 
 #include <algorithm>
@@ -86,6 +87,7 @@ WorldObjectsViewModel::WorldObjectsViewModel(core::EventBus& bus)
         [this](const events::SelectionChanged& event) { onSelectionChanged(event); });
     subscribeUnits();
     subscribePlayers();
+    subscribeFacing();
 }
 
 void WorldObjectsViewModel::drawBuildingPreview(
@@ -167,6 +169,20 @@ void WorldObjectsViewModel::subscribePlayers()
         }
         player->second.x = event.x;
         player->second.y = event.y;
+    });
+}
+
+void WorldObjectsViewModel::subscribeFacing()
+{
+    bus_.subscribe<events::FacingChanged>([this](const events::FacingChanged& event) {
+        const UnitFacing facing = facingFromDirection(event.direction);
+        if (const auto unit = units_.find(event.entity); unit != units_.end()) {
+            unit->second.viewModel->setFacing(facing);
+            return;
+        }
+        if (const auto player = players_.find(event.entity); player != players_.end()) {
+            player->second.viewModel->setFacing(facing);
+        }
     });
 }
 

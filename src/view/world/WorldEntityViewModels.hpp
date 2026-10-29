@@ -5,7 +5,11 @@
 #include "view/build/BuildingSpriteViewModel.hpp"
 #include "view/build/FactoryViewModel.hpp"
 #include "view/units/DroneViewModel.hpp"
+#include "view/units/SoldierSpriteViewModel.hpp"
+#include "view/units/UnitFacing.hpp"
 #include "view/world/WorldObjectViewModel.hpp"
+
+#include <optional>
 
 namespace view::gameplay {
 
@@ -38,17 +42,26 @@ public:
 
     void drawAt(float gridX, float gridY) const override;
     void setHealth(int health, int maxHealth) noexcept;
+    void setFacing(UnitFacing facing) noexcept;
+    [[nodiscard]] UnitFacing facing() const noexcept;
 
 private:
     model::UnitType type_;
     int size_;
     int health_;
     int maxHealth_;
+    std::optional<SoldierSpriteViewModel> soldierSprite_;
+    UnitFacing facing_ = UnitFacing::South;
 };
 
 class PlayerAvatarViewModel final : public WorldObjectViewModel {
 public:
     void drawAt(float gridX, float gridY) const override;
+    void setFacing(UnitFacing facing) noexcept;
+    [[nodiscard]] UnitFacing facing() const noexcept;
+
+private:
+    UnitFacing facing_ = UnitFacing::South;
 };
 
 } // namespace view::gameplay

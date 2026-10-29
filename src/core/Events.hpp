@@ -3,6 +3,7 @@
 #include "model/build/BuildingType.hpp"
 #include "model/combat/WeaponType.hpp"
 #include "model/economy/Item.hpp"
+#include "model/Direction.hpp"
 #include "model/GridPos.hpp"
 #include "model/menu/MenuAction.hpp"
 #include "model/player/Player.hpp"
@@ -277,6 +278,13 @@ struct PlayerMoved {
     model::PlayerId player;
     float x;
     float y;
+};
+
+// The entity now faces a different grid direction. Also published when the entity spawns, so the
+// View starts with the initial state.
+struct FacingChanged {
+    model::ecs::Entity entity = 0;
+    model::Direction direction = model::Direction::South;
 };
 
 struct PlayerRespawnRequested {

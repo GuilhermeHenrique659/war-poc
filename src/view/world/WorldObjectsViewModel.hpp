@@ -69,6 +69,7 @@ private:
 
     void subscribeUnits();
     void subscribePlayers();
+    void subscribeFacing();
     void onSelectionChanged(const events::SelectionChanged& event);
 
     core::EventBus& bus_;

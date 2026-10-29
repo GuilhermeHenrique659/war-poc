@@ -1,8 +1,10 @@
 #include "core/EventBus.hpp"
 #include "core/Events.hpp"
+#include "model/Direction.hpp"
 #include "model/build/BuildingComponents.hpp"
 #include "model/combat/WeaponComponents.hpp"
 #include "model/player/PlayerAvatarSystem.hpp"
+#include "model/components/CommonComponents.hpp"
 #include "model/components/Owner.hpp"
 #include "model/economy/InventoryComponents.hpp"
 #include "model/economy/InventorySystem.hpp"
@@ -14,6 +16,7 @@
 #include <gtest/gtest.h>
 
 #include <cmath>
+#include <vector>
 
 namespace {
 
@@ -22,11 +25,15 @@ protected:
     PlayerAvatarSystemTest()
         : players_(bus_, world_)
     {
+        bus_.subscribe<events::FacingChanged>([this](const events::FacingChanged& event) {
+            facings_.push_back(event);
+        });
     }
 
     core::EventBus bus_;
     model::ecs::Registry world_;
     model::PlayerAvatarSystem players_;
+    std::vector<events::FacingChanged> facings_;
 };
 
 } // namespace
@@ -224,4 +231,60 @@ TEST_F(PlayerAvatarSystemTest, StopsAtWaterInsteadOfWalkingAcrossIt)
     ASSERT_NE(position, nullptr);
     EXPECT_LT(position->x + 0.3F, 4.001F);
     EXPECT_GT(position->x, 1.5F);
+}
+
+TEST_F(PlayerAvatarSystemTest, SpawnsFacingSouthAndPublishesTheInitialFacing)
+{
+    // Given a player identity without a spawned avatar.
+    constexpr model::PlayerId playerId = 7;
+    const model::ecs::Entity entity = players_.create(playerId, "Jogador");
+
+    // When the player places a Command Center.
+    bus_.publish(events::BuildingPlaced{99, playerId, model::BuildingType::CommandCenter, {2, 4}, 5});
+
+    // Then the avatar spawns facing south and the View receives that initial state.
+    const auto* facing = world_.tryGet<model::components::Facing>(entity);
+    ASSERT_NE(facing, nullptr);
+    EXPECT_EQ(facing->direction, model::Direction::South);
+    ASSERT_EQ(facings_.size(), 1U);
+    EXPECT_EQ(facings_.front().entity, entity);
+    EXPECT_EQ(facings_.front().direction, model::Direction::South);
+}
+
+TEST_F(PlayerAvatarSystemTest, TurnsToFaceTheDirectionThePlayerMoves)
+{
+    // Given a spawned avatar standing at its Command Center.
+    constexpr model::PlayerId playerId = 3;
+    const model::ecs::Entity entity = players_.create(playerId, "Jogador");
+    bus_.publish(events::BuildingPlaced{99, playerId, model::BuildingType::CommandCenter, {2, 4}, 5});
+    facings_.clear();
+
+    // When the player moves east.
+    bus_.publish(events::PlayerMoveRequested{playerId, 1.0F, 0.0F, 1.0F});
+
+    // Then the avatar faces east and publishes the new facing.
+    const auto* facing = world_.tryGet<model::components::Facing>(entity);
+    ASSERT_NE(facing, nullptr);
+    EXPECT_EQ(facing->direction, model::Direction::East);
+    ASSERT_EQ(facings_.size(), 1U);
+    EXPECT_EQ(facings_.front().entity, entity);
+    EXPECT_EQ(facings_.front().direction, model::Direction::East);
+}
+
+TEST_F(PlayerAvatarSystemTest, KeepsTheFacingWhenThePlayerStandsStill)
+{
+    // Given a spawned avatar.
+    constexpr model::PlayerId playerId = 4;
+    const model::ecs::Entity entity = players_.create(playerId, "Jogador");
+    bus_.publish(events::BuildingPlaced{99, playerId, model::BuildingType::CommandCenter, {2, 4}, 5});
+    facings_.clear();
+
+    // When the player sends a movement request with no direction.
+    bus_.publish(events::PlayerMoveRequested{playerId, 0.0F, 0.0F, 1.0F});
+
+    // Then it keeps facing south and no notification is published.
+    const auto* facing = world_.tryGet<model::components::Facing>(entity);
+    ASSERT_NE(facing, nullptr);
+    EXPECT_EQ(facing->direction, model::Direction::South);
+    EXPECT_TRUE(facings_.empty());
 }

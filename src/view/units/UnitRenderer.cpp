@@ -3,6 +3,7 @@
 #include "view/IsoShapes.hpp"
 #include "view/ui/Bar.hpp"
 #include "view/units/MechRenderer.hpp"
+#include "view/units/SoldierSpriteViewModel.hpp"
 #include "view/units/UnitLayout.hpp"
 
 #include <algorithm>
@@ -88,7 +89,8 @@ Color unitColor(model::UnitType type)
     return MAGENTA;
 }
 
-void drawUnit(model::UnitType type, float gx, float gy, int size)
+void drawUnit(model::UnitType type, float gx, float gy, int size, UnitFacing facing,
+    const SoldierSpriteViewModel* soldierSprite)
 {
     const Vector2 ground = unit_layout::groundPoint(gx, gy);
     const float shadow = unit_layout::halfWidth(size) * 0.85f;
@@ -96,6 +98,10 @@ void drawUnit(model::UnitType type, float gx, float gy, int size)
 
     switch (type) {
     case model::UnitType::Soldier:
+        if (soldierSprite != nullptr) {
+            soldierSprite->drawAt(gx, gy, facing);
+            return;
+        }
         drawSoldier(gx, gy);
         return;
     case model::UnitType::Sniper:
