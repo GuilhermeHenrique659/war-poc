@@ -2,6 +2,7 @@
 
 #include "core/Events.hpp"
 #include "model/FootprintGeometry.hpp"
+#include "model/StateNotifier.hpp"
 #include "model/build/BuildingComponents.hpp"
 #include "model/build/BuildingFactory.hpp"
 #include "model/build/ConstructionComponents.hpp"
@@ -162,9 +163,11 @@ void BuildingSystem::place(PlayerId player, GridPos anchor)
             transferStartingMaterials(player, entity);
         }
         bus_.publish(events::BuildingPlaced{entity, player, type, origin, size});
+        setBuildingState(bus_, world_, entity, BuildingState::Idle);
     } else {
         world_.emplace<components::ConstructionSite>(entity, type, duration);
         bus_.publish(events::ConstructionStarted{entity, player, type, origin, size, duration});
+        setBuildingState(bus_, world_, entity, BuildingState::UnderConstruction);
     }
 
     // Keep the selection for repeated placement (walls) unless the type just got locked.

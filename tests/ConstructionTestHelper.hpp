@@ -8,6 +8,7 @@
 #include "model/build/BuildingType.hpp"
 #include "model/build/ConstructionComponents.hpp"
 #include "model/components/Owner.hpp"
+#include "model/StateNotifier.hpp"
 #include "model/ecs/Entity.hpp"
 #include "model/ecs/Registry.hpp"
 
@@ -36,6 +37,7 @@ inline void completeConstruction(model::ecs::Registry& world, model::ecs::Entity
     model::completeBuilding(world, entity, type);
     bus.publish(events::ConstructionProgressChanged{entity, 1.0F});
     bus.publish(events::BuildingPlaced{entity, player, type, origin, size});
+    model::setBuildingState(bus, world, entity, model::BuildingState::Idle);
 }
 
 // Selects and places a building, then immediately finishes its construction site (if any).

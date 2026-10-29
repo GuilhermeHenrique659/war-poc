@@ -1,6 +1,7 @@
 #include "model/player/PlayerAvatarSystem.hpp"
 
 #include "model/FootprintGeometry.hpp"
+#include "model/StateNotifier.hpp"
 #include "model/build/BuildingType.hpp"
 #include "model/combat/WeaponComponents.hpp"
 #include "model/units/UnitType.hpp"
@@ -10,6 +11,7 @@
 #include "model/economy/InventorySystem.hpp"
 #include "model/economy/Item.hpp"
 #include "model/player/PlayerComponents.hpp"
+#include "model/units/UnitComponents.hpp"
 
 #include <algorithm>
 #include <cmath>
@@ -65,12 +67,13 @@ std::optional<ecs::Entity> PlayerAvatarSystem::entity(PlayerId player) const
 void PlayerAvatarSystem::move(PlayerId player, float directionX, float directionY, float deltaSeconds)
 {
     const auto entity = entities_.find(player);
-    if (entity == entities_.end() || deltaSeconds <= 0.0F) {
+    if (entity == entities_.end()) {
         return;
     }
 
     const float magnitude = std::hypot(directionX, directionY);
-    if (magnitude <= 0.0F) {
+    if (magnitude <= 0.0F || deltaSeconds <= 0.0F) {
+        updateState(entity->second, PlayerState::Idle);
         return;
     }
 
@@ -84,7 +87,17 @@ void PlayerAvatarSystem::move(PlayerId player, float directionX, float direction
     position->x = moveAlongAxis(*position, movementX, true);
     position->y = moveAlongAxis(*position, movementY, false);
     updateFacing(entity->second, directionX, directionY);
+    updateState(entity->second, PlayerState::Moving);
     bus_.publish(events::PlayerMoved{entity->second, player, position->x, position->y});
+}
+
+void PlayerAvatarSystem::updateState(ecs::Entity entity, PlayerState state)
+{
+    // A player holding an attack order is engaging: the combat system owns its state.
+    if (world_.has<components::AttackOrder>(entity)) {
+        return;
+    }
+    setPlayerState(bus_, world_, entity, state);
 }
 
 void PlayerAvatarSystem::updateFacing(ecs::Entity entity, float directionX, float directionY)
@@ -125,6 +138,7 @@ void PlayerAvatarSystem::onBuildingPlaced(const events::BuildingPlaced& event)
         bus_.publish(events::PlayerSpawned{
             entity->second, event.owner, spawnPosition.x, spawnPosition.y, kPlayerHealth, kPlayerHealth});
         bus_.publish(events::FacingChanged{entity->second, initialFacing});
+        setPlayerState(bus_, world_, entity->second, PlayerState::Idle);
         return;
     }
 

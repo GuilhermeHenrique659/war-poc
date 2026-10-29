@@ -5,6 +5,7 @@
 #include "model/economy/Item.hpp"
 #include "model/Direction.hpp"
 #include "model/GridPos.hpp"
+#include "model/components/EntityStates.hpp"
 #include "model/menu/MenuAction.hpp"
 #include "model/player/Player.hpp"
 #include "model/WorldMap.hpp"
@@ -285,6 +286,25 @@ struct PlayerMoved {
 struct FacingChanged {
     model::ecs::Entity entity = 0;
     model::Direction direction = model::Direction::South;
+};
+
+// A unit changed what it is doing: idle, walking, or engaging a target. Also published on spawn.
+struct UnitStateChanged {
+    model::ecs::Entity entity = 0;
+    model::UnitState state = model::UnitState::Idle;
+};
+
+// The player avatar changed what it is doing. Also published when the avatar spawns.
+struct PlayerStateChanged {
+    model::ecs::Entity entity = 0;
+    model::PlayerState state = model::PlayerState::Idle;
+};
+
+// A building changed its lifecycle: idle, still under construction, or converting inputs.
+// Also published when the building is placed.
+struct BuildingStateChanged {
+    model::ecs::Entity entity = 0;
+    model::BuildingState state = model::BuildingState::Idle;
 };
 
 struct PlayerRespawnRequested {

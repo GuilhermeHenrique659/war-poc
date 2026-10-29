@@ -5,6 +5,7 @@
 #include "model/GridPos.hpp"
 #include "model/player/Player.hpp"
 #include "model/components/CommonComponents.hpp"
+#include "model/components/EntityStates.hpp"
 #include "model/ecs/Entity.hpp"
 #include "model/ecs/Registry.hpp"
 
@@ -30,6 +31,7 @@ private:
     void onBuildingPlaced(const events::BuildingPlaced& event);
     void respawn(ecs::Entity entity);
     void updateFacing(ecs::Entity entity, float directionX, float directionY);
+    void updateState(ecs::Entity entity, PlayerState state);
     [[nodiscard]] components::Position findSpawnPosition(GridPos origin, int size) const;
     [[nodiscard]] bool collidesWithBuilding(components::Position position) const;
     [[nodiscard]] bool isPositionWalkable(components::Position position) const;

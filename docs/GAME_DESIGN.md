@@ -192,7 +192,7 @@ Documento vivo com as regras do jogo. Itens marcados como **TBD** ainda não for
 - As tropas usam as armas da tabela de **Armas, projéteis e dano**. Uma ordem de ataque dispara após um cooldown de um segundo e repete enquanto o alvo permanecer dentro do alcance. Tiros diretos exigem linha de visão; sem ela, a tropa segura o fogo.
 - Ao receber uma ordem de ataque, a tropa caminha pela rota até o alvo **entrar no alcance da arma e para ali** — não é preciso encostar. O primeiro tile da rota em que o alvo já está no alcance vira o destino; se ela já estiver no alcance, não se desloca. O disparo continua exigindo alvo no alcance e linha de visão; sem caminho até um tile dentro do alcance, ela não atira. Torres e outras entidades sem `Mover` não se deslocam e atacam apenas o que estiver no alcance.
 - **Suprimentos**: cada tropa tem inventário de 2 slots (arma e munição) e carrega no máximo 1 arma e 100 munições. A arma é obrigatória para atacar e cada disparo consome 1 munição.
-- **Máquina de estados**: a tropa fica `Idle` quando está com arma e munição; entra em `SeekingSupplies` ao nascer ou quando a munição chega a zero; e fica em `WaitingForSupplies` quando não há suprimentos disponíveis ou o depósito encontrado está vazio.
+- **Máquina de estados de suprimento**: a tropa fica `Idle` quando está com arma e munição; entra em `SeekingSupplies` ao nascer ou quando a munição chega a zero; e fica em `WaitingForSupplies` quando não há suprimentos disponíveis ou o depósito encontrado está vazio. Essa máquina é interna do reabastecimento e independente do estado de atividade descrito em **Estados das entidades**.
   - Ao nascer, busca 1 arma e 100 munições. Com munição zerada, volta a buscar uma recarga completa automaticamente.
   - Procura primeiro o Armazém mais próximo que tenha o item necessário; se nenhum Armazém tiver estoque, usa o Centro de Comando mais próximo que tenha estoque. Armazém tem preferência sobre o Centro quando ambos podem suprir.
   - Se nenhum Armazém ou Centro de Comando tiver arma ou munição, a tropa para onde está e permanece parada, sem atacar, até aparecer estoque.
@@ -206,6 +206,13 @@ Documento vivo com as regras do jogo. Itens marcados como **TBD** ainda não for
 - **TBD**: receitas e tipos descendentes, se a ordem dos pais importa, atributos próprios das descendentes e custo/tempo de cruzamento fora do sandbox.
 - Tropas maiores que 1x1 ocupam e reservam o quadrado inteiro: nada é construído em cima e o caminho só passa por onde o quadrado inteiro cabe.
 - **TBD**: custo e tempo de recrutamento fora do sandbox, limite de tropas, colisão entre tropas.
+
+## Estados das entidades
+- Cada tipo de entidade tem o próprio estado, guardado como componente ECS e publicado pelo event bus (`UnitStateChanged`, `PlayerStateChanged`, `BuildingStateChanged`) sempre que muda. O estado inicial também é publicado na criação, para a View começar sincronizada.
+- **Tropa** (`UnitState`): `Idle` parada, `Moving` enquanto tem rota, `Attacking` enquanto está engajada com um alvo dentro do alcance da arma. Receber uma ordem de movimento tira a tropa de `Attacking`.
+- **Avatar do jogador** (`PlayerState`): `Idle` quando não há direção de movimento no frame, `Moving` enquanto se desloca e `Attacking` quando engajado. O Controller publica o pedido de movimento todo frame, inclusive com direção zero, para o Model saber quando o avatar parou.
+- **Construção** (`BuildingState`): `UnderConstruction` enquanto é um canteiro, `Producing` apenas nos ticks em que de fato converte insumos em saída e `Idle` nos demais casos (pronta e sem produzir). Construções colocadas prontas (Centro de Comando) começam `Idle`.
+- O estado de atividade é separado da máquina de suprimento das tropas e do estado visual de drones: cada um continua com seus próprios componentes.
 
 ## Vitória / derrota
 - Sandbox: sem condição de vitória ou derrota.

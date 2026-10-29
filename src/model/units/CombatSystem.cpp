@@ -2,6 +2,7 @@
 
 #include "core/Events.hpp"
 #include "model/FootprintGeometry.hpp"
+#include "model/StateNotifier.hpp"
 #include "model/build/BuildingComponents.hpp"
 #include "model/combat/LineOfSight.hpp"
 #include "model/combat/WeaponComponents.hpp"
@@ -139,6 +140,30 @@ void CombatSystem::consumeAmmo(ecs::Entity entity) const
     }
 }
 
+void CombatSystem::markEngaging(ecs::Entity entity)
+{
+    if (world_.tryGet<components::Unit>(entity) != nullptr) {
+        setUnitState(bus_, world_, entity, UnitState::Attacking);
+        return;
+    }
+    if (world_.tryGet<components::PlayerProfile>(entity) != nullptr) {
+        setPlayerState(bus_, world_, entity, PlayerState::Attacking);
+    }
+}
+
+void CombatSystem::markDisengaged(ecs::Entity entity)
+{
+    const auto* mover = world_.tryGet<components::Mover>(entity);
+    const bool walking = mover != nullptr && !mover->path.empty();
+    if (world_.tryGet<components::Unit>(entity) != nullptr) {
+        setUnitState(bus_, world_, entity, walking ? UnitState::Moving : UnitState::Idle);
+        return;
+    }
+    if (world_.tryGet<components::PlayerProfile>(entity) != nullptr) {
+        setPlayerState(bus_, world_, entity, walking ? PlayerState::Moving : PlayerState::Idle);
+    }
+}
+
 void CombatSystem::orderAttack(PlayerId player, const std::vector<ecs::Entity>& attackers, ecs::Entity target)
 {
     if (!validTarget(player, target)) {
@@ -241,6 +266,8 @@ void CombatSystem::update(float deltaSeconds)
             }
             return;
         }
+        // In range: the entity is engaging, even while the shot cooldown is still running.
+        markEngaging(entity);
         order.cooldownRemaining -= deltaSeconds;
         if (order.cooldownRemaining > 0.0F) {
             return;
@@ -265,6 +292,7 @@ void CombatSystem::update(float deltaSeconds)
     for (const ecs::Entity entity : invalidOrders) {
         if (world_.isAlive(entity)) {
             world_.remove<components::AttackOrder>(entity);
+            markDisengaged(entity);
         }
     }
 

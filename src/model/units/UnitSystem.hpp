@@ -72,6 +72,7 @@ private:
     void reserve(ecs::Entity entity, GridPos origin, int size);
     void release(const Walker& walker);
     bool advance(const Walker& walker, float deltaSeconds);
+    void notifyState(ecs::Entity entity, UnitState state);
     void updateFacing(
         ecs::Entity entity, const components::Position& before, const components::Position& after);
 

@@ -2,6 +2,7 @@
 
 #include "core/Events.hpp"
 #include "model/FootprintGeometry.hpp"
+#include "model/StateNotifier.hpp"
 #include "model/build/BuildingFactory.hpp"
 #include "model/build/ConstructionComponents.hpp"
 #include "model/components/Owner.hpp"
@@ -136,6 +137,7 @@ void ConstructionSystem::completeSite(ecs::Entity entity, const components::Cons
     completeBuilding(world_, entity, type);
     bus_.publish(events::ConstructionProgressChanged{entity, 1.0F});
     bus_.publish(events::BuildingPlaced{entity, player, type, origin, size});
+    setBuildingState(bus_, world_, entity, BuildingState::Idle);
 }
 
 } // namespace model

@@ -37,6 +37,10 @@ private:
     // Tile used as the center of the target footprint when walking into weapon range.
     [[nodiscard]] GridPos targetTile(ecs::Entity target) const;
     void consumeAmmo(ecs::Entity entity) const;
+    // Publishes the attacking state of the entity, unit or player avatar.
+    void markEngaging(ecs::Entity entity);
+    // Publishes idle or moving, depending on whether the entity still has a route.
+    void markDisengaged(ecs::Entity entity);
 
     core::EventBus& bus_;
     ecs::Registry& world_;

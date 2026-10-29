@@ -2,6 +2,7 @@
 
 #include "core/Events.hpp"
 #include "model/FootprintGeometry.hpp"
+#include "model/StateNotifier.hpp"
 #include "model/Pathfinding.hpp"
 #include "model/build/BuildingComponents.hpp"
 #include "model/build/ConstructionComponents.hpp"
@@ -193,6 +194,7 @@ ecs::Entity UnitSystem::spawn(PlayerId player, const UnitStats& stats, GridPos o
     bus_.publish(events::UnitSpawned{entity, player, stats.type, position.x, position.y, stats.health,
         stats.maxHealth, stats.size, stats.baseCount});
     bus_.publish(events::FacingChanged{entity, initialFacing});
+    setUnitState(bus_, world_, entity, UnitState::Idle);
     return entity;
 }
 
@@ -279,6 +281,9 @@ bool UnitSystem::update(float deltaSeconds)
         }
         anyMoved = true;
         updateFacing(entity, previous, *position);
+        if (mover.path.empty() && !world_.has<components::AttackOrder>(entity)) {
+            notifyState(entity, UnitState::Idle);
+        }
         if (world_.has<components::TransportDrone>(entity)
             || world_.has<components::ConstructionDrone>(entity)) {
             bus_.publish(events::DroneMoved{entity, position->x, position->y});
@@ -382,6 +387,7 @@ bool UnitSystem::startPath(const Walker& walker, GridPos destination)
     walker.mover->next = 0;
     walker.mover->destination = destination;
     reserve(walker.entity, destination, size);
+    notifyState(walker.entity, UnitState::Moving);
     return true;
 }
 
@@ -402,6 +408,19 @@ void UnitSystem::settle(const Walker& walker)
             reserved_.try_emplace(GridPos{here.x + dx, here.y + dy}, walker.entity);
         }
     }
+    // A unit holding an attack order is engaging: the combat system owns its state.
+    if (!world_.has<components::AttackOrder>(walker.entity)) {
+        notifyState(walker.entity, UnitState::Idle);
+    }
+}
+
+void UnitSystem::notifyState(ecs::Entity entity, UnitState state)
+{
+    // Drones and other walkers are not units and have no combat state machine.
+    if (world_.tryGet<components::Unit>(entity) == nullptr) {
+        return;
+    }
+    setUnitState(bus_, world_, entity, state);
 }
 
 void UnitSystem::reserve(ecs::Entity entity, GridPos origin, int size)

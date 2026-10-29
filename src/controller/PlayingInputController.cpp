@@ -155,10 +155,9 @@ void PlayingInputController::handlePlayerMovement()
         directionX += 1.0F;
         directionY -= 1.0F;
     }
-    if (directionX != 0.0F || directionY != 0.0F) {
-        bus_.publish(events::PlayerMoveRequested{localPlayerId_, directionX, directionY, GetFrameTime()});
-    }
-
+    // Published every frame, including the zero direction, so the model knows when the avatar
+    // stopped moving and can publish the idle state.
+    bus_.publish(events::PlayerMoveRequested{localPlayerId_, directionX, directionY, GetFrameTime()});
 }
 
 void PlayingInputController::handleShortcuts()
